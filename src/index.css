@@ -1,0 +1,31 @@
+@import "tailwindcss";
+
+@theme {
+  /* Tableau 10 Color Palette */
+  --color-tableau-blue: #1f77b4;
+  --color-tableau-orange: #ff7f0e;
+  --color-tableau-green: #2ca02c;
+  --color-tableau-red: #d62728;
+  --color-tableau-purple: #9467bd;
+  --color-tableau-brown: #8c564b;
+  --color-tableau-pink: #e377c2;
+  --color-tableau-gray: #7f7f7f;
+  --color-tableau-olive: #bcbd22;
+  --color-tableau-cyan: #17becf;
+
+  /* Tableau UI specifics */
+  --color-tableau-bg: #f8f9fa;
+  --color-tableau-border: #e9ecef;
+}
+
+body {
+  background-color: var(--color-tableau-bg);
+  color: #333;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  margin: 0;
+}
+
+/* React Flow custom styles */
+.react-flow__node {
+  border-radius: 8px;
+}
