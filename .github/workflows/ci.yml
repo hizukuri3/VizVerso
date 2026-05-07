@@ -27,5 +27,5 @@ jobs:
       - name: Run Type Check
         run: npx tsc -b
         
-      - name: Run Tests
-        run: npm run test
+      - name: Run Tests with Coverage
+        run: npm run test:coverage
