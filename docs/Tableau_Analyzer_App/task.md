@@ -1,6 +1,7 @@
 - [x] `src/App.tsx` のメインコピーとサブテキストの表現修正
 - [x] `src/components/AboutModal.tsx` の表現修正
-- [ ] 変更内容の確認（ブラウザ等）
-- [ ] 変更のコミット
-- [ ] GitHub へのプッシュ
-- [ ] Walkthrough の作成
+- [x] ホバー時の「選択されていません」ツールチップの非表示化 (`DragDropZone.tsx`)
+- [x] 変更内容の確認
+- [x] 変更のコミット
+- [x] GitHub へのプッシュ
+- [x] Walkthrough の更新
