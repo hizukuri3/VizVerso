@@ -6,8 +6,9 @@ export default mergeConfig(
   defineConfig({
     test: {
       globals: true,
-      environment: 'jsdom',
+      environment: 'node', // Worker環境での動作を保証するためデフォルトはNodeとする
       setupFiles: './src/setupTests.ts',
+      exclude: ['node_modules', 'dist', '.idea', '.git', '.cache', 'tests/e2e/**'],
       coverage: {
         provider: 'v8',
         reporter: ['text', 'json', 'html'],

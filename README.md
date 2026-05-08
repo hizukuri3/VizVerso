@@ -1,73 +1,36 @@
-# React + TypeScript + Vite
+# Verso-viz
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Tableauの裏側を覗き、その構造とロジックを解明するための twbx 解析ツール
+A twbx analysis tool for peeking into the backend of Tableau and unraveling its structure and logic.
 
-Currently, two official plugins are available:
+## 概要 / Overview
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+**Verso-viz** は、Tableau ワークブック（.twb / .twbx）の内部構造を解析し、ダッシュボード、ワークシート、計算フィールド、パラメータ、データソースなどの依存関係を可視化・エクスポートするためのツールです。
 
-## React Compiler
+**Verso-viz** is a tool designed to analyze the internal structure of Tableau workbooks (.twb / .twbx), allowing you to visualize and export dependencies between dashboards, worksheets, calculated fields, parameters, and datasources.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 主な機能 / Features
 
-## Expanding the ESLint configuration
+- **内部構造の可視化**: ワークブックに含まれる全エンティティの関係性をブラウザ上で探索。
+- **計算フィールドの解析**: 複雑な計算ロジックや依存関係を詳細に表示。
+- **Excel エクスポート**: 開発者やドキュメント作成に役立つ詳細な定義一覧を Excel 形式で出力。
+- **マルチレイヤー解析**: 二重軸やマップレイヤーなど、Tableau 特有の複雑なペイン構造を解明。
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- **Structure Visualization**: Explore relationships between all entities within a workbook in your browser.
+- **Calculated Field Analysis**: View detailed calculation logic and dependencies.
+- **Excel Export**: Generate detailed definition lists in Excel format for developers and documentation.
+- **Multi-layer Analysis**: Unravel complex pane structures like dual axes and map layers.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## 技術スタック / Tech Stack
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+- React 19
+- TypeScript
+- Vite
+- Tailwind CSS
+- fast-xml-parser (XML Analysis)
+- JSZip (twbx Extraction)
+- SheetJS (Excel Export)
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## ライセンス / License
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+MIT License

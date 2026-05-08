@@ -1,65 +1,34 @@
-# Tableau Workbook Analyzer 実装計画 (v4: セキュリティ・品質保証 強化版)
+# 実装計画: 「Ray」ロジック・UI最終ポリッシュ
 
-本ドキュメントは、Tableauのワークブックファイル（.twb, .twbx）をブラウザ上で解析し、設計情報や依存関係を可視化するアプリケーションの実装計画です。
-初期の機能要件に加え、**「エンタープライズ水準の安全性・保守性・パフォーマンス」** を担保するための開発基盤要件を追加定義しています。
+物理名から表示名への完全置換、ダッシュボード・シート階層の正確な解析、数式の完全なデコード、およびツールチップのUI改善を行います。
 
-## 1. 目的と開発アプローチ
-
-- **目的**: Tableauダッシュボード開発者向けの設計書作成効率化、および運用者向けのメンテナンス性向上。
-- **開発アプローチ**: テスト駆動開発 (TDD)、事前のデザイン設計、CI/CDによる品質の自動チェックを義務付ける。
-
----
-
+## ユーザーレビューが必要な項目
 > [!IMPORTANT]
->
-> ## User Review Required / ユーザー確認事項
->
-> 環境構築の「甘さ」を排除するため、以下の**「4つの品質保証観点」**を開発基盤として追加導入します。この方針で環境をアップデートしてよろしいでしょうか？
->
-> 1. **セキュリティ (Security)**
->    - `Dependabot` を導入し、パッケージの脆弱性を自動検知・アップデート。
->    - `eslint-plugin-security` 等を導入し、セキュアコーディングを強制。
->    - TDDの要件に **XXE（XML外部実体参照）攻撃** や **Zipボム**、**XSS** に対する防御・サニタイズのテストを義務化。
-> 2. **パフォーマンス (Performance)**
->    - 数百MBの `.twbx` を解凍する際、ブラウザのUIがフリーズするのを防ぐため、重いパース処理は **Web Worker** に逃がすアーキテクチャを採用する。
->    - Viteのビルド設定でチャンク分割（Code Splitting）を行い、初期ロードを高速化する。
-> 3. **アクセシビリティ (Accessibility / a11y)**
->    - `eslint-plugin-jsx-a11y` を導入し、視覚障害者やキーボードユーザーにも配慮したマークアップ（ARIA属性、フォーカス管理等）を強制する。
-> 4. **テスト品質の可視化 (Test Coverage)**
->    - Vitestにカバレッジ計測ツールを導入し、**テストカバレッジ80%以上**をマージ（CIパス）の条件とする。
+> 1. **物理名の排除**: UI全域（サイドバー、詳細ビュー、ツールチップ）で、`[Calculation_...]` などの物理名を表示名（Caption）に書き換えます。
+> 2. **階層構造**: ダッシュボードに含まれるシートはサイドバーの「DASHBOARDS」配下にのみ表示し、下の「SHEETS」リストからは除外します。
+> 3. **数式のデコード**: 残存する XML エンティティをすべて排除し、改行を確実に反映させます。
 
----
+## 変更内容
 
-## 2. アーキテクチャと技術スタック
+### 1. 物理名から表示名へのマッピング徹底
+- `src/components/Sidebar.tsx` [MODIFY]: ダッシュボード内のシート名表示に `caption` を適用。
+- `src/components/DetailView.tsx` [MODIFY]: バッジ表示やツールチップタイトルにおいて、物理名が表示されている箇所を `caption` 優先に変更。
 
-- **フロントエンド**: React (Vite) + TypeScript
-- **非同期処理 (NEW)**: **Web Worker** (メインスレッドをブロックせずにJSZipやDOMParserを実行)
-- **スタイリング**: TailwindCSS (Tableau風テーマ)
-- **可視化**: React Flow (`@xyflow/react`)
-- **テスト環境**: Vitest + React Testing Library + `@vitest/coverage-v8` (カバレッジ)
-- **静的解析**: ESLint (Security, a11yプラグイン追加), Prettier, Husky, lint-staged
-- **CI/CD**: GitHub Actions, Dependabot
+### 2. ダッシュボード・シート階層の正確な解析
+- `src/components/Sidebar.tsx` [MODIFY]: 
+    - 「DASHBOARDS」セクションでシートを階層表示。
+    - 「SHEETS」セクションのフィルタ条件を厳格化し、いずれかのダッシュボードに含まれるシートをリストから完全に除外。
 
-## 3. 実装フェーズ
+### 3. 数式テキストのクレンジング
+- `src/components/DetailView.tsx` [MODIFY]: `formatFormulaText` 関数を強化し、より広範な XML エンティティ（`&#10;`, `&#13;`, `&quot;`, `&amp;` 等）を確実にデコード。
 
-### Phase 1.5: エンタープライズ開発環境の確立 (← 現在ここ)
+### 4. ツールチップ UI の改善
+- `src/components/ui/Pill.tsx` [MODIFY]: 
+    - `SyntaxHighlightedFormula` の右側に十分な余白（`pr-6` 程度）を確保。
+    - ツールチップのフェードイン時間を調整し、即時性を向上。
 
-- [NEW] Dependabotの設定ファイル作成
-- [NEW] ESLintのセキュリティ・a11yルールの強化
-- [NEW] Vitestカバレッジ計測の導入とCI連携
-- [NEW] TDDルール・コーディング規約のアップデート（XXE対策、Web Worker利用等）
-
-### Phase 2: 解析エンジンの実装 (TDD + Web Worker)
-
-- [Test First] `.twbx`解凍およびXMLパースのテスト（正常系 ＋ Zipボム/XXE等異常系）
-- [Implementation] **Web Worker** 上でJSZipとDOMParserを用いた解析ロジック実装
-
-### Phase 3: UIおよびネットワーク図の構築 (TDD + a11y)
-
-- [Test First] アクセシビリティを考慮したUIコンポーネントのテスト記述
-- [Implementation] TailwindCSSによるUI実装とReact Flowによるネットワーク図構築
-
-### Phase 4: 検証と仕上げ
-
-- 実データを用いた動作確認（パフォーマンスプロファイリング含む）
-- ブラウザのネットワーク通信監視（完全ローカル処理の確認）
+## 検証計画
+- サイドバーの「SHEETS」一覧に、ダッシュボード内のシートが含まれていないか。
+- ツールチップのタイトルや数式内の項目名がすべて日本語（Caption）になっているか。
+- 数式内の `&#10;` などが消え、正しく改行されているか。
+- ツールチップの右端が窮屈でないか。

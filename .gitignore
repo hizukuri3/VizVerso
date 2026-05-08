@@ -11,6 +11,11 @@ node_modules
 dist
 dist-ssr
 *.local
+# Tableau Schemas (DO NOT DEPLOY - Copyright restrictions)
+/tableau-document-schemas/
+
+# Local Test Fixtures (DO NOT DEPLOY)
+/tests/fixtures/
 
 # Editor directories and files
 .vscode/*
@@ -22,3 +27,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Temporary test files
+public/sample.twbx
+public/corrupt.twbx
+scratch/
+test-results/
+.gemini/
+ Broadway

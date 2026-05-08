@@ -20,12 +20,68 @@
 
 body {
   background-color: var(--color-tableau-bg);
-  color: #333;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: #1e293b;
+  font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.transition-all-200 {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar-item-active {
+  background-color: #f1f5f9;
+  color: #1e293b;
+  font-weight: 600;
+  border-right: 3px solid #1f77b4;
 }
 
 /* React Flow custom styles */
-.react-flow__node {
-  border-radius: 8px;
+.custom-node {
+  padding: 12px;
+  border-radius: 12px;
+  background: white;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  border: 2px solid transparent;
+  transition: all 0.2s ease-in-out;
+  cursor: pointer;
+}
+
+.custom-node:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+}
+
+.dashboard-node {
+  border-color: #fca5a5;
+  background: #fef2f2;
+}
+.worksheet-node {
+  border-color: #fcd34d;
+  background: #fffbeb;
+}
+.calculation-node, .field-node {
+  border-color: #86efac;
+  background: #f0fdf4;
+}
+.datasource-node {
+  border-color: #93c5fd;
+  background: #eff6ff;
+}
+
+.react-flow__handle {
+  width: 8px;
+  height: 8px;
+  background: #64748b;
+}
+
+.react-flow__edge-path {
+  transition: stroke-width 0.2s;
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: #2563eb !important;
+  stroke-width: 4 !important;
 }
