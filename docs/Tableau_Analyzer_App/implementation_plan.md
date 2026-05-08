@@ -1,36 +1,29 @@
-# 表現の修正と GitHub へのプッシュ
+# Cloudflare デプロイ準備（main ブランチへのマージ）
 
-「Tableau の構造を一瞬で解き明かす」という表現が気取っているとの指摘を受け、より実用的で誠実な表現（「解析・可視化」）に修正します。また、GitHub へのアップロード（コミット＆プッシュ）も行います。
+現在の開発内容を本番環境（Cloudflare Pages など）で公開可能な状態にするため、`feature/twbx-parser` ブランチを `main` ブランチに統合し、GitHub にプッシュします。
 
-## 修正内容
+## 実施内容
 
-### 1. `src/App.tsx` のメインコピー修正
+### 1. main ブランチへのマージ
 
-- 「一瞬で解き明かす」を「解析し、構成や依存関係を可視化」に変更（現在の作業ツリーの変更をベースに、より自然な表現に微調整）。
-- サブテキストの「プロフェッショナルな視点から」も、少し控えめな「詳細に」などに修正。
-- 改行位置を適切に調整。
+- ローカルの `main` ブランチに切り替え、`feature/twbx-parser` をマージします。
+- マージ後、`main` ブランチを GitHub にプッシュします。
 
-### 2. `src/components/AboutModal.tsx` の表現修正
+### 2. Cloudflare Pages の設定案内
 
-- 「構造を解き明かす」を「構成を把握する」などに変更。
+Cloudflare Pages でデプロイ設定を行う際の推奨値は以下の通りです：
 
-### 3. GitHub へのプッシュ
+- **フレームワーク プリセット**: `Vite`
+- **ビルドコマンド**: `npm run build`
+- **ビルド出力ディレクトリ**: `dist`
 
-- 変更をコミットし、リモートリポジトリにプッシュ。
+## 変更ファイル（マージ対象）
 
-## 変更ファイル
-
-### [MODIFY] [App.tsx](file:///Users/hizukuri/Documents/workspace/Tableau/src/App.tsx)
-
-- メインヘッダーと説明文の表現を修正。
-
-### [MODIFY] [AboutModal.tsx](file:///Users/hizukuri/Documents/workspace/Tableau/src/components/AboutModal.tsx)
-
-- 説明文の表現を修正。
+- プロジェクト全般の修正（UI, ロジック, ドキュメント等）
 
 ## 検証計画
 
 ### 手動確認
 
-- `npm run dev` で起動し、ブラウザで文言と改行が適切か確認（ブラウザツールを使用）。
-- `git log` でコミットが正しく行われたか確認。
+- `git branch` で `main` ブランチが最新であることを確認。
+- ローカルで `npm run build` が正常に終了することを確認。

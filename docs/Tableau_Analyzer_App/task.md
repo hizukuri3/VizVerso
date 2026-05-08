@@ -1,7 +1,5 @@
-- [x] `src/App.tsx` のメインコピーとサブテキストの表現修正
-- [x] `src/components/AboutModal.tsx` の表現修正
-- [x] ホバー時の「選択されていません」ツールチップの非表示化 (`DragDropZone.tsx`)
-- [x] 変更内容の確認
-- [x] 変更のコミット
-- [x] GitHub へのプッシュ
-- [x] Walkthrough の更新
+- [ ] ローカルの `main` ブランチに切り替え
+- [ ] `feature/twbx-parser` を `main` にマージ
+- [ ] `main` ブランチを GitHub にプッシュ
+- [ ] ローカルでのビルド確認 (`npm run build`)
+- [ ] Walkthrough の作成
