@@ -1,5 +1,6 @@
-- [ ] ローカルの `main` ブランチに切り替え
-- [ ] `feature/twbx-parser` を `main` にマージ
-- [ ] `main` ブランチを GitHub にプッシュ
-- [ ] ローカルでのビルド確認 (`npm run build`)
-- [ ] Walkthrough の作成
+- [x] `src/utils/xmlParser.ts` の `strip` 関数の見直しとリファクタリング
+- [x] 各呼び出し箇所（シート名、フィールド名等）の修正
+- [x] `src/components/DetailView.tsx` 内の表示クレンジングロジックの修正
+- [x] `xmlParser.test.ts` へのテストケース追加と実行
+- [x] 水平展開：他の実体名（パラメータ等、excelExporter.ts）への影響確認
+- [x] Walkthrough の作成
