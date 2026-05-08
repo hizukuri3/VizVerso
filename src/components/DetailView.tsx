@@ -96,6 +96,11 @@ export default function DetailView({
     return cleanName
   }
 
+  const getDatasourceCaption = (name: string) => {
+    const ds = doc.datasources.find((d) => d.name === name)
+    return ds?.caption || name
+  }
+
   // XML エンティティのデコードと ID 置換
   const formatFormulaText = (rawFormula: string | undefined) => {
     if (!rawFormula) return undefined
@@ -130,7 +135,7 @@ export default function DetailView({
       .replace(/&#9;/g, '\t')
 
     // 5. 物理名（[Calculation_...] など）を表示名に置換
-    // eslint-disable-next-line security/detect-unsafe-regex
+
     return decoded.replace(
       /\[(?:([^\]]+)\]\.\[)?([^\]]+)\]/g,
       (_match, dsName, fieldName) => {
@@ -504,7 +509,7 @@ export default function DetailView({
               <span className="text-slate-200">/</span>
               <span className="text-slate-500 text-sm flex items-center gap-1.5 font-medium">
                 <Database size={14} className="text-slate-400" />{' '}
-                {ws.datasourceNames?.join(', ')}
+                {ws.datasourceNames?.map(getDatasourceCaption).join(', ')}
               </span>
             </div>
           </div>
