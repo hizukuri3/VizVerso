@@ -19,8 +19,28 @@ export async function extractTwbFromTwbx(
   const maxSizeMB = options?.maxSizeMB || DEFAULT_MAX_SIZE_MB
   const maxSizeBytes = maxSizeMB * 1024 * 1024
 
+  // 入力を Uint8Array に統一
+  let data: Uint8Array
+  if (file instanceof Uint8Array) {
+    data = file
+  } else if (file instanceof ArrayBuffer) {
+    data = new Uint8Array(file)
+  } else {
+    // File や Blob の場合
+    data = new Uint8Array(await (file as Blob).arrayBuffer())
+  }
+
+  // ZIP シグネチャ (PK\x03\x04) のチェック
+  const isZip = data[0] === 0x50 && data[1] === 0x4b
+
+  if (!isZip) {
+    // 非ZIP（生の .twb）として処理
+    const decoder = new TextDecoder('utf-8')
+    return decoder.decode(data)
+  }
+
   const zip = new JSZip()
-  await zip.loadAsync(file)
+  await zip.loadAsync(data)
 
   // .twb ファイルを探す
   const twbFileName = Object.keys(zip.files).find((name) =>
