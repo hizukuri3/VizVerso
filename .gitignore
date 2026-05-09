@@ -14,8 +14,9 @@ dist-ssr
 # Tableau Schemas (DO NOT DEPLOY - Copyright restrictions)
 /tableau-document-schemas/
 
-# Local Test Fixtures (Enabled for CI)
+# Local Test Fixtures (Small ones enabled for CI)
 !tests/fixtures/*.twbx
+tests/fixtures/DetectiveConan.twbx
 
 # Editor directories and files
 .vscode/*

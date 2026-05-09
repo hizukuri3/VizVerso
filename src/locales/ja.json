@@ -188,5 +188,52 @@
     "no_sheets": "この項目を使用しているシートはありません",
     "drill_down": "詳細を表示",
     "view_in_main": "一覧で強調表示"
+  },
+  "legal": {
+    "title": "特定商取引法に基づく表記",
+    "seller": "販売業者",
+    "seller_name": "檜作 孟志",
+    "representative": "代表責任者",
+    "representative_name": "檜作 孟志",
+    "address": "所在地",
+    "address_detail": "消費者庁の指針に基づき、個人販売者のプライバシー保護のため、住所の詳細については請求があれば遅滞なくメールにて提供いたします。",
+    "contact": "連絡先",
+    "contact_email": "hizukur3@gmail.com",
+    "contact_phone": "電話番号",
+    "contact_phone_detail": "請求があれば遅滞なく提供いたします（上記メールアドレスまでご請求ください）。",
+    "price": "販売価格（支援額）",
+    "price_detail": "お客様が任意に決定した額（寄付・チップ）。詳細は各決済画面をご確認ください。",
+    "additional_charges": "商品代金以外の必要料金",
+    "additional_charges_detail": "なし（インターネット接続料金等の通信費用はお客様のご負担となります）",
+    "payment_method": "支払方法",
+    "payment_method_detail": "クレジットカード決済（Stripe）",
+    "payment_timing": "支払時期",
+    "payment_timing_detail": "クレジットカード決済の場合は、直ちに処理されます。",
+    "delivery_timing": "商品の引渡時期",
+    "delivery_timing_detail": "決済完了後、即時に提供またはダウンロード可能となります。",
+    "returns": "返品・交換・キャンセル等",
+    "returns_detail": "デジタルコンテンツの特性上、決済完了後の返品・返金には応じられません。あらかじめご了承ください。",
+    "privacy_note": "※ 特定商取引法に基づき、住所および電話番号の表示を省略しております。詳細を希望される場合は、上記メールアドレスまでご連絡いただければ遅滞なく提供いたします。"
+  },
+  "privacy": {
+    "title": "プライバシーポリシー",
+    "sections": {
+      "data_security": {
+        "title": "データの安全性について",
+        "content": "VizVersoでは、解析のためにアップロードされたTableauワークブック（.twbx, .twb）の内容を一切サーバーに送信しません。すべての解析処理はお客様のブラウザ内で行われ、データが外部に流出することはありません。"
+      },
+      "information_collect": {
+        "title": "収集する情報",
+        "content": "当サービスでは、以下の情報を収集する場合があります：\n・お問い合わせ時のお名前・メールアドレス\n・決済時（Stripe）の支払い情報（カード番号等はStripeが安全に管理し、当サービスでは保持しません）\n・利用状況の分析のための匿名化されたアクセスログ（Cloudflare Web Analytics）"
+      },
+      "purpose": {
+        "title": "利用目的",
+        "content": "収集した情報は、サービスの提供、お問い合わせへの回答、およびサービスの品質向上のためにのみ利用し、法的な要請がある場合を除き、第三者に提供することはありません。"
+      },
+      "stripe": {
+        "title": "決済について",
+        "content": "決済処理にはStripe, Inc.のサービスを利用しています。お客様のカード情報はStripeのプライバシーポリシーに従って保護・管理されます。"
+      }
+    }
   }
 }

@@ -5,13 +5,23 @@ import DetailView from './components/DetailView'
 import Breadcrumbs from './components/Breadcrumbs'
 import { parseWorkbookAsync } from './utils/workerManager'
 import type { TableauDocument } from './types/tableau'
-import { FileUp, Search, Download, AlertCircle, Info, X } from 'lucide-react'
+import {
+  FileUp,
+  Search,
+  Download,
+  AlertCircle,
+  Info,
+  X,
+  Menu,
+} from 'lucide-react'
 import { exportToExcel } from './utils/excelExporter'
 import { AboutModal } from './components/AboutModal'
 import { t, setLanguage, getLanguage, type Language } from './utils/i18n'
 import { useSearch } from './hooks/useSearch'
 import { SearchResultsList } from './components/SearchResultsList'
 import { SideDrawer } from './components/SideDrawer'
+import { LegalModal } from './components/LegalModal'
+import { PrivacyModal } from './components/PrivacyModal'
 
 type SelectionType = 'dashboard' | 'worksheet' | 'datasource'
 
@@ -20,6 +30,9 @@ export default function App() {
   const [error, setError] = useState<string | null>(null)
   const [documentData, setDocumentData] = useState<TableauDocument | null>(null)
   const [isAboutOpen, setIsAboutOpen] = useState(false)
+  const [isLegalOpen, setIsLegalOpen] = useState(false)
+  const [isPrivacyOpen, setIsPrivacyOpen] = useState(false)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const [lang, setLang] = useState<Language>(getLanguage())
 
   // ナビゲーション状態
@@ -88,6 +101,15 @@ export default function App() {
   const searchResults = useSearch(documentData, debouncedSearchQuery)
   const searchRef = useRef<HTMLDivElement>(null)
 
+  // Buy Me a Coffee ウィジェットの表示制御
+  useEffect(() => {
+    if (documentData) {
+      document.body.classList.add('show-bmc')
+    } else {
+      document.body.classList.remove('show-bmc')
+    }
+  }, [documentData])
+
   // 検索クエリのデバウンス
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -107,8 +129,17 @@ export default function App() {
     const id = params.get('id')
     const field = params.get('field')
     const q = params.get('q')
+    const view = params.get('view')
 
-    if (q) setSearchQuery(q)
+    if (view === 'legal') {
+      setTimeout(() => setIsLegalOpen(true), 0)
+    }
+
+    if (view === 'privacy') {
+      setTimeout(() => setIsPrivacyOpen(true), 0)
+    }
+
+    if (q) setTimeout(() => setSearchQuery(q), 0)
 
     if (type && id && documentData) {
       // IDが新しいドキュメント内に存在するか確認
@@ -226,21 +257,41 @@ export default function App() {
   }, [isDrawerOpen, targetFieldName])
 
   return (
-    <div className="h-screen flex flex-col bg-slate-50 font-sans text-slate-800 overflow-hidden">
+    <div
+      className={`h-screen flex flex-col bg-slate-50 font-sans text-slate-800 ${documentData ? 'overflow-hidden' : 'overflow-y-auto'}`}
+    >
       {/* グローバルヘッダー */}
-      <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 z-50 flex-shrink-0">
-        <button
-          onClick={handleNewUpload}
-          className="flex items-center gap-2 hover:opacity-70 transition-opacity active:scale-95"
-        >
-          <img src="/favicon.png" alt="" className="h-8 w-8 object-contain" />
-          <span className="text-xl font-black text-slate-800 tracking-tight">
-            VizVerso
-          </span>
-        </button>
+      <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 z-50 flex-shrink-0 sticky top-0">
+        <div className="flex items-center gap-2 sm:gap-4">
+          {documentData && (
+            <button
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className={`p-2 rounded-xl transition-all ${
+                isSidebarOpen
+                  ? 'bg-blue-50 text-blue-600'
+                  : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'
+              }`}
+              title={isSidebarOpen ? 'Hide Navigator' : 'Show Navigator'}
+            >
+              <Menu size={20} />
+            </button>
+          )}
+          <button
+            onClick={handleNewUpload}
+            className="flex items-center gap-2 hover:opacity-70 transition-opacity active:scale-95"
+          >
+            <img src="/favicon.png" alt="" className="h-8 w-8 object-contain" />
+            <span className="text-xl font-black text-slate-800 tracking-tight hidden sm:inline">
+              VizVerso
+            </span>
+          </button>
+        </div>
 
         {documentData && (
-          <div className="flex-1 max-w-xl mx-8 relative" ref={searchRef}>
+          <div
+            className="flex-1 max-w-xl mx-4 sm:mx-8 relative"
+            ref={searchRef}
+          >
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Search size={16} className="text-slate-400" />
@@ -283,10 +334,10 @@ export default function App() {
           </div>
         )}
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
           <button
             onClick={() => setIsAboutOpen(true)}
-            className="p-2.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all"
+            className="p-2 sm:p-2.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all"
             title={t('app.about_title')}
           >
             <Info size={20} />
@@ -295,7 +346,7 @@ export default function App() {
           <div className="flex items-center bg-slate-100 p-1 rounded-xl">
             <button
               onClick={() => handleLanguageChange('ja')}
-              className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all ${
+              className={`px-2 sm:px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all ${
                 lang === 'ja'
                   ? 'bg-white text-slate-900 shadow-sm'
                   : 'text-slate-400 hover:text-slate-600'
@@ -305,7 +356,7 @@ export default function App() {
             </button>
             <button
               onClick={() => handleLanguageChange('en')}
-              className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all ${
+              className={`px-2 sm:px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all ${
                 lang === 'en'
                   ? 'bg-white text-slate-900 shadow-sm'
                   : 'text-slate-400 hover:text-slate-600'
@@ -316,22 +367,28 @@ export default function App() {
           </div>
 
           {documentData && (
-            <>
+            <div className="flex items-center gap-2">
               <button
                 onClick={() => exportToExcel(documentData, uploadedFileName)}
-                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-100"
+                className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-100"
+                title={t('button.excel_export')}
               >
                 <Download size={14} />
-                <span>{t('button.excel_export')}</span>
+                <span className="hidden md:inline">
+                  {t('button.excel_export')}
+                </span>
               </button>
               <button
                 onClick={handleNewUpload}
-                className="flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-slate-200"
+                className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-slate-200"
+                title={t('button.new_upload')}
               >
                 <FileUp size={14} />
-                <span>{t('button.new_upload')}</span>
+                <span className="hidden md:inline">
+                  {t('button.new_upload')}
+                </span>
               </button>
-            </>
+            </div>
           )}
         </div>
       </header>
@@ -339,27 +396,27 @@ export default function App() {
       {!documentData && !loading && (
         <main className="flex-1 flex flex-col items-center justify-center p-6 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-50 via-white to-white">
           <div className="max-w-3xl w-full text-center animate-in fade-in zoom-in duration-700">
-            <div className="flex items-center justify-center gap-6 mb-10">
+            <div className="flex items-center justify-center gap-4 sm:gap-6 mb-8 sm:mb-10">
               <img
                 src="/favicon.png"
                 alt=""
-                className="h-20 w-20 object-contain"
+                className="h-12 w-12 sm:h-20 sm:h-20 object-contain"
               />
-              <h1 className="text-6xl font-black text-slate-900 tracking-tight">
+              <h1 className="text-4xl sm:text-6xl font-black text-slate-900 tracking-tight">
                 {t('app.title')}
               </h1>
             </div>
-            <h2 className="text-5xl font-black text-slate-900 mb-6 tracking-tight leading-tight [text-wrap:balance]">
+            <h2 className="text-3xl sm:text-5xl font-black text-slate-900 mb-6 tracking-tight leading-tight [text-wrap:balance]">
               {t('app.tagline')}
             </h2>
-            <p className="text-slate-500 mb-12 text-lg font-medium leading-relaxed max-w-2xl mx-auto [text-wrap:balance]">
+            <p className="text-slate-500 mb-10 sm:mb-12 text-base sm:text-lg font-medium leading-relaxed max-w-2xl mx-auto [text-wrap:balance]">
               {t('app.description')}
             </p>
             <div className="max-w-xl mx-auto">
               <DragDropZone onFileDrop={handleFileDrop} />
             </div>
 
-            <div className="mt-16 grid grid-cols-3 gap-8 text-center">
+            <div className="mt-12 sm:mt-16 grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8 text-center">
               {[
                 {
                   icon: <AlertCircle className="text-blue-500" />,
@@ -377,12 +434,16 @@ export default function App() {
                   desc: t('features.parallel_proc.desc'),
                 },
               ].map((item, i) => (
-                <div key={i} className="p-4 flex flex-col items-center">
+                <div key={i} className="p-2 sm:p-4 flex flex-col items-center">
                   <div className="mb-3 p-3 bg-white rounded-2xl shadow-sm border border-slate-100">
                     {item.icon}
                   </div>
-                  <h4 className="font-bold text-slate-800">{item.title}</h4>
-                  <p className="text-xs text-slate-400 mt-1">{item.desc}</p>
+                  <h4 className="font-bold text-slate-800 text-sm sm:text-base">
+                    {item.title}
+                  </h4>
+                  <p className="text-[10px] sm:text-xs text-slate-400 mt-1">
+                    {item.desc}
+                  </p>
                 </div>
               ))}
             </div>
@@ -423,14 +484,42 @@ export default function App() {
       )}
 
       {documentData && !loading && (
-        <main className="flex-1 flex overflow-hidden">
+        <main className="flex-1 flex overflow-hidden relative">
+          {/* モバイル用バックドロップ */}
+          {isSidebarOpen && (
+            <button
+              className="md:hidden absolute inset-0 bg-slate-900/20 backdrop-blur-sm z-30 animate-in fade-in duration-300 w-full h-full border-none cursor-default"
+              onClick={() => setIsSidebarOpen(false)}
+              tabIndex={-1}
+              aria-label="Close navigator"
+            />
+          )}
+
           {/* マスター: サイドバー */}
-          <Sidebar
-            doc={documentData}
-            fileName={uploadedFileName}
-            selectedId={selectedId}
-            onSelect={handleSelect}
-          />
+          <div
+            className={`absolute md:relative z-40 h-full transition-all duration-300 ease-in-out border-r border-slate-200 bg-white flex-shrink-0 overflow-hidden ${
+              isSidebarOpen
+                ? 'w-80 translate-x-0 opacity-100'
+                : 'w-0 -translate-x-full md:translate-x-0 opacity-0'
+            }`}
+          >
+            <div className="w-80 h-full">
+              <Sidebar
+                doc={documentData}
+                fileName={uploadedFileName}
+                selectedId={selectedId}
+                onOpenLegal={() => setIsLegalOpen(true)}
+                onOpenPrivacy={() => setIsPrivacyOpen(true)}
+                onSelect={(type, id) => {
+                  handleSelect(type, id)
+                  // モバイルでは選択後に自動で閉じる
+                  if (window.innerWidth < 768) {
+                    setIsSidebarOpen(false)
+                  }
+                }}
+              />
+            </div>
+          </div>
 
           {/* ディテール: メインエリア */}
           <div className="flex-1 flex flex-col overflow-hidden bg-slate-50/50">
@@ -473,6 +562,15 @@ export default function App() {
       {/* モーダル */}
       <AboutModal isOpen={isAboutOpen} onClose={() => setIsAboutOpen(false)} />
 
+      {/* 特定商取引法に基づく表記モーダル */}
+      <LegalModal isOpen={isLegalOpen} onClose={() => setIsLegalOpen(false)} />
+
+      {/* プライバシーポリシーモーダル */}
+      <PrivacyModal
+        isOpen={isPrivacyOpen}
+        onClose={() => setIsPrivacyOpen(false)}
+      />
+
       {/* サイドドロワー (計算フィールド詳細) */}
       {documentData && (
         <SideDrawer
@@ -487,6 +585,35 @@ export default function App() {
             setIsDrawerOpen(false)
           }}
         />
+      )}
+
+      {/* フッター */}
+      {!loading && !documentData && (
+        <footer className="py-4 px-6 text-center mt-auto w-full">
+          <div className="max-w-7xl mx-auto space-y-1.5">
+            {/* 上段: 法的リンク */}
+            <div className="flex items-center justify-center gap-4 sm:gap-6">
+              <button
+                onClick={() => setIsLegalOpen(true)}
+                className="text-[10px] font-bold text-slate-400 hover:text-slate-600 transition-colors uppercase tracking-[0.2em]"
+              >
+                {t('legal.title')}
+              </button>
+              <div className="w-1 h-1 bg-slate-200 rounded-full" />
+              <button
+                onClick={() => setIsPrivacyOpen(true)}
+                className="text-[10px] font-bold text-slate-400 hover:text-slate-600 transition-colors uppercase tracking-[0.2em]"
+              >
+                {t('privacy.title')}
+              </button>
+            </div>
+
+            {/* 下段: コピーライト */}
+            <p className="text-[9px] text-slate-300 font-bold uppercase tracking-[0.3em]">
+              © {new Date().getFullYear()} VizVerso
+            </p>
+          </div>
+        </footer>
       )}
     </div>
   )

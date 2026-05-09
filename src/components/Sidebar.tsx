@@ -8,6 +8,8 @@ interface SidebarProps {
   fileName?: string
   selectedId: string | null
   onSelect: (type: 'dashboard' | 'worksheet' | 'datasource', id: string) => void
+  onOpenLegal?: () => void
+  onOpenPrivacy?: () => void
 }
 
 export default function Sidebar({
@@ -15,6 +17,8 @@ export default function Sidebar({
   fileName,
   selectedId,
   onSelect,
+  onOpenLegal,
+  onOpenPrivacy,
 }: SidebarProps) {
   const [expandedDashboardId, setExpandedDashboardId] = useState<string | null>(
     null,
@@ -79,7 +83,7 @@ export default function Sidebar({
         )}
       </div>
 
-      <div className="flex-1 p-4 pb-8 space-y-8">
+      <div className="flex-1 p-4 pb-8 space-y-8 overflow-y-auto">
         {/* Dashboards Section */}
         {doc.dashboards.length > 0 && (
           <div>
@@ -214,6 +218,30 @@ export default function Sidebar({
               </button>
             ))}
           </div>
+        </div>
+      </div>
+
+      {/* Sidebar Footer */}
+      <div className="p-4 border-t border-slate-100 mt-auto bg-slate-50/30">
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={onOpenLegal}
+              className="text-[10px] font-bold text-slate-400 hover:text-blue-600 transition-colors uppercase tracking-wider"
+            >
+              {t('legal.title')}
+            </button>
+            <div className="w-1 h-1 bg-slate-200 rounded-full" />
+            <button
+              onClick={onOpenPrivacy}
+              className="text-[10px] font-bold text-slate-400 hover:text-blue-600 transition-colors uppercase tracking-wider"
+            >
+              {t('privacy.title')}
+            </button>
+          </div>
+          <p className="text-[9px] text-slate-300 font-bold uppercase tracking-[0.2em]">
+            © {new Date().getFullYear()} VizVerso
+          </p>
         </div>
       </div>
     </aside>

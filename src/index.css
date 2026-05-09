@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @theme {
   /* Tableau 10 Color Palette */
@@ -21,7 +21,16 @@
 body {
   background-color: var(--color-tableau-bg);
   color: #1e293b;
-  font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family:
+    'Inter',
+    'Noto Sans JP',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif;
   margin: 0;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -43,7 +52,9 @@ body {
   padding: 12px;
   border-radius: 12px;
   background: white;
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  box-shadow:
+    0 4px 6px -1px rgb(0 0 0 / 0.1),
+    0 2px 4px -2px rgb(0 0 0 / 0.1);
   border: 2px solid transparent;
   transition: all 0.2s ease-in-out;
   cursor: pointer;
@@ -62,7 +73,8 @@ body {
   border-color: #fcd34d;
   background: #fffbeb;
 }
-.calculation-node, .field-node {
+.calculation-node,
+.field-node {
   border-color: #86efac;
   background: #f0fdf4;
 }
@@ -85,3 +97,6 @@ body {
   stroke: #2563eb !important;
   stroke-width: 4 !important;
 }
+
+/* Buy Me a Coffee widget visibility control */
+/* 吹き出しなしのスクリプトを使用しているため、特別な非表示制御は不要になりました */

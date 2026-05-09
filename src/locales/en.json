@@ -187,5 +187,52 @@
     "no_sheets": "Not used in any sheets",
     "drill_down": "Drill Down",
     "view_in_main": "Highlight in main view"
+  },
+  "legal": {
+    "title": "Specified Commercial Transactions Act",
+    "seller": "Vendor",
+    "seller_name": "Takeshi Hizukuri",
+    "representative": "Representative",
+    "representative_name": "Takeshi Hizukuri",
+    "address": "Address",
+    "address_detail": "In accordance with the guidelines of the Consumer Affairs Agency, for the privacy protection of individual sellers, details of the address will be provided via email without delay upon request.",
+    "contact": "Contact",
+    "contact_email": "hizukur3@gmail.com",
+    "contact_phone": "Phone Number",
+    "contact_phone_detail": "Will be provided without delay upon request (please request via the email address above).",
+    "price": "Price (Donation Amount)",
+    "price_detail": "Amount voluntarily determined by the customer (Donation/Chip). Please refer to each checkout screen for details.",
+    "additional_charges": "Additional Charges",
+    "additional_charges_detail": "None (Internet connection fees and other communication costs are the responsibility of the customer).",
+    "payment_method": "Payment Method",
+    "payment_method_detail": "Credit Card (Stripe)",
+    "payment_timing": "Payment Timing",
+    "payment_timing_detail": "Payments are processed immediately for credit card transactions.",
+    "delivery_timing": "Delivery Timing",
+    "delivery_timing_detail": "Services or downloads are available immediately after payment completion.",
+    "returns": "Returns & Refunds",
+    "returns_detail": "Due to the nature of digital content, returns or refunds are not accepted after payment completion.",
+    "privacy_note": "* In accordance with the Specified Commercial Transactions Act, the display of address and phone number is omitted. If you require details, please contact the email address above and they will be provided without delay."
+  },
+  "privacy": {
+    "title": "Privacy Policy",
+    "sections": {
+      "data_security": {
+        "title": "Data Security",
+        "content": "VizVerso does not send any content of the Tableau workbooks (.twbx, .twb) uploaded for analysis to any server. All analysis processes are performed within your browser, ensuring that your data is never leaked externally."
+      },
+      "information_collect": {
+        "title": "Information Collection",
+        "content": "The following information may be collected by this service:\n- Name and email address provided during inquiries.\n- Payment information for Stripe transactions (card details are managed securely by Stripe and are not stored by VizVerso).\n- Anonymized access logs for service quality improvement (Cloudflare Web Analytics)."
+      },
+      "purpose": {
+        "title": "Purpose of Use",
+        "content": "The collected information will only be used for providing services, responding to inquiries, and improving the quality of the service. We will not provide information to third parties except when required by law."
+      },
+      "stripe": {
+        "title": "Payment Processing",
+        "content": "We use services from Stripe, Inc. for payment processing. Your payment information is protected and managed according to Stripe's Privacy Policy."
+      }
+    }
   }
 }
