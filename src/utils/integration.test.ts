@@ -19,4 +19,21 @@ describe('Integration - twbx to XML Parsing', () => {
     expect(documentInfo).toBeDefined()
     expect(documentInfo.worksheets.length).toBeGreaterThan(0)
   })
+
+  it('実ファイル sample.twbx から設計情報を抽出できること', async () => {
+    const filePath = resolve(__dirname, '../../tests/fixtures/sample.twbx')
+    // eslint-disable-next-line security/detect-non-literal-fs-filename
+    const buffer = readFileSync(filePath)
+    const data = new Uint8Array(buffer)
+    const xmlString = await extractTwbFromTwbx(data)
+    const result = parseTableauXml(xmlString)
+
+    expect(result.datasources.length).toBeGreaterThan(0)
+    expect(result.worksheets.length).toBeGreaterThan(0)
+    // パラメータが含まれていることを確認
+    const hasParams = result.datasources.some(
+      (ds) => ds.name === 'Parameters' || ds.caption === 'Parameters',
+    )
+    expect(hasParams).toBe(true)
+  })
 })
