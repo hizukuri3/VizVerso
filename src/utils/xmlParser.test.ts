@@ -118,4 +118,45 @@ describe('xmlParser - parseTableauXml', () => {
       'Annotations Button: Inactive',
     )
   })
+
+  it('複雑なフィールドIDの正規化と計算式の復号が正しく行われること', () => {
+    const complexXml = `
+    <workbook>
+      <datasources>
+        <datasource name="ds1">
+          <column caption="My Field" name="[excel-direct.456].[sum:Calculation_ABC:qk]">
+            <calculation class="tableau" formula="[A] &gt; [B] &amp;&#x20;[C]&#x0D;" />
+          </column>
+        </datasource>
+      </datasources>
+    </workbook>`
+    const result = parseTableauXml(complexXml)
+    const field = result.datasources[0].fields[0]
+    // excel-direct. や sum:, :qk が除去され、Calculation_ABC になることを確認
+    expect(field.column).toBe('Calculation_ABC')
+    // エンティティ復号確認 (&#x20; はスペース, &#x0D; はCR(除去対象))
+    expect(field.formula).toBe('[A] > [B] & [C]')
+  })
+
+  it('column-instance からの依存関係が正規化されて抽出されること', () => {
+    const ciXml = `
+    <workbook>
+      <worksheets>
+        <worksheet name="CI Sheet">
+          <table>
+            <view>
+              <datasource-dependencies datasource="ds1">
+                <column-instance name="[none:Sales:nk]" column="[Sales]" derivation="none" />
+                <column name="[Profit]" />
+              </datasource-dependencies>
+            </view>
+          </table>
+        </worksheet>
+      </worksheets>
+    </workbook>`
+    const result = parseTableauXml(ciXml)
+    // none:Sales:nk は Sales に正規化されるため、dependencies には Sales が含まれる
+    expect(result.worksheets[0].dependencies).toContain('Sales')
+    expect(result.worksheets[0].dependencies).toContain('Profit')
+  })
 })
