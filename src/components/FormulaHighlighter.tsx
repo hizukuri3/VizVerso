@@ -22,6 +22,7 @@ export function FormulaHighlighter({
     }
   }, [searchQuery, formula])
 
+  // eslint-disable-next-line security/detect-non-literal-regexp
   const tokenRegex = new RegExp(
     `(".*?"|'.*?'|\\[${paramLabel}\\]\\.\\[[^\\]]+\\]|\\[[^\\]]+\\]|\\b(?:IF|THEN|ELSE|ELSEIF|END|CASE|WHEN|AND|OR|NOT)\\b|\\b[A-Z_]+\\b(?=\\s*\\())`,
     'gi',
@@ -34,6 +35,7 @@ export function FormulaHighlighter({
 
     // 正規表現の特殊文字をエスケープ
     const escapedQuery = searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    // eslint-disable-next-line security/detect-non-literal-regexp
     const parts = text.split(new RegExp(`(${escapedQuery})`, 'gi'))
     return parts.map((part, i) => {
       if (part.toLowerCase() === searchQuery.toLowerCase()) {

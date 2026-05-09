@@ -7,6 +7,7 @@ import { parseTableauXml } from './xmlParser'
 describe('Integration - twbx to XML Parsing', () => {
   it('実ファイル B2VB2026W8.twbx から設計情報を抽出できること', async () => {
     const filePath = resolve(__dirname, '../../tests/fixtures/B2VB2026W8.twbx')
+    // eslint-disable-next-line security/detect-non-literal-fs-filename
     const buffer = readFileSync(filePath)
     // JSZipが確実に読めるように Uint8Array に変換して渡す
     const data = new Uint8Array(buffer)

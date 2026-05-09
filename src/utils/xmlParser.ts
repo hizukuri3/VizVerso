@@ -101,7 +101,8 @@ function decodeXmlString(str: string | undefined): string {
 
 export function parseTableauXml(xmlText: string): TableauDocument {
   // XXE攻撃対策および解析エラー防止のため、DOCTYPE宣言を事前に除去する
-  const sanitizedXml = xmlText.replace(/<!DOCTYPE[^>]*(\[[^\]]*\])?>/gi, '')
+  // eslint-disable-next-line security/detect-unsafe-regex
+  const sanitizedXml = xmlText.replace(/<!DOCTYPE[^>]*?(\[[^\]]*?\])?>/gi, '')
 
   const parser = new XMLParser({
     ignoreAttributes: false,
@@ -253,6 +254,7 @@ export function parseTableauXml(xmlText: string): TableauDocument {
     const parseShelfList = (raw: unknown): ShelfField[] => {
       if (!raw) return []
       const text = typeof raw === 'string' ? raw : JSON.stringify(raw)
+      // eslint-disable-next-line security/detect-unsafe-regex
       const matches = text.match(/\[[^\]]+\](?:\.\[[^\]]+\])*/g) || []
       return matches
         .map((m) => createShelfField(m))

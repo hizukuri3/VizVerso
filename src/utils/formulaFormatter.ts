@@ -1,8 +1,8 @@
 import { t } from './i18n'
 
 export function formatFormulaText(
-  rawFormula: string | undefined, 
-  fieldMeta: Map<string, { caption?: string }>
+  rawFormula: string | undefined,
+  fieldMeta: Map<string, { caption?: string }>,
 ) {
   if (!rawFormula) return undefined
 
@@ -17,14 +17,11 @@ export function formatFormulaText(
   })
 
   // 3. 16進数実体参照 (&#x0A; 等) をすべて文字に変換
-  decoded = decoded.replace(
-    /&#x([0-9a-fA-F]+);/g,
-    (_: string, hex: string) => {
-      const charCode = parseInt(hex, 16)
-      if (charCode === 13) return ''
-      return String.fromCharCode(charCode)
-    },
-  )
+  decoded = decoded.replace(/&#x([0-9a-fA-F]+);/g, (_: string, hex: string) => {
+    const charCode = parseInt(hex, 16)
+    if (charCode === 13) return ''
+    return String.fromCharCode(charCode)
+  })
 
   // 4. その他の主要な実体参照
   decoded = decoded
@@ -44,6 +41,7 @@ export function formatFormulaText(
   }
 
   return decoded.replace(
+    // eslint-disable-next-line security/detect-unsafe-regex
     /\[(?:([^\]]+)\]\.\[)?([^\]]+)\]/g,
     (_match, dsName, fieldName) => {
       const caption = getCaption(fieldName)

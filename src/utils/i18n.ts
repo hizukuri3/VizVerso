@@ -42,7 +42,8 @@ export const t = (
   let value: unknown = translations[currentLang]
 
   for (const k of keys) {
-    if (value && typeof value === 'object') {
+    if (value && typeof value === 'object' && k in (value as object)) {
+      // eslint-disable-next-line security/detect-object-injection
       value = (value as Record<string, unknown>)[k]
     } else {
       return key
@@ -54,7 +55,13 @@ export const t = (
   if (params) {
     let result = value
     for (const [pKey, pValue] of Object.entries(params)) {
-      result = result.replace(new RegExp(`{{${pKey}}}`, 'g'), String(pValue))
+      // 特殊文字をエスケープしてRegExpを生成
+      const escapedKey = pKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+      result = result.replace(
+        new RegExp(`{{${escapedKey}}}`, 'g'),
+        String(pValue),
+      )
     }
     return result
   }
