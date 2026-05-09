@@ -1,15 +1,28 @@
-import React from 'react'
-import { FileText, Database, Hash, ArrowRight, CornerDownRight } from 'lucide-react'
+import {
+  FileText,
+  Database,
+  Hash,
+  ArrowRight,
+  CornerDownRight,
+} from 'lucide-react'
 import { t } from '../utils/i18n'
 import type { SearchResult } from '../hooks/useSearch'
 
 interface SearchResultsListProps {
   results: SearchResult[]
-  onNavigate: (type: 'dashboard' | 'worksheet' | 'datasource', id: string, field?: string) => void
+  onNavigate: (
+    type: 'dashboard' | 'worksheet' | 'datasource',
+    id: string,
+    field?: string,
+  ) => void
   onClose: () => void
 }
 
-export function SearchResultsList({ results, onNavigate, onClose }: SearchResultsListProps) {
+export function SearchResultsList({
+  results,
+  onNavigate,
+  onClose,
+}: SearchResultsListProps) {
   if (results.length === 0) {
     return (
       <div className="p-8 text-center text-slate-400">
@@ -20,10 +33,14 @@ export function SearchResultsList({ results, onNavigate, onClose }: SearchResult
 
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'worksheet': return <FileText size={16} className="text-emerald-500" />
-      case 'datasource': return <Database size={16} className="text-amber-500" />
-      case 'field': return <Hash size={16} className="text-blue-500" />
-      default: return null
+      case 'worksheet':
+        return <FileText size={16} className="text-emerald-500" />
+      case 'datasource':
+        return <Database size={16} className="text-amber-500" />
+      case 'field':
+        return <Hash size={16} className="text-blue-500" />
+      default:
+        return null
     }
   }
 
@@ -49,8 +66,7 @@ export function SearchResultsList({ results, onNavigate, onClose }: SearchResult
             </span>
             {result.subReason && (
               <span className="text-[9px] text-slate-400 flex items-center gap-0.5">
-                <CornerDownRight size={10} />
-                [{result.subReason}]
+                <CornerDownRight size={10} />[{result.subReason}]
               </span>
             )}
           </div>
@@ -67,8 +83,10 @@ export function SearchResultsList({ results, onNavigate, onClose }: SearchResult
           <button
             key={`${res.type}-${res.id}`}
             onClick={() => {
-              if (res.type === 'worksheet') onNavigate('worksheet', res.id, res.targetField)
-              else if (res.type === 'datasource') onNavigate('datasource', res.id)
+              if (res.type === 'worksheet')
+                onNavigate('worksheet', res.id, res.targetField)
+              else if (res.type === 'datasource')
+                onNavigate('datasource', res.id)
               else if (res.type === 'field') {
                 // フィールドの場合は定義元（データソースまたはワークシート）へ遷移し、フィールド名も渡す
                 onNavigate(res.parentType, res.parentName, res.id)
@@ -80,7 +98,7 @@ export function SearchResultsList({ results, onNavigate, onClose }: SearchResult
             <div className="mt-1 p-2 bg-white rounded-lg border border-slate-100 shadow-sm group-hover:border-blue-200 transition-colors">
               {getTypeIcon(res.type)}
             </div>
-            
+
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
                 <span className="font-bold text-slate-700 truncate">
@@ -88,14 +106,20 @@ export function SearchResultsList({ results, onNavigate, onClose }: SearchResult
                 </span>
                 {getReasonBadge(res)}
               </div>
-              
+
               <div className="flex items-center justify-between">
                 <span className="text-[10px] text-slate-400 font-medium">
-                  {res.type === 'field' ? res.parentCaption || res.parentName : (res.type === 'worksheet' ? t('search.type_worksheet') : t('search.type_datasource'))}
+                  {res.type === 'field'
+                    ? res.parentCaption || res.parentName
+                    : res.type === 'worksheet'
+                      ? t('search.type_worksheet')
+                      : t('search.type_datasource')}
                 </span>
-                
+
                 <span className="text-[10px] text-blue-500 font-bold opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-all">
-                  {res.type === 'field' ? t('search.definition') : t('search.usage')}
+                  {res.type === 'field'
+                    ? t('search.definition')
+                    : t('search.usage')}
                   <ArrowRight size={12} />
                 </span>
               </div>

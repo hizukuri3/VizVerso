@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import DragDropZone from './components/DragDropZone'
 import Sidebar from './components/Sidebar'
 import DetailView from './components/DetailView'
@@ -8,7 +8,7 @@ import type { TableauDocument } from './types/tableau'
 import { FileUp, Search, Download, AlertCircle, Info, X } from 'lucide-react'
 import { exportToExcel } from './utils/excelExporter'
 import { AboutModal } from './components/AboutModal'
-import { t } from './utils/i18n'
+import { t, setLanguage, getLanguage, type Language } from './utils/i18n'
 import { useSearch } from './hooks/useSearch'
 import { SearchResultsList } from './components/SearchResultsList'
 import { SideDrawer } from './components/SideDrawer'
@@ -20,12 +20,17 @@ export default function App() {
   const [error, setError] = useState<string | null>(null)
   const [documentData, setDocumentData] = useState<TableauDocument | null>(null)
   const [isAboutOpen, setIsAboutOpen] = useState(false)
+  const [lang, setLang] = useState<Language>(getLanguage())
 
   // ナビゲーション状態
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [selectedType, setSelectedType] = useState<SelectionType | null>(null)
   const [uploadedFileName, setUploadedFileName] =
     useState<string>('tableau_analysis')
+
+  const clearUrl = () => {
+    window.history.pushState({}, '', window.location.pathname)
+  }
 
   const handleFileDrop = async (file: File) => {
     setLoading(true)
@@ -46,10 +51,7 @@ export default function App() {
         setSelectedType('worksheet')
       }
     } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : t('error.default')
+      const message = err instanceof Error ? err.message : t('error.default')
       setError(message)
     } finally {
       setLoading(false)
@@ -64,13 +66,35 @@ export default function App() {
   const handleReset = () => {
     setSelectedId(null)
     setSelectedType(null)
+    clearUrl()
+  }
+
+  const handleNewUpload = () => {
+    setDocumentData(null)
+    setError(null)
+    setSearchQuery('')
+    clearUrl()
+  }
+
+  const handleLanguageChange = (newLang: Language) => {
+    setLanguage(newLang)
+    setLang(newLang)
   }
 
   // ── 検索機能のステートとフック ──
   const [searchQuery, setSearchQuery] = useState('')
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('')
   const [showSearchResults, setShowSearchResults] = useState(false)
-  const searchResults = useSearch(documentData, searchQuery)
+  const searchResults = useSearch(documentData, debouncedSearchQuery)
   const searchRef = useRef<HTMLDivElement>(null)
+
+  // 検索クエリのデバウンス
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [searchQuery])
 
   // ── サイドドロワーの状態 ──
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
@@ -86,16 +110,38 @@ export default function App() {
 
     if (q) setSearchQuery(q)
 
-    if (type && id) {
-      handleSelect(type, id)
-      if (field) {
-        setTargetFieldName(field)
-        setIsDrawerOpen(true)
+    if (type && id && documentData) {
+      // IDが新しいドキュメント内に存在するか確認
+      const exists =
+        (type === 'dashboard' &&
+          documentData.dashboards.some((d) => d.name === id)) ||
+        (type === 'worksheet' &&
+          documentData.worksheets.some((w) => w.name === id)) ||
+        (type === 'datasource' &&
+          documentData.datasources.some((ds) => ds.name === id))
+
+      if (exists) {
+        // Defer state updates to avoid React warning during effect
+        setTimeout(() => {
+          handleSelect(type, id)
+          if (field) {
+            setTargetFieldName(field)
+            setIsDrawerOpen(true)
+          }
+        }, 0)
       }
+
+      // 一度適用したらURLをクリーンにする（別ファイル読み込み時の干渉防止）
+      clearUrl()
     }
   }, [documentData]) // ドキュメントがロードされた時に実行
 
-  const updateUrl = (type: SelectionType, id: string, field?: string, q?: string) => {
+  const updateUrl = (
+    type: SelectionType,
+    id: string,
+    field?: string,
+    q?: string,
+  ) => {
     const params = new URLSearchParams()
     params.set('type', type)
     params.set('id', id)
@@ -104,7 +150,11 @@ export default function App() {
     window.history.pushState({}, '', `?${params.toString()}`)
   }
 
-  const handleNavigateFromSearch = (type: SelectionType, id: string, field?: string) => {
+  const handleNavigateFromSearch = (
+    type: SelectionType,
+    id: string,
+    field?: string,
+  ) => {
     handleSelect(type, id)
     if (field) {
       setTargetFieldName(field)
@@ -118,8 +168,10 @@ export default function App() {
   const handleNavigateFieldInDrawer = (fieldName: string) => {
     // フィールドの定義元を探す
     if (!documentData) return
-    
-    let parentDs = documentData.datasources.find(ds => ds.fields.some(f => f.column === fieldName))
+
+    const parentDs = documentData.datasources.find((ds) =>
+      ds.fields.some((f) => f.column === fieldName),
+    )
     if (parentDs) {
       handleSelect('datasource', parentDs.name)
       setTargetFieldName(fieldName)
@@ -127,7 +179,9 @@ export default function App() {
       return
     }
 
-    let parentWs = documentData.worksheets.find(ws => ws.localFields?.some(f => f.column === fieldName))
+    const parentWs = documentData.worksheets.find((ws) =>
+      ws.localFields?.some((f) => f.column === fieldName),
+    )
     if (parentWs) {
       handleSelect('worksheet', parentWs.name)
       setTargetFieldName(fieldName)
@@ -138,7 +192,7 @@ export default function App() {
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement
-      
+
       // 検索窓の外側クリック判定（既存）
       if (searchRef.current && !searchRef.current.contains(target)) {
         setShowSearchResults(false)
@@ -157,7 +211,13 @@ export default function App() {
           // URLパラメータを更新
           const params = new URLSearchParams(window.location.search)
           params.delete('field')
-          window.history.pushState({}, '', params.toString() ? `?${params.toString()}` : window.location.pathname)
+          window.history.pushState(
+            {},
+            '',
+            params.toString()
+              ? `?${params.toString()}`
+              : window.location.pathname,
+          )
         }
       }
     }
@@ -169,10 +229,15 @@ export default function App() {
     <div className="h-screen flex flex-col bg-slate-50 font-sans text-slate-800 overflow-hidden">
       {/* グローバルヘッダー */}
       <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 z-50 flex-shrink-0">
-        <div className="flex items-center gap-2">
+        <button
+          onClick={handleNewUpload}
+          className="flex items-center gap-2 hover:opacity-70 transition-opacity active:scale-95"
+        >
           <img src="/favicon.png" alt="" className="h-8 w-8 object-contain" />
-          <span className="text-xl font-black text-slate-800 tracking-tight">Verso-viz</span>
-        </div>
+          <span className="text-xl font-black text-slate-800 tracking-tight">
+            VizVerso
+          </span>
+        </button>
 
         {documentData && (
           <div className="flex-1 max-w-xl mx-8 relative" ref={searchRef}>
@@ -218,44 +283,81 @@ export default function App() {
           </div>
         )}
 
-        {documentData && (
-          <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center bg-slate-100 p-1 rounded-xl">
             <button
-              onClick={() => exportToExcel(documentData, uploadedFileName)}
-              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-100"
+              onClick={() => handleLanguageChange('ja')}
+              className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all ${
+                lang === 'ja'
+                  ? 'bg-white text-slate-900 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-600'
+              }`}
             >
-              <Download size={14} />
-              <span>{t('button.excel_export')}</span>
+              JA
             </button>
             <button
-              onClick={() => setDocumentData(null)}
-              className="flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-slate-200"
+              onClick={() => handleLanguageChange('en')}
+              className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all ${
+                lang === 'en'
+                  ? 'bg-white text-slate-900 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-600'
+              }`}
             >
-              <FileUp size={14} />
-              <span>{t('button.new_upload')}</span>
+              EN
             </button>
           </div>
-        )}
+
+          {documentData && (
+            <>
+              <button
+                onClick={() => exportToExcel(documentData, uploadedFileName)}
+                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-100"
+              >
+                <Download size={14} />
+                <span>{t('button.excel_export')}</span>
+              </button>
+              <button
+                onClick={handleNewUpload}
+                className="flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-slate-200"
+              >
+                <FileUp size={14} />
+                <span>{t('button.new_upload')}</span>
+              </button>
+            </>
+          )}
+        </div>
       </header>
 
       {!documentData && !loading && (
         <main className="flex-1 flex flex-col items-center justify-center p-6 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-50 via-white to-white">
           <div className="max-w-3xl w-full text-center animate-in fade-in zoom-in duration-700">
             <div className="flex items-center justify-center gap-6 mb-10">
-              <img src="/favicon.png" alt="" className="h-20 w-20 object-contain" />
-              <h1 className="text-6xl font-black text-slate-900 tracking-tight">{t('app.title')}</h1>
+              <img
+                src="/favicon.png"
+                alt=""
+                className="h-20 w-20 object-contain"
+              />
+              <h1 className="text-6xl font-black text-slate-900 tracking-tight">
+                {t('app.title')}
+              </h1>
             </div>
-            <h2 className="text-5xl font-black text-slate-900 mb-6 tracking-tight leading-tight">
-              {t('app.tagline')}
+            <h2 className="text-5xl font-black text-slate-900 mb-6 tracking-tight leading-tight [text-wrap:balance]">
+              <span className="inline-block">Tableau ワークブックを解析。</span>
+              <span className="inline-block">計算の依存関係を可視化。</span>
             </h2>
-            <p className="text-slate-500 mb-12 text-lg font-medium leading-relaxed">
-              {t('app.description')}
+            <p className="text-slate-500 mb-12 text-lg font-medium leading-relaxed max-w-2xl mx-auto [text-wrap:balance]">
+              <span className="inline-block">
+                Tableau ワークブックをドロップするだけで、
+              </span>
+              <span className="inline-block">
+                構成要素や計算式のつながりを即座に解明します。
+              </span>
             </p>
             <div className="max-w-xl mx-auto">
               <DragDropZone onFileDrop={handleFileDrop} />
             </div>
 
-            <div className="mt-16 grid grid-cols-3 gap-8 text-left">
+            <div className="mt-16 grid grid-cols-3 gap-8 text-center">
               {[
                 {
                   icon: <AlertCircle className="text-blue-500" />,
@@ -273,8 +375,10 @@ export default function App() {
                   desc: t('features.parallel_proc.desc'),
                 },
               ].map((item, i) => (
-                <div key={i} className="p-4">
-                  <div className="mb-2">{item.icon}</div>
+                <div key={i} className="p-4 flex flex-col items-center">
+                  <div className="mb-3 p-3 bg-white rounded-2xl shadow-sm border border-slate-100">
+                    {item.icon}
+                  </div>
                   <h4 className="font-bold text-slate-800">{item.title}</h4>
                   <p className="text-xs text-slate-400 mt-1">{item.desc}</p>
                 </div>
@@ -321,6 +425,7 @@ export default function App() {
           {/* マスター: サイドバー */}
           <Sidebar
             doc={documentData}
+            fileName={uploadedFileName}
             selectedId={selectedId}
             onSelect={handleSelect}
           />
@@ -335,14 +440,15 @@ export default function App() {
                     ? selectedId!
                     : selectedType === 'worksheet'
                       ? documentData.dashboards.find((d) =>
-                        d.worksheets.includes(selectedId!),
-                      )?.name
+                          d.worksheets.includes(selectedId!),
+                        )?.name
                       : undefined
                 }
                 worksheetName={
                   selectedType === 'worksheet' ? selectedId! : undefined
                 }
                 onReset={handleReset}
+                onNavigateDashboard={(name) => handleSelect('dashboard', name)}
               />
             </div>
 
@@ -365,8 +471,8 @@ export default function App() {
       {/* About アクセスボタン (右下) */}
       <button
         onClick={() => setIsAboutOpen(true)}
-        className="fixed bottom-6 right-6 p-3 bg-white border border-slate-200 text-slate-300 hover:text-slate-600 hover:border-slate-300 hover:shadow-lg transition-all rounded-full z-40 group"
-        title="About Verso-viz"
+        className="fixed bottom-6 left-6 p-3 bg-white border border-slate-200 text-slate-300 hover:text-slate-600 hover:border-slate-300 hover:shadow-lg transition-all rounded-full z-40 group"
+        title="About VizVerso"
       >
         <Info size={18} />
       </button>
@@ -381,7 +487,7 @@ export default function App() {
           onClose={() => setIsDrawerOpen(false)}
           doc={documentData}
           targetFieldName={targetFieldName}
-          searchQuery={searchQuery}
+          searchQuery={debouncedSearchQuery}
           onNavigateField={handleNavigateFieldInDrawer}
           onNavigateToSheet={(sheetName) => {
             handleSelect('worksheet', sheetName)

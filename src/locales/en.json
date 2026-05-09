@@ -1,16 +1,17 @@
 {
   "app": {
-    "title": "Verso-viz",
+    "title": "VizVerso",
     "tagline": "Analyze Tableau workbooks and visualize dependencies.",
     "description": "Drop a .twbx file to visualize dashboard structures and calculated field dependencies in detail.",
-    "about_title": "About Verso-viz"
+    "about_title": "About VizVerso"
   },
   "button": {
     "excel_export": "Excel Export",
     "new_upload": "New Upload",
     "retry": "Retry",
     "close": "Close",
-    "view_detail": "View Detail →"
+    "view_detail": "View Detail →",
+    "back": "Back"
   },
   "header": {
     "sheet_count": "{{count}} Sheets"
@@ -74,7 +75,9 @@
     "min": "Min",
     "max": "Max",
     "step": "Step",
-    "all_values": "All Values"
+    "all_values": "All Values",
+    "any": "Any",
+    "all": "All"
   },
   "agg": {
     "sum": "SUM",
@@ -102,7 +105,7 @@
     "density": "Density"
   },
   "about": {
-    "title": "About Verso-viz",
+    "title": "About VizVerso",
     "description": "A minimal analysis tool to understand the structure of Tableau workbooks.",
     "disclaimer": "Disclaimer",
     "privacy_title": "Data Privacy",
@@ -113,7 +116,7 @@
     "relationship_desc": "This project is a personal development and is not affiliated with Salesforce.com, Inc. or Tableau Software, LLC.",
     "credits_title": "Credits & Licenses",
     "special_thanks": "To the Tableau DataFam community",
-    "created_by": "Created by @hizukuri3",
+    "deployed_by": "DEPLOYED BY @hizukuri3",
     "version": "Version {{version}}"
   },
   "dropzone": {
@@ -124,12 +127,17 @@
   "excel": {
     "sheet_dashboard": "Dashboard Structure",
     "sheet_worksheet_list": "Worksheet List",
+    "sheet_worksheet_shelf": "Worksheet Shelves",
     "sheet_calc_fields": "Calculated Fields",
     "sheet_fields": "Field List",
+    "sheet_parameters": "Parameter List",
+    "sheet_dependencies": "Used Fields (Worksheets)",
+    "sheet_field_dependencies": "Field Dependencies",
     "col_dashboard_name": "Dashboard Name",
     "col_included_sheets": "Included Sheets",
     "col_sheet_name": "Sheet Name",
     "col_datasource": "Data Source",
+    "col_shelf": "Shelf",
     "col_columns": "Columns",
     "col_rows": "Rows",
     "col_filters": "Filters",
@@ -146,6 +154,13 @@
     "col_layer_axis": "Layer / Axis",
     "col_agg": "Agg",
     "col_fieldname": "Field Name",
+    "col_param_name": "Parameter Name",
+    "col_param_type": "Data Type",
+    "col_param_domain": "Allowable Values",
+    "col_param_config": "Configuration",
+    "col_used_field": "Used Field",
+    "col_referenced_field": "Referenced Field",
+    "col_id": "ID",
     "suffix_analysis_result": "_analysis_result"
   },
   "search": {

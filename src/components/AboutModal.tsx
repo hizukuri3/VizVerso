@@ -1,4 +1,3 @@
-import React from 'react'
 import { X, Info, ExternalLink, Heart } from 'lucide-react'
 import { t } from '../utils/i18n'
 
@@ -32,7 +31,11 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
           {/* Main Title */}
           <section>
             <div className="flex items-center gap-4 mb-4">
-              <img src="/favicon.png" alt="" className="h-12 w-12 object-contain" />
+              <img
+                src="/favicon.png"
+                alt=""
+                className="h-12 w-12 object-contain"
+              />
               <h2 className="text-3xl font-black text-slate-800 tracking-tight">
                 {t('app.title')}
               </h2>
@@ -49,22 +52,22 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
             </h3>
             <div className="grid gap-6 text-slate-500 text-xs leading-relaxed">
               <div>
-                <h4 className="font-bold text-slate-700 mb-1">{t('about.privacy_title')}</h4>
-                <p>
-                  {t('about.privacy_desc')}
-                </p>
+                <h4 className="font-bold text-slate-700 mb-1">
+                  {t('about.privacy_title')}
+                </h4>
+                <p>{t('about.privacy_desc')}</p>
               </div>
               <div>
-                <h4 className="font-bold text-slate-700 mb-1">{t('about.as_is_title')}</h4>
-                <p>
-                  {t('about.as_is_desc')}
-                </p>
+                <h4 className="font-bold text-slate-700 mb-1">
+                  {t('about.as_is_title')}
+                </h4>
+                <p>{t('about.as_is_desc')}</p>
               </div>
               <div>
-                <h4 className="font-bold text-slate-700 mb-1">{t('about.relationship_title')}</h4>
-                <p>
-                  {t('about.relationship_desc')}
-                </p>
+                <h4 className="font-bold text-slate-700 mb-1">
+                  {t('about.relationship_title')}
+                </h4>
+                <p>{t('about.relationship_desc')}</p>
               </div>
             </div>
           </section>
@@ -74,16 +77,36 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
             <h3 className="text-[10px] font-bold text-slate-300 uppercase tracking-[0.3em] border-b border-slate-100 pb-2">
               {t('about.credits_title')}
             </h3>
-            <div className="grid grid-cols-2 gap-4 text-[10px] text-slate-400">
-              <div>
-                <p className="font-bold text-slate-600">React</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-6 text-[10px] text-slate-400">
+              <div className="space-y-1">
+                <p className="font-bold text-slate-600">React / React-DOM</p>
                 <p>MIT License</p>
               </div>
-              <div>
+              <div className="space-y-1">
+                <p className="font-bold text-slate-600">Tailwind CSS</p>
+                <p>MIT License</p>
+              </div>
+              <div className="space-y-1">
+                <p className="font-bold text-slate-600">fast-xml-parser</p>
+                <p>MIT License</p>
+              </div>
+              <div className="space-y-1">
+                <p className="font-bold text-slate-600">JSZip</p>
+                <p>MIT License</p>
+              </div>
+              <div className="space-y-1">
+                <p className="font-bold text-slate-600">Lucide React</p>
+                <p>ISC License</p>
+              </div>
+              <div className="space-y-1">
+                <p className="font-bold text-slate-600">XyFlow (React Flow)</p>
+                <p>MIT License</p>
+              </div>
+              <div className="space-y-1">
                 <p className="font-bold text-slate-600">SheetJS (js-xlsx)</p>
                 <p>Apache License 2.0</p>
               </div>
-              <div>
+              <div className="space-y-1 col-span-full pt-2 border-t border-slate-50">
                 <p className="font-bold text-slate-600">Special Thanks</p>
                 <p className="flex items-center gap-1">
                   {t('about.special_thanks')}{' '}
@@ -105,7 +128,7 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
               <ExternalLink size={14} />
             </div>
             <span className="text-[10px] font-bold tracking-widest uppercase">
-              {t('about.created_by')}
+              {t('about.deployed_by')}
             </span>
           </a>
           <p className="text-[10px] text-slate-300 font-medium">

@@ -9,7 +9,7 @@ import {
 } from 'lucide-react'
 import type { TableauDocument, WorksheetPane } from '../types/tableau'
 import { Pill } from './ui/Pill'
-import { t, tMark, tAgg } from '../utils/i18n'
+import { t, tMark } from '../utils/i18n'
 import { formatFormulaText } from '../utils/formulaFormatter'
 import { useDependencyIndex } from '../hooks/useDependencyIndex'
 import { normalizeFieldId } from '../utils/xmlParser'
@@ -38,19 +38,36 @@ export default function DetailView({
   const activePillRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if (activeFieldName && activePillRef.current) {
-      activePillRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      activePillRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      })
     }
   }, [activeFieldName, selectedId])
 
   const index = useDependencyIndex(doc)
 
-  const renderPill = (info: { name: string, caption?: string, isCalc?: boolean, isContinuous?: boolean, dataType?: string, formula?: string }, keySuffix: string = '') => {
+  const renderPill = (
+    info: {
+      name: string
+      caption?: string
+      isCalc?: boolean
+      isContinuous?: boolean
+      dataType?: string
+      formula?: string
+    },
+    keySuffix: string = '',
+  ) => {
     const isActive = activeFieldName === info.name
     return (
-      <div key={`${info.name}-${keySuffix}`} ref={isActive ? activePillRef : null} className="inline-block mr-2 mb-2">
-        <Pill 
-          {...info} 
-          isActive={isActive} 
+      <div
+        key={`${info.name}-${keySuffix}`}
+        ref={isActive ? activePillRef : null}
+        className="inline-block mr-2 mb-2"
+      >
+        <Pill
+          {...info}
+          isActive={isActive}
           onClick={() => onOpenDrawer?.(info.name)}
         />
       </div>
@@ -76,9 +93,7 @@ export default function DetailView({
       <div className="flex-1 flex flex-col items-center justify-center text-slate-400 bg-slate-50/30">
         <div className="p-6 bg-white rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center gap-4">
           <MousePointer2 size={48} className="text-slate-200 animate-bounce" />
-          <p className="text-sm font-medium">
-            {t('status.empty_state_hint')}
-          </p>
+          <p className="text-sm font-medium">{t('status.empty_state_hint')}</p>
         </div>
       </div>
     )
@@ -147,7 +162,7 @@ export default function DetailView({
     )
   }
 
-    const getFieldInfo = (fieldName: string, shelfContinuous?: boolean) => {
+  const getFieldInfo = (fieldName: string, shelfContinuous?: boolean) => {
     const info = index?.getFieldInfo(fieldName)
     if (!info) {
       // インデックスにない場合でも、物理名のままではなく正規化した名称を表示する
@@ -156,7 +171,7 @@ export default function DetailView({
         name: fieldName,
         caption: cleanName || fieldName,
         isCalc: false,
-        isContinuous: shelfContinuous ?? false
+        isContinuous: shelfContinuous ?? false,
       }
     }
 
@@ -167,8 +182,15 @@ export default function DetailView({
     const isMax = /\bmax:/i.test(fieldName)
     const isCount = /\bcnt:|\bcntd:/i.test(fieldName)
     const isAttr = /\battr:/i.test(fieldName)
-    const isCollect = /\bcollect:|\bspatial:|\bagg:/i.test(fieldName) || info.resolvedDataType === 'spatial'
-    const isTableCalc = (fieldName.includes('rank:') || fieldName.includes('running:') || fieldName.includes('window:') || fieldName.includes('pct:') || fieldName.includes('total:'))
+    const isCollect =
+      /\bcollect:|\bspatial:|\bagg:/i.test(fieldName) ||
+      info.resolvedDataType === 'spatial'
+    const isTableCalc =
+      fieldName.includes('rank:') ||
+      fieldName.includes('running:') ||
+      fieldName.includes('window:') ||
+      fieldName.includes('pct:') ||
+      fieldName.includes('total:')
 
     let aggregation = t('agg.none')
     if (isSum) aggregation = t('agg.sum')
@@ -191,7 +213,10 @@ export default function DetailView({
       isCalc: info.isCalculated,
       dataType: info.resolvedDataType,
       formula: formatFormulaText(info.resolvedFormula, fieldMetaForFormatter),
-      isContinuous: shelfContinuous !== undefined ? shelfContinuous : (info.field.type === 'quantitative' || info.field.isContinuous)
+      isContinuous:
+        shelfContinuous !== undefined
+          ? shelfContinuous
+          : info.field.type === 'quantitative' || info.field.isContinuous,
     }
   }
 
@@ -199,8 +224,6 @@ export default function DetailView({
   if (selectedType === 'worksheet') {
     const ws = doc.worksheets.find((w) => w.name === selectedId)
     if (!ws) return null
-
-
 
     const renderShelfCard = (
       title: string,
@@ -288,20 +311,18 @@ export default function DetailView({
           }
         }
       } else {
-        headerLabel = t('detail.marks_all')
+        headerLabel = t('detail.marks')
       }
 
       // 重複がある場合は (2), (3) を付与
       if (headerLabel !== t('detail.marks_all')) {
         const baseLabel = headerLabel
 
-        // eslint-disable-next-line security/detect-object-injection
         const count = paneNameCounts.get(headerLabel) || 0
         if (count > 0) {
           headerLabel = `${baseLabel}(${count + 1})`
         }
 
-        // eslint-disable-next-line security/detect-object-injection
         paneNameCounts.set(baseLabel, count + 1)
       }
 
@@ -552,25 +573,31 @@ export default function DetailView({
         <section className="space-y-8">
           <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 bg-emerald-50/50 text-emerald-700 font-bold text-xs uppercase tracking-widest flex items-center gap-3">
-              <Hash size={16} /> {t('detail.calculated_fields')} ({calcs.length})
+              <Hash size={16} /> {t('detail.calculated_fields')} ({calcs.length}
+              )
             </div>
             <div className="p-8 flex flex-wrap gap-x-1 gap-y-1">
-              {ds.fields.filter(f => f.formula).map(f => {
-                const info = getFieldInfo(f.column)
-                return renderPill(info, 'ds-calc')
-              })}
+              {ds.fields
+                .filter((f) => f.formula)
+                .map((f) => {
+                  const info = getFieldInfo(f.column)
+                  return renderPill(info, 'ds-calc')
+                })}
             </div>
           </div>
 
           <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 text-slate-600 font-bold text-xs uppercase tracking-widest flex items-center gap-3">
-              <Database size={16} /> {t('detail.standard_fields')} ({normal.length})
+              <Database size={16} /> {t('detail.standard_fields')} (
+              {normal.length})
             </div>
             <div className="p-8 flex flex-wrap gap-x-1 gap-y-1">
-              {ds.fields.filter(f => !f.formula).map(f => {
-                const info = getFieldInfo(f.column)
-                return renderPill(info, 'ds-std')
-              })}
+              {ds.fields
+                .filter((f) => !f.formula)
+                .map((f) => {
+                  const info = getFieldInfo(f.column)
+                  return renderPill(info, 'ds-std')
+                })}
             </div>
           </div>
         </section>

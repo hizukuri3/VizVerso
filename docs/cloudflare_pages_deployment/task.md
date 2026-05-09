@@ -1,0 +1,5 @@
+- [x] `public/_headers` の作成
+- [x] `wrangler.toml` の作成
+- [x] `.github/workflows/deploy.yml` の作成
+- [x] ローカルでのビルド確認 (`npm run build`)
+- [x] Cloudflare Pages 設定手順書の作成

@@ -6,31 +6,42 @@ interface FormulaHighlighterProps {
   searchQuery?: string
 }
 
-export function FormulaHighlighter({ formula, searchQuery }: FormulaHighlighterProps) {
+export function FormulaHighlighter({
+  formula,
+  searchQuery,
+}: FormulaHighlighterProps) {
   const firstMatchRef = useRef<HTMLElement>(null)
   const paramLabel = t('nav.datasources')
 
   useEffect(() => {
     if (searchQuery && firstMatchRef.current) {
-      firstMatchRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      firstMatchRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      })
     }
   }, [searchQuery, formula])
 
-  const tokenRegex = new RegExp(`(".*?"|'.*?'|\\[${paramLabel}\\]\\.\\[[^\\]]+\\]|\\[[^\\]]+\\]|\\b(?:IF|THEN|ELSE|ELSEIF|END|CASE|WHEN|AND|OR|NOT)\\b|\\b[A-Z_]+\\b(?=\\s*\\())`, 'gi')
+  const tokenRegex = new RegExp(
+    `(".*?"|'.*?'|\\[${paramLabel}\\]\\.\\[[^\\]]+\\]|\\[[^\\]]+\\]|\\b(?:IF|THEN|ELSE|ELSEIF|END|CASE|WHEN|AND|OR|NOT)\\b|\\b[A-Z_]+\\b(?=\\s*\\())`,
+    'gi',
+  )
   const lines = formula.split('\n')
   const isFirstMatch = { current: true }
 
   const highlightSearch = (text: string) => {
     if (!searchQuery?.trim()) return text
-    
-    const parts = text.split(new RegExp(`(${searchQuery})`, 'gi'))
+
+    // 正規表現の特殊文字をエスケープ
+    const escapedQuery = searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const parts = text.split(new RegExp(`(${escapedQuery})`, 'gi'))
     return parts.map((part, i) => {
       if (part.toLowerCase() === searchQuery.toLowerCase()) {
         const isFirst = isFirstMatch.current
         if (isFirst) isFirstMatch.current = false
         return (
-          <mark 
-            key={i} 
+          <mark
+            key={i}
             ref={isFirst ? firstMatchRef : null}
             className="bg-amber-200/80 text-slate-900 rounded-sm px-0.5 font-bold shadow-[0_0_10px_rgba(251,191,36,0.3)] animate-pulse"
           >
@@ -44,7 +55,7 @@ export function FormulaHighlighter({ formula, searchQuery }: FormulaHighlighterP
 
   const renderToken = (part: string, i: number) => {
     if (!part) return null
-    
+
     let content: React.ReactNode = highlightSearch(part)
     let className = 'text-slate-600'
 
@@ -62,7 +73,11 @@ export function FormulaHighlighter({ formula, searchQuery }: FormulaHighlighterP
       content = highlightSearch(part.toUpperCase())
     }
 
-    return <span key={i} className={className}>{content}</span>
+    return (
+      <span key={i} className={className}>
+        {content}
+      </span>
+    )
   }
 
   return (
@@ -74,7 +89,10 @@ export function FormulaHighlighter({ formula, searchQuery }: FormulaHighlighterP
             {lines.map((line, lineIdx) => {
               const parts = line.split(tokenRegex)
               return (
-                <tr key={lineIdx} className="hover:bg-slate-50 transition-colors">
+                <tr
+                  key={lineIdx}
+                  className="hover:bg-slate-50 transition-colors"
+                >
                   <td className="w-12 select-none text-right pr-4 text-slate-300 border-r border-slate-50 bg-slate-50/30 py-1 text-[11px] font-mono">
                     {lineIdx + 1}
                   </td>

@@ -1,16 +1,17 @@
 {
   "app": {
-    "title": "Verso-viz",
-    "tagline": "Tableau ワークブックを解析し、構成や計算式の依存関係を可視化。",
-    "description": ".twbx ファイルをドロップするだけで、ダッシュボードの構成や計算フィールドの依存関係を詳細に可視化します。",
-    "about_title": "About Verso-viz"
+    "title": "VizVerso",
+    "tagline": "Tableau ワークブックを解析。計算の依存関係を可視化。",
+    "description": "Tableau ワークブックをドロップするだけで、構成要素や計算式のつながりを即座に解明します。",
+    "about_title": "About VizVerso"
   },
   "button": {
     "excel_export": "Excel 出力",
     "new_upload": "新規アップロード",
     "retry": "再試行",
     "close": "閉じる",
-    "view_detail": "詳細を表示 →"
+    "view_detail": "詳細を表示 →",
+    "back": "戻る"
   },
   "header": {
     "sheet_count": "{{count}} シート"
@@ -74,7 +75,9 @@
     "min": "最小値",
     "max": "最大値",
     "step": "ステップ",
-    "all_values": "すべての値"
+    "all_values": "すべての値",
+    "any": "すべて",
+    "all": "すべて"
   },
   "agg": {
     "sum": "合計",
@@ -103,18 +106,18 @@
     "density": "密度"
   },
   "about": {
-    "title": "Verso-viz について",
+    "title": "VizVerso について",
     "description": "Tableau ワークブックの構成を把握するための、ミニマルな解析ツール。",
     "disclaimer": "免責事項",
     "privacy_title": "データのプライバシー",
     "privacy_desc": "本ツールはクライアントサイド（ブラウザ内）でのみ動作します。アップロードされたファイルやデータが外部サーバーに送信・保存されることは一切ありません。",
-    "as_is_title": "現状有姿",
-    "as_is_desc": "本ツールは現状有姿で提供されます。ツールの利用により生じた直接的・間接的な損害（データ破損、業務への影響等）について、作者は一切の責任を負いません。",
+    "as_is_title": "無保証",
+    "as_is_desc": "本ツールは無保証で提供されます。ツールの利用により生じた直接的・間接的な損害（データ破損、業務への影響等）について、作者は一切の責任を負いません。",
     "relationship_title": "関係性",
     "relationship_desc": "本プロジェクトは個人による開発であり、Salesforce.com, Inc. および Tableau Software, LLC とは一切関係ありません。",
     "credits_title": "クレジット & ライセンス",
     "special_thanks": "Tableau DataFam コミュニティの皆様へ",
-    "created_by": "@hizukuri3 による開発",
+    "deployed_by": "DEPLOYED BY @hizukuri3",
     "version": "バージョン {{version}}"
   },
   "dropzone": {
@@ -125,12 +128,17 @@
   "excel": {
     "sheet_dashboard": "ダッシュボード構成",
     "sheet_worksheet_list": "ワークシート一覧",
+    "sheet_worksheet_shelf": "ワークシート・シェルフ",
     "sheet_calc_fields": "計算フィールド一覧",
     "sheet_fields": "フィールド一覧",
+    "sheet_parameters": "パラメータ一覧",
+    "sheet_dependencies": "使用フィールド (ワークシート)",
+    "sheet_field_dependencies": "計算フィールド依存関係",
     "col_dashboard_name": "ダッシュボード名",
     "col_included_sheets": "含まれるシート",
     "col_sheet_name": "シート名",
     "col_datasource": "データソース",
+    "col_shelf": "シェルフ",
     "col_columns": "列",
     "col_rows": "行",
     "col_filters": "フィルター",
@@ -147,6 +155,13 @@
     "col_layer_axis": "レイヤー / 軸",
     "col_agg": "集計",
     "col_fieldname": "フィールド名",
+    "col_param_name": "パラメータ名",
+    "col_param_type": "データ型",
+    "col_param_domain": "許容値",
+    "col_param_config": "設定値",
+    "col_referenced_field": "参照先フィールド",
+    "col_used_field": "使用フィールド",
+    "col_id": "ID",
     "suffix_analysis_result": "_解析結果"
   },
   "search": {

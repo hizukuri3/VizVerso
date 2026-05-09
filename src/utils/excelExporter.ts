@@ -1,422 +1,501 @@
 import * as XLSX from 'xlsx'
 import type { TableauDocument, TableauField } from '../types/tableau'
 import { t, tMark } from './i18n'
+import { normalizeFieldId } from './xmlParser'
 
 // ────────────────────────────────────────────
-// 表示名（Caption）解決ヘルパー
+// フィールド解決エンジン
 // ────────────────────────────────────────────
 
-/** データソース全体 + ワークシートローカルフィールドを統合した Map を生成 */
-function buildFieldMap(
-  doc: TableauDocument,
-  wsName?: string,
-): Map<string, TableauField> {
-  const map = new Map<string, TableauField>()
-  doc.datasources.forEach((ds) => {
-    ds.fields.forEach((f) => map.set(f.column, f))
-  })
-  if (wsName) {
-    const ws = doc.worksheets.find((w) => w.name === wsName)
-    ws?.localFields?.forEach((f) => {
-      if (!map.has(f.column) || f.caption) map.set(f.column, f)
+interface ResolvedInfo {
+  field: TableauField
+  parentCaptions: string[]
+  resolvedCaption: string
+  resolvedDataType?: string
+  resolvedFormula?: string
+  isCalculated: boolean
+  excelId: string
+}
+
+class ExcelFieldResolver {
+  private fields = new Map<
+    string,
+    { field: TableauField; parentCaptions: Set<string>; excelId: string }
+  >()
+  private idCounter = 1
+
+  constructor(doc: TableauDocument) {
+    const dsMap = new Map(
+      doc.datasources.map((ds) => [ds.name, ds.caption || ds.name]),
+    )
+    const PARAM_LABEL = t('detail.parameters')
+    const DS_FALLBACK = ''
+
+    const getNextId = () => `F${String(this.idCounter++).padStart(4, '0')}`
+
+    // 1. 全フィールドの収集 (標準・グローバル・ローカル)
+    doc.datasources.forEach((ds) => {
+      const dsCaption =
+        ds.name === 'Parameters' ? PARAM_LABEL : ds.caption || ds.name
+      ds.fields.forEach((f) => {
+        const id = normalizeFieldId(f.column)
+        // 物理テーブル名 (parentName) は使用せず、一律でデータソース名を採用
+        const sourceCaption = dsCaption
+
+        if (!this.fields.has(id)) {
+          this.fields.set(id, {
+            field: f,
+            parentCaptions: new Set([sourceCaption]),
+            excelId: getNextId(),
+          })
+        } else {
+          this.fields.get(id)!.parentCaptions.add(sourceCaption)
+        }
+      })
     })
+
+    doc.worksheets.forEach((ws) => {
+      ws.localFields?.forEach((f) => {
+        const id = normalizeFieldId(f.column)
+        const dsNameRaw = f.datasourceName || ''
+        let caption = DS_FALLBACK
+        if (dsNameRaw === 'Parameters') caption = PARAM_LABEL
+        else if (dsNameRaw && dsNameRaw !== 'data-source')
+          caption = dsMap.get(dsNameRaw) || dsNameRaw
+
+        const sourceCaption = caption
+
+        if (!this.fields.has(id)) {
+          this.fields.set(id, {
+            field: f,
+            parentCaptions: new Set([sourceCaption]),
+            excelId: getNextId(),
+          })
+        } else if (sourceCaption !== DS_FALLBACK) {
+          this.fields.get(id)!.parentCaptions.add(sourceCaption)
+        }
+      })
+    })
+
+    // 2. 依存関係の解決 (計算フィールドの再評価)
+    for (let i = 0; i < 5; i++) {
+      this.fields.forEach((info) => {
+        const f = info.field
+        if (f.formula || f.class) {
+          const newDeps = new Set<string>()
+          let hasActualRef = false
+
+          if (f.formula) {
+            const crossMatches = f.formula.matchAll(
+              /\[([^\]]+)\]\.\[([^\]]+)\]/g,
+            )
+            for (const match of crossMatches) {
+              const dsPart = match[1]
+              if (dsPart === 'Parameters' || dsPart === PARAM_LABEL) {
+                newDeps.add(PARAM_LABEL)
+              } else {
+                const dsName =
+                  dsMap.get(dsPart) ||
+                  (Array.from(dsMap.values()).includes(dsPart) ? dsPart : null)
+                if (dsName) newDeps.add(dsName)
+              }
+              hasActualRef = true
+            }
+            const simpleMatches = f.formula.matchAll(/\[([^\]]+)\]/g)
+            for (const match of simpleMatches) {
+              const refId = normalizeFieldId(match[1])
+              const refInfo = this.fields.get(refId)
+              if (refInfo && refId !== normalizeFieldId(f.column)) {
+                refInfo.parentCaptions.forEach((c) => {
+                  if (c !== DS_FALLBACK) newDeps.add(c)
+                })
+                hasActualRef = true
+              }
+            }
+          }
+
+          if (f.class) {
+            const classId = normalizeFieldId(f.class)
+            const classInfo = this.fields.get(classId)
+            if (classInfo) {
+              classInfo.parentCaptions.forEach((c) => {
+                if (c !== DS_FALLBACK) newDeps.add(c)
+              })
+              hasActualRef = true
+            }
+          }
+
+          if (hasActualRef) {
+            info.parentCaptions.clear()
+            newDeps.forEach((c) => info.parentCaptions.add(c))
+            if (info.parentCaptions.size === 0)
+              info.parentCaptions.add(DS_FALLBACK)
+          } else if (f.formula) {
+            info.parentCaptions.clear()
+            info.parentCaptions.add(DS_FALLBACK)
+          }
+        }
+      })
+    }
   }
-  return map
+
+  public getFieldInfo(name: string): ResolvedInfo | null {
+    const cleanId = normalizeFieldId(name)
+    const info = this.fields.get(cleanId)
+    if (!info) return null
+    let current = info.field
+    let caption = current.caption
+    let dataType = current.dataType
+    let formula = current.formula
+    let depth = 0
+    const visited = new Set<string>()
+    visited.add(cleanId)
+    while (depth < 5 && current.class) {
+      const classId = normalizeFieldId(current.class)
+      const next = this.fields.get(classId)
+      if (next && !visited.has(classId)) {
+        if (!caption) caption = next.field.caption
+        if (!dataType) dataType = next.field.dataType
+        if (!formula) formula = next.field.formula
+        visited.add(classId)
+        current = next.field
+      } else break
+      depth++
+    }
+    return {
+      field: info.field,
+      parentCaptions: Array.from(info.parentCaptions),
+      resolvedCaption: caption || normalizeFieldId(info.field.column),
+      resolvedDataType: dataType,
+      resolvedFormula: formula,
+      isCalculated: !!formula,
+      excelId: info.excelId,
+    }
+  }
+
+  public getAllResolvedFields(): ResolvedInfo[] {
+    return Array.from(this.fields.keys())
+      .map((name) => this.getFieldInfo(name)!)
+      .sort((a, b) => a.excelId.localeCompare(b.excelId))
+  }
 }
 
-/** フィールド物理名（rank:sum:[DS].[Calc_xxx]:qk:1 等）から表示名を解決 */
-function resolveCaption(
-  fieldName: string,
-  fieldMap: Map<string, TableauField>,
+function getDisplayFormula(
+  formula: string | undefined,
+  field: TableauField,
+  resolver: ExcelFieldResolver,
 ): string {
-  const clean = (name: string) => {
-    let inner = name
-    const bracketMatches = [...name.matchAll(/\[([^\]]+)\]/g)]
-    if (bracketMatches.length > 0) {
-      inner = bracketMatches[bracketMatches.length - 1][1]
-    }
-
-    const parts = inner.split(':')
-    const last = parts[parts.length - 1]
-    const typeIds = ['nk', 'qk', 'ok', 'ok2', 'ni', 'oi']
-    const aggFns = [
-      'sum',
-      'avg',
-      'min',
-      'max',
-      'count',
-      'cnt',
-      'cntd',
-      'attr',
-      'median',
-      'stdev',
-      'var',
-      'collect',
-    ]
-
-    if (typeIds.includes(last.toLowerCase())) {
-      const candidate = parts[parts.length - 2]
-      if (candidate && aggFns.includes(candidate.toLowerCase())) {
-        return parts[parts.length - 3] || candidate
+  if (formula) {
+    let result = formula.replace(
+      /\[([^\]]+)\]\.\[([^\]]+)\]/g,
+      (match, ds, f) => {
+        const info = resolver.getFieldInfo(f)
+        if (info) {
+          let cap = info.resolvedCaption
+          if (cap.startsWith('[') && cap.endsWith(']'))
+            cap = cap.substring(1, cap.length - 1)
+          return `[${ds}].[${cap}]`
+        }
+        return match
+      },
+    )
+    result = result.replace(/\[([^\]]+)\]/g, (match, p1) => {
+      const info = resolver.getFieldInfo(p1)
+      if (info) {
+        let cap = info.resolvedCaption
+        if (cap.startsWith('[') && cap.endsWith(']'))
+          cap = cap.substring(1, cap.length - 1)
+        return `[${cap}]`
       }
-      return candidate || last
-    }
-    return inner
+      return match
+    })
+    return result
   }
-
-  const cleanId = clean(fieldName)
-  let meta = fieldMap.get(cleanId)
-  if (!meta) {
-    for (const [k, v] of fieldMap.entries()) {
-      if (k.toLowerCase() === cleanId.toLowerCase()) {
-        meta = v
-        break
-      }
+  if (field.class) {
+    const info = resolver.getFieldInfo(field.class)
+    if (info) {
+      let cap = info.resolvedCaption
+      if (cap.startsWith('[') && cap.endsWith(']'))
+        cap = cap.substring(1, cap.length - 1)
+      return `[${cap}]`
     }
   }
-
-  let displayName = meta?.caption || cleanId
-  if (displayName.startsWith('[') && displayName.endsWith(']')) {
-    displayName = displayName.substring(1, displayName.length - 1)
-  }
-
-  const isSum = /\bsum:/i.test(fieldName) && !displayName.includes(t('agg.sum'))
-  const isAvg = /\bavg:/i.test(fieldName) && !displayName.includes(t('agg.avg'))
-  const isMin = /\bmin:/i.test(fieldName) && !displayName.includes(t('agg.min'))
-  const isMax = /\bmax:/i.test(fieldName) && !displayName.includes(t('agg.max'))
-  const isCount =
-    /\bcnt:|\bcntd:/i.test(fieldName) && !displayName.includes(t('agg.count'))
-  const isAttr = /\battr:/i.test(fieldName) && !displayName.includes(t('agg.attr'))
-  const isCollect =
-    (/\bcollect:|\bspatial:/i.test(fieldName) ||
-      meta?.dataType === 'spatial') &&
-    !displayName.includes(t('agg.collect'))
-  const isTableCalc =
-    (fieldName.includes('rank:') ||
-      fieldName.includes('running:') ||
-      fieldName.includes('window:')) &&
-    !displayName.includes('△')
-
-  let formattedName = displayName
-  if (
-    !formattedName.startsWith('[') &&
-    !/^\d+$/.test(formattedName) &&
-    !formattedName.includes('(')
-  ) {
-    formattedName = `[${formattedName}]`
-  }
-
-  if (isSum) displayName = `${t('agg.sum')}(${formattedName})`
-  else if (isAvg) displayName = `${t('agg.avg')}(${formattedName})`
-  else if (isMin) displayName = `${t('agg.min')}(${formattedName})`
-  else if (isMax) displayName = `${t('agg.max')}(${formattedName})`
-  else if (isCount) displayName = `${t('agg.count')}(${formattedName})`
-  else if (isAttr) displayName = `${t('agg.attr')}(${formattedName})`
-  else if (isCollect) displayName = `${t('agg.collect')}(${formattedName})`
-  else displayName = formattedName
-
-  if (isTableCalc) displayName = `${displayName} △`
-
-  return displayName
+  return ''
 }
 
-/** Tableau解析結果をExcelブックとしてダウンロードする */
+function getDisplayCaption(name: string, info: ResolvedInfo | null): string {
+  if (!info) return normalizeFieldId(name)
+  let caption = info.resolvedCaption
+  if (caption.startsWith('[') && caption.endsWith(']'))
+    caption = caption.substring(1, caption.length - 1)
+  const fn = name.toLowerCase()
+  const isSum = /\bsum:/i.test(fn)
+  const isAvg = /\bavg:/i.test(fn)
+  const isMin = /\bmin:/i.test(fn)
+  const isMax = /\bmax:/i.test(fn)
+  const isCount = /\bcnt:|\bcntd:/i.test(fn)
+  const isAttr = /\battr:/i.test(fn)
+  const isCollect =
+    /\bcollect:|\bspatial:|\bagg:/i.test(fn) ||
+    info.resolvedDataType === 'spatial'
+  const isTableCalc =
+    fn.includes('rank:') ||
+    fn.includes('running:') ||
+    fn.includes('window:') ||
+    fn.includes('pct:') ||
+    fn.includes('total:')
+  let agg = ''
+  if (isSum) agg = t('agg.sum')
+  else if (isAvg) agg = t('agg.avg')
+  else if (isMin) agg = t('agg.min')
+  else if (isMax) agg = t('agg.max')
+  else if (isCount) agg = t('agg.count')
+  else if (isAttr) agg = t('agg.attr')
+  else if (isCollect) agg = t('agg.collect')
+  let result = agg ? `${agg}(${caption})` : caption
+  if (isTableCalc) result = `${result} △`
+  return result
+}
+
+function formatDatasource(captions: string[]): string {
+  if (captions.length === 0) return ''
+  const unique = Array.from(new Set(captions)).filter((c) => c !== '')
+  return unique.sort().join(', ')
+}
+
 export function exportToExcel(
   doc: TableauDocument,
   workbookName: string = 'tableau_analysis',
 ) {
   const wb = XLSX.utils.book_new()
-
-  // ──────────────────────────────────────────
-  // シート①: ダッシュボード構成一覧
-  // ──────────────────────────────────────────
-  const dashboardRows: (string | number | boolean | null | undefined)[][] = [
-    [t('excel.col_dashboard_name'), t('excel.col_included_sheets')],
+  const resolver = new ExcelFieldResolver(doc)
+  const dashboardRows: (string | number)[][] = [
+    [t('excel.col_dashboard_name'), t('excel.col_sheet_name')],
   ]
-  doc.dashboards.forEach((db) => {
-    const wsNames = db.worksheets
-      .map((wsName) => {
-        const wsObj = doc.worksheets.find((w) => w.name === wsName)
-        return wsObj?.caption || wsName
-      })
-      .join(' / ')
-    dashboardRows.push([db.caption || db.name, wsNames])
-  })
-  const dashboardSheet = XLSX.utils.aoa_to_sheet(dashboardRows)
-  dashboardSheet['!cols'] = [{ wch: 30 }, { wch: 80 }]
-  XLSX.utils.book_append_sheet(wb, dashboardSheet, t('excel.sheet_dashboard'))
-
-  // ──────────────────────────────────────────
-  // シート②: ワークシート一覧（シェルフ・マーク情報）
-  // ──────────────────────────────────────────
-  const wsRows: (string | number | boolean | null | undefined)[][] = [
+  doc.dashboards.forEach((db) =>
+    db.worksheets.forEach((ws) => {
+      const wsObj = doc.worksheets.find((w) => w.name === ws)
+      dashboardRows.push([db.caption || db.name, wsObj?.caption || ws])
+    }),
+  )
+  XLSX.utils.book_append_sheet(
+    wb,
+    XLSX.utils.aoa_to_sheet(dashboardRows),
+    t('excel.sheet_dashboard'),
+  )
+  const shelfRows: (string | number)[][] = [
     [
+      t('excel.col_id'),
       t('excel.col_sheet_name'),
       t('excel.col_datasource'),
-      t('excel.col_columns'),
-      t('excel.col_rows'),
-      t('excel.col_filters'),
-      t('excel.col_mark_type'),
-      t('excel.col_color'),
-      t('excel.col_size'),
-      t('excel.col_label'),
-      t('excel.col_detail'),
-      t('excel.col_tooltip'),
+      t('excel.col_shelf'),
+      t('excel.col_fieldname'),
     ],
   ]
-
   doc.worksheets.forEach((ws) => {
-    const shelf = ws.shelf
-    const mainPane = shelf?.marks
-    const fieldMap = buildFieldMap(doc, ws.name)
-    const resolve = (name: string) => resolveCaption(name, fieldMap)
-
-    wsRows.push([
-      ws.caption || ws.name,
-      ws.datasourceNames?.join(', ') || '',
-      shelf?.cols.map((f) => resolve(f.name)).join(', ') || '',
-      shelf?.rows.map((f) => resolve(f.name)).join(', ') || '',
-      shelf?.filters.map((f) => resolve(f.name)).join(', ') || '',
-      mainPane ? tMark(mainPane.markType) : '',
-      mainPane?.encodings.color.map((f) => resolve(f.name)).join(', ') || '',
-      mainPane?.encodings.size.map((f) => resolve(f.name)).join(', ') || '',
-      mainPane?.encodings.label.map((f) => resolve(f.name)).join(', ') || '',
-      mainPane?.encodings.detail.map((f) => resolve(f.name)).join(', ') || '',
-      mainPane?.encodings.tooltip.map((f) => resolve(f.name)).join(', ') || '',
+    const addShelf = (
+      fields: import('../types/tableau').ShelfField[],
+      type: string,
+    ) =>
+      fields.forEach((f) => {
+        const info = resolver.getFieldInfo(f.name)
+        shelfRows.push([
+          info?.excelId || '',
+          ws.caption || ws.name,
+          formatDatasource(info?.parentCaptions || []),
+          type,
+          getDisplayCaption(f.name, info),
+        ])
+      })
+    addShelf(ws.shelf?.cols || [], t('detail.columns'))
+    addShelf(ws.shelf?.rows || [], t('detail.rows'))
+    addShelf(ws.shelf?.filters || [], t('detail.filters'))
+  })
+  XLSX.utils.book_append_sheet(
+    wb,
+    XLSX.utils.aoa_to_sheet(shelfRows),
+    t('excel.sheet_worksheet_shelf'),
+  )
+  const paramRows: (string | number)[][] = [
+    [
+      t('excel.col_id'),
+      t('excel.col_param_name'),
+      t('excel.col_param_type'),
+      t('excel.col_param_domain'),
+      t('excel.col_param_config'),
+    ],
+  ]
+  resolver
+    .getAllResolvedFields()
+    .filter((f) => f.field.paramDomainType)
+    .forEach((f) => {
+      const config =
+        f.field.paramDomainType === 'list'
+          ? f.field.paramMembers?.map((m) => m.alias || m.value).join(', ') ||
+            ''
+          : f.field.paramDomainType === 'range'
+            ? `${t('detail.min')}:${f.field.paramRange?.min} ${t('detail.max')}:${f.field.paramRange?.max}`
+            : t('detail.all_values')
+      paramRows.push([
+        f.excelId,
+        f.resolvedCaption,
+        f.resolvedDataType || '',
+        t(
+          `detail.${f.field.paramDomainType || 'any'}` as import('./i18n').TKey,
+        ),
+        config,
+      ])
+    })
+  if (paramRows.length > 1)
+    XLSX.utils.book_append_sheet(
+      wb,
+      XLSX.utils.aoa_to_sheet(paramRows),
+      t('excel.sheet_parameters'),
+    )
+  const fieldRows: (string | number)[][] = [
+    [
+      t('excel.col_id'),
+      t('excel.col_datasource'),
+      t('excel.col_fieldname'),
+      t('excel.col_datatype'),
+      t('excel.col_role'),
+      t('excel.col_formula'),
+    ],
+  ]
+  resolver.getAllResolvedFields().forEach((f) => {
+    fieldRows.push([
+      f.excelId,
+      formatDatasource(f.parentCaptions),
+      f.resolvedCaption,
+      f.resolvedDataType || '',
+      f.field.role || '',
+      getDisplayFormula(f.resolvedFormula, f.field, resolver),
     ])
   })
-  const wsSheet = XLSX.utils.aoa_to_sheet(wsRows)
-  wsSheet['!cols'] = [
-    { wch: 25 },
-    { wch: 30 },
-    { wch: 30 },
-    { wch: 30 },
-    { wch: 30 },
-    { wch: 15 },
-    { wch: 25 },
-    { wch: 25 },
-    { wch: 25 },
-    { wch: 25 },
-    { wch: 25 },
+  XLSX.utils.book_append_sheet(
+    wb,
+    XLSX.utils.aoa_to_sheet(fieldRows),
+    t('excel.sheet_fields'),
+  )
+  const depRows: (string | number)[][] = [
+    [
+      t('excel.col_id'),
+      t('excel.col_sheet_name'),
+      t('excel.col_datasource'),
+      t('excel.col_used_field' as import('./i18n').TKey),
+    ],
   ]
-  XLSX.utils.book_append_sheet(wb, wsSheet, t('excel.sheet_worksheet_list'))
-
-  // ──────────────────────────────────────────
-  // シート③: 計算フィールド一覧
-  // ──────────────────────────────────────────
-  const calcRows: (string | number | boolean | null | undefined)[][] = [
-    [t('excel.col_datasource'), t('excel.col_caption'), t('excel.col_formula')],
+  doc.worksheets.forEach((ws) =>
+    ws.dependencies.forEach((dep) => {
+      const info = resolver.getFieldInfo(dep)
+      depRows.push([
+        info?.excelId || '',
+        ws.caption || ws.name,
+        formatDatasource(info?.parentCaptions || []),
+        getDisplayCaption(dep, info),
+      ])
+    }),
+  )
+  XLSX.utils.book_append_sheet(
+    wb,
+    XLSX.utils.aoa_to_sheet(depRows),
+    t('excel.sheet_dependencies'),
+  )
+  const colIdLabel = t('excel.col_id')
+  const fDepRows: (string | number)[][] = [
+    [
+      t('excel.col_datasource'),
+      t('excel.col_fieldname'),
+      `${colIdLabel}(Target)`,
+      `${colIdLabel}(Source)`,
+      t('excel.col_referenced_field'),
+    ],
   ]
-  doc.datasources.forEach((ds) => {
-    ds.fields
-      .filter((f) => f.formula)
-      .forEach((f) => {
-        calcRows.push([
-          ds.caption || ds.name,
-          f.caption || f.column,
-          f.formula || '',
-        ])
-      })
+  resolver.getAllResolvedFields().forEach((f) => {
+    const formula =
+      f.resolvedFormula || (f.field.class ? `[${f.field.class}]` : '')
+    if (!formula) return
+    const matches = formula.matchAll(/\[([^\]]+)\]/g)
+    const seen = new Set<string>()
+    for (const match of matches) {
+      const refName = match[1]
+      const refId = normalizeFieldId(refName)
+      if (seen.has(refId)) continue
+      seen.add(refId)
+      const refInfo = resolver.getFieldInfo(refName)
+      fDepRows.push([
+        formatDatasource(f.parentCaptions),
+        f.resolvedCaption,
+        f.excelId,
+        refInfo?.excelId || '',
+        getDisplayCaption(refName, refInfo),
+      ])
+    }
   })
-  const calcSheet = XLSX.utils.aoa_to_sheet(calcRows)
-  calcSheet['!cols'] = [{ wch: 30 }, { wch: 35 }, { wch: 100 }]
-  XLSX.utils.book_append_sheet(wb, calcSheet, t('excel.sheet_calc_fields'))
-
-  // ──────────────────────────────────────────
-  // シート④: フィールド一覧（計算フィールド以外）
-  // ──────────────────────────────────────────
-  const fieldRows: (string | number | boolean | null | undefined)[][] = [
-    [t('excel.col_datasource'), t('excel.col_caption'), t('excel.col_datatype'), t('excel.col_role')],
-  ]
-  doc.datasources.forEach((ds) => {
-    ds.fields
-      .filter((f) => !f.formula)
-      .forEach((f) => {
-        fieldRows.push([
-          ds.caption || ds.name,
-          f.caption || f.column,
-          f.dataType || '',
-          f.role || '',
-        ])
-      })
-  })
-  const fieldSheet = XLSX.utils.aoa_to_sheet(fieldRows)
-  fieldSheet['!cols'] = [{ wch: 30 }, { wch: 35 }, { wch: 12 }, { wch: 12 }]
-  XLSX.utils.book_append_sheet(wb, fieldSheet, t('excel.sheet_fields'))
-
-  // ──────────────────────────────────────────
-  // シート⑤～: ワークシートごとの詳細（レイヤー対応）
-  // ──────────────────────────────────────────
+  if (fDepRows.length > 1)
+    XLSX.utils.book_append_sheet(
+      wb,
+      XLSX.utils.aoa_to_sheet(fDepRows),
+      t('excel.sheet_field_dependencies'),
+    )
   doc.worksheets.forEach((ws) => {
-    const panes = ws.shelf?.panes || []
-    if (panes.length === 0) return
-    const fieldMap = buildFieldMap(doc, ws.name)
-    const resolve = (name: string) => resolveCaption(name, fieldMap)
-
-    const rows: (string | number | boolean | null | undefined)[][] = [
-      [t('excel.col_layer_axis'), t('excel.col_mark_type'), t('excel.col_role'), t('excel.col_agg'), t('excel.col_fieldname')],
+    const rows: (string | number)[][] = [
+      [
+        t('excel.col_id'),
+        t('excel.col_layer_axis'),
+        t('excel.col_mark_type'),
+        t('excel.col_datasource'),
+        t('excel.col_role'),
+        t('excel.col_agg'),
+        t('excel.col_fieldname'),
+      ],
     ]
-
-    const layerNameCounts = new Map<string, number>()
-
-    panes.forEach((pane, i) => {
-      const isMapChart = panes.some((p) => p.name?.includes('mp.'))
-
-      let layerName = ''
-      if (isMapChart) {
-        layerName = pane.name || `Layer ${i + 1}`
-      } else {
-        const rowMeasures = (ws.shelf?.rows || []).filter((f) => f.isContinuous)
-        const colMeasures = (ws.shelf?.cols || []).filter((f) => f.isContinuous)
-        const splitMeasures =
-          rowMeasures.length >= colMeasures.length ? rowMeasures : colMeasures
-
-        const hasAllPane = panes.length > splitMeasures.length
-
-        if (hasAllPane && i === 0) {
-          layerName = t('detail.marks_all')
-        } else {
-          // 軸の参照名があればそれを使用
-          if (pane.yAxisName || pane.xAxisName) {
-            const axisRef = pane.yAxisName || pane.xAxisName
-            layerName = resolve(axisRef!)
-            // MIN(0) 調整
-            if (layerName.toLowerCase().startsWith('min(0)')) {
-              layerName = `${t('agg.collect')}(MIN(0))`
-            }
-          } else {
-            const measureIndex = hasAllPane ? i - 1 : i
-            // eslint-disable-next-line security/detect-object-injection
-            const shelfField = splitMeasures[measureIndex]
-            if (shelfField) {
-              layerName = resolve(shelfField.name)
-            } else {
-              layerName = `${t('detail.marks')} ${i + (hasAllPane ? 0 : 1)}`
-            }
-          }
-        }
-      }
-
-      // 重複サフィックス付与
-      if (layerName !== t('detail.marks_all')) {
-        // eslint-disable-next-line security/detect-object-injection
-        const count = layerNameCounts.get(layerName) || 0
-        const baseName = layerName
-        if (count > 0) {
-          layerName = `${baseName}(${count + 1})`
-        }
-
-        // eslint-disable-next-line security/detect-object-injection
-        layerNameCounts.set(baseName, count + 1)
-      }
-
+    ws.shelf?.panes.forEach((pane, i) => {
+      const layer = ws.shelf?.panes.some((p) => p.name?.includes('mp.'))
+        ? pane.name || `Layer ${i + 1}`
+        : `${t('detail.marks')} ${i + 1}`
       const mark = tMark(pane.markType)
-
-      const addRows = (
-        fields: { name: string; isContinuous?: boolean }[],
+      const add = (
+        fields: import('../types/tableau').ShelfField[],
         role: string,
-      ) => {
+      ) =>
         fields.forEach((f) => {
-          const clean = (n: string) => {
-            let inner = n
-            const bracketMatches = [...n.matchAll(/\[([^\]]+)\]/g)]
-            if (bracketMatches.length > 0)
-              inner = bracketMatches[bracketMatches.length - 1][1]
-            const parts = inner.split(':')
-            const last = parts[parts.length - 1]
-            const typeIds = ['nk', 'qk', 'ok', 'ok2', 'ni', 'oi']
-            const aggFns = [
-              'sum',
-              'avg',
-              'min',
-              'max',
-              'count',
-              'cnt',
-              'cntd',
-              'attr',
-              'median',
-              'stdev',
-              'var',
-              'collect',
-            ]
-
-            if (typeIds.includes(last.toLowerCase())) {
-              const candidate = parts[parts.length - 2]
-              if (candidate && aggFns.includes(candidate.toLowerCase())) {
-                return parts[parts.length - 3] || candidate
-              }
-              return candidate || last
-            }
-            return inner
-          }
-
-          const cleanId = clean(f.name)
-          let meta = fieldMap.get(cleanId)
-          if (!meta) {
-            for (const [k, v] of fieldMap.entries()) {
-              if (k.toLowerCase() === cleanId.toLowerCase()) {
-                meta = v
-                break
-              }
-            }
-          }
-
-          let displayName = meta?.caption || cleanId
-          if (displayName.startsWith('[') && displayName.endsWith(']')) {
-            displayName = displayName.substring(1, displayName.length - 1)
-          }
-
-          const isSum = /\bsum:/i.test(f.name)
-          const isAvg = /\bavg:/i.test(f.name)
-          const isMin = /\bmin:/i.test(f.name)
-          const isMax = /\bmax:/i.test(f.name)
-          const isCount = /\bcnt:|\bcntd:/i.test(f.name)
-          const isAttr = /\battr:/i.test(f.name)
-          const isCollect =
-            /\bcollect:|\bspatial:/i.test(f.name) ||
-            meta?.dataType === 'spatial'
-
+          const info = resolver.getFieldInfo(f.name)
           let agg = t('agg.none')
-          if (isSum) agg = t('agg.sum')
-          else if (isAvg) agg = t('agg.avg')
-          else if (isMin) agg = t('agg.min')
-          else if (isMax) agg = t('agg.max')
-          else if (isCount) agg = t('agg.count')
-          else if (isAttr) agg = t('agg.attr')
-          else if (isCollect) agg = t('agg.collect')
-
-          let formattedName = displayName
-          if (
-            !formattedName.startsWith('[') &&
-            !/^\d+$/.test(formattedName) &&
-            !formattedName.includes('(')
-          ) {
-            formattedName = `[${formattedName}]`
-          }
-          rows.push([layerName, mark, role, agg, formattedName])
+          const fn = f.name.toLowerCase()
+          if (fn.includes('sum:')) agg = t('agg.sum')
+          else if (fn.includes('avg:')) agg = t('agg.avg')
+          else if (fn.includes('min:')) agg = t('agg.min')
+          else if (fn.includes('max:')) agg = t('agg.max')
+          else if (fn.includes('cnt:')) agg = t('agg.count')
+          else if (fn.includes('attr:')) agg = t('agg.attr')
+          else if (
+            fn.includes('collect:') ||
+            info?.resolvedDataType === 'spatial'
+          )
+            agg = t('agg.collect')
+          rows.push([
+            info?.excelId || '',
+            layer,
+            mark,
+            formatDatasource(info?.parentCaptions || []),
+            role,
+            agg,
+            getDisplayCaption(f.name, info),
+          ])
         })
-      }
-
-      addRows(pane.encodings.color, t('detail.color'))
-      addRows(pane.encodings.size, t('detail.size'))
-      addRows(pane.encodings.label, t('detail.label'))
-      addRows(pane.encodings.detail, t('detail.detail'))
-      addRows(pane.encodings.tooltip, t('detail.tooltip'))
+      add(pane.encodings.color, t('detail.color'))
+      add(pane.encodings.size, t('detail.size'))
+      add(pane.encodings.label, t('detail.label'))
+      add(pane.encodings.detail, t('detail.detail'))
+      add(pane.encodings.tooltip, t('detail.tooltip'))
     })
-
-    if (rows.length <= 1) return // ヘッダーのみならスキップ
-
-    const sheetName = (ws.caption || ws.name).slice(0, 31)
-    const detailSheet = XLSX.utils.aoa_to_sheet(rows)
-    detailSheet['!cols'] = [
-      { wch: 30 },
-      { wch: 18 },
-      { wch: 14 },
-      { wch: 15 },
-      { wch: 35 },
-    ]
-    XLSX.utils.book_append_sheet(wb, detailSheet, sheetName)
+    if (rows.length > 1)
+      XLSX.utils.book_append_sheet(
+        wb,
+        XLSX.utils.aoa_to_sheet(rows),
+        (ws.caption || ws.name).slice(0, 31),
+      )
   })
-
   XLSX.writeFile(wb, `${workbookName}${t('excel.suffix_analysis_result')}.xlsx`)
 }

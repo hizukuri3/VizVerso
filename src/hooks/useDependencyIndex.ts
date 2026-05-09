@@ -14,17 +14,35 @@ export interface ResolvedFieldInfo {
 }
 
 export interface DependencyIndex {
-  fields: Map<string, { field: TableauField; parentName: string; parentCaption: string; parentType: 'datasource' | 'worksheet' }>
+  fields: Map<
+    string,
+    {
+      field: TableauField
+      parentName: string
+      parentCaption: string
+      parentType: 'datasource' | 'worksheet'
+    }
+  >
   fieldToParents: Map<string, Set<string>> // fieldName -> referencing fields
-  fieldToSheets: Map<string, Set<string>>  // fieldName -> using sheets
+  fieldToSheets: Map<string, Set<string>> // fieldName -> using sheets
   getFieldInfo: (name: string) => ResolvedFieldInfo | null
 }
 
-export function useDependencyIndex(doc: TableauDocument | null): DependencyIndex | null {
+export function useDependencyIndex(
+  doc: TableauDocument | null,
+): DependencyIndex | null {
   return useMemo(() => {
     if (!doc) return null
 
-    const fields = new Map<string, { field: TableauField; parentName: string; parentType: 'datasource' | 'worksheet' }>()
+    const fields = new Map<
+      string,
+      {
+        field: TableauField
+        parentName: string
+        parentCaption: string
+        parentType: 'datasource' | 'worksheet'
+      }
+    >()
     const fieldToParents = new Map<string, Set<string>>()
     const fieldToSheets = new Map<string, Set<string>>()
 
@@ -32,7 +50,12 @@ export function useDependencyIndex(doc: TableauDocument | null): DependencyIndex
     doc.datasources.forEach((ds) => {
       const parentCaption = ds.caption || ds.name
       ds.fields.forEach((f) => {
-        fields.set(normalizeFieldId(f.column), { field: f, parentName: ds.name, parentCaption, parentType: 'datasource' })
+        fields.set(normalizeFieldId(f.column), {
+          field: f,
+          parentName: ds.name,
+          parentCaption,
+          parentType: 'datasource',
+        })
       })
     })
 
@@ -42,7 +65,12 @@ export function useDependencyIndex(doc: TableauDocument | null): DependencyIndex
       ws.localFields?.forEach((f) => {
         const id = normalizeFieldId(f.column)
         if (!fields.has(id)) {
-          fields.set(id, { field: f, parentName: ws.name, parentCaption, parentType: 'worksheet' })
+          fields.set(id, {
+            field: f,
+            parentName: ws.name,
+            parentCaption,
+            parentType: 'worksheet',
+          })
         }
       })
     })
@@ -55,7 +83,8 @@ export function useDependencyIndex(doc: TableauDocument | null): DependencyIndex
         const matches = info.field.formula.matchAll(/\[([^\]]+)\]/g)
         for (const match of matches) {
           const refName = normalizeFieldId(match[1])
-          if (!fieldToParents.has(refName)) fieldToParents.set(refName, new Set())
+          if (!fieldToParents.has(refName))
+            fieldToParents.set(refName, new Set())
           fieldToParents.get(refName)!.add(normalizeFieldId(name))
         }
       }
@@ -82,7 +111,7 @@ export function useDependencyIndex(doc: TableauDocument | null): DependencyIndex
       let formula = currentField.formula
       let dataType = currentField.dataType
       let depth = 0
-      
+
       const visited = new Set<string>()
       visited.add(cleanId)
 
@@ -105,7 +134,6 @@ export function useDependencyIndex(doc: TableauDocument | null): DependencyIndex
         depth++
       }
 
-
       return {
         field: info.field,
         parentName: info.parentName,
@@ -114,7 +142,7 @@ export function useDependencyIndex(doc: TableauDocument | null): DependencyIndex
         resolvedCaption: caption || cleanId,
         resolvedFormula: formula,
         resolvedDataType: dataType,
-        isCalculated: !!formula
+        isCalculated: !!formula,
       }
     }
 

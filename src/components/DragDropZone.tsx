@@ -1,4 +1,4 @@
-import React, { useState, useRef, type DragEvent, type KeyboardEvent } from 'react'
+import { useState, useRef, type DragEvent, type KeyboardEvent } from 'react'
 import { UploadCloud } from 'lucide-react'
 import { t } from '../utils/i18n'
 
@@ -90,9 +90,7 @@ export default function DragDropZone({ onFileDrop }: DragDropZoneProps) {
         <h3 className="text-xl font-semibold text-slate-700 mb-2">
           {t('dropzone.title')}
         </h3>
-        <p className="text-sm text-slate-500">
-          {t('dropzone.hint')}
-        </p>
+        <p className="text-sm text-slate-500">{t('dropzone.hint')}</p>
       </div>
     </div>
   )
