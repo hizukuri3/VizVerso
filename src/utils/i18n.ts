@@ -39,11 +39,11 @@ export const t = (
   params?: Record<string, string | number>,
 ): string => {
   const keys = key.split('.')
-  let value: unknown = translations[currentLang]
+  // 動的なキーアクセスを避け、明示的に分岐させる
+  let value: unknown = currentLang === 'ja' ? translations.ja : translations.en
 
   for (const k of keys) {
     if (value && typeof value === 'object' && k in (value as object)) {
-      // eslint-disable-next-line security/detect-object-injection
       value = (value as Record<string, unknown>)[k]
     } else {
       return key
@@ -55,13 +55,9 @@ export const t = (
   if (params) {
     let result = value
     for (const [pKey, pValue] of Object.entries(params)) {
-      // 特殊文字をエスケープしてRegExpを生成
-      const escapedKey = pKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-
-      result = result.replace(
-        new RegExp(`{{${escapedKey}}}`, 'g'),
-        String(pValue),
-      )
+      // 正規表現を使わず、split と join で安全に置換する
+      const placeholder = `{{${pKey}}}`
+      result = result.split(placeholder).join(String(pValue))
     }
     return result
   }

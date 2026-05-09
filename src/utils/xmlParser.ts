@@ -268,12 +268,15 @@ export function parseTableauXml(xmlText: string): TableauDocument {
 
       const getEnc = (tags: string[]) => {
         const result: ShelfField[] = []
-        tags.forEach((tag) => {
-          ensureArray(enc[tag]).forEach((eNode: unknown) => {
-            const e = eNode as Record<string, unknown>
-            const f = createShelfField(e?.['@_column'] as string)
-            if (f) result.push(f)
-          })
+        // 動的なキーインデックスアクセスを避け、Object.entries でループする
+        Object.entries(enc).forEach(([key, val]) => {
+          if (tags.includes(key)) {
+            ensureArray(val).forEach((eNode: unknown) => {
+              const e = eNode as Record<string, unknown>
+              const f = createShelfField(e?.['@_column'] as string)
+              if (f) result.push(f)
+            })
+          }
         })
         return result
       }

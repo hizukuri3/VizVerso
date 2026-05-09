@@ -22,11 +22,9 @@ export function FormulaHighlighter({
     }
   }, [searchQuery, formula])
 
-  // eslint-disable-next-line security/detect-non-literal-regexp
-  const tokenRegex = new RegExp(
-    `(".*?"|'.*?'|\\[${paramLabel}\\]\\.\\[[^\\]]+\\]|\\[[^\\]]+\\]|\\b(?:IF|THEN|ELSE|ELSEIF|END|CASE|WHEN|AND|OR|NOT)\\b|\\b[A-Z_]+\\b(?=\\s*\\())`,
-    'gi',
-  )
+  const paramLabel = t('nav.datasources')
+  const tokenRegex =
+    /(".*?"|'.*?'|\[(?:Parameters|パラメーター)\]\.\[[^\]]+\]|\[[^\]]+\]|\b(?:IF|THEN|ELSE|ELSEIF|END|CASE|WHEN|AND|OR|NOT)\b|\b[A-Z_]+\b(?=\s*\())/gi
   const lines = formula.split('\n')
   const isFirstMatch = { current: true }
 
