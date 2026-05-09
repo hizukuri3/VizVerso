@@ -193,8 +193,8 @@ export function SideDrawer({
         </header>
 
         <div className="flex-1 overflow-y-auto p-8 space-y-10">
-          {/* 計算式セクション */}
-          {formattedFormula && (
+          {/* 計算式セクション（パラメータ以外の場合のみ表示） */}
+          {formattedFormula && !field?.paramDomainType && (
             <section className="space-y-4">
               <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
                 <span className="w-1.5 h-4 bg-emerald-500 rounded-full" />
