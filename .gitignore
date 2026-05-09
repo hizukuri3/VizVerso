@@ -15,6 +15,7 @@ dist-ssr
 /tableau-document-schemas/
 
 # Local Test Fixtures (Enabled for CI)
+!tests/fixtures/*.twbx
 
 # Editor directories and files
 .vscode/*
