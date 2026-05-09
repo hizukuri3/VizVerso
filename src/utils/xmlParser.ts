@@ -279,7 +279,7 @@ export function parseTableauXml(xmlText: string): TableauDocument {
       if (!raw) return []
       const text = typeof raw === 'string' ? raw : JSON.stringify(raw)
       // eslint-disable-next-line security/detect-unsafe-regex
-      const matches = text.match(/\[[^\]]+\](?:\.\[[^\]]+\])*/g) || []
+      const matches = text.match(/\[(?:[^\]]+\]\.\[)?[^\]]+\]/g) || []
       return matches
         .map((m) => createShelfField(m))
         .filter((f): f is ShelfField => f !== null)

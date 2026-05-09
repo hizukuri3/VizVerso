@@ -1,5 +1,3 @@
-import { t } from './i18n'
-
 export function formatFormulaText(
   rawFormula: string | undefined,
   fieldMeta: Map<string, { caption?: string }>,
@@ -45,9 +43,14 @@ export function formatFormulaText(
     /\[(?:([^\]]+)\]\.\[)?([^\]]+)\]/g,
     (_match, dsName, fieldName) => {
       const caption = getCaption(fieldName)
-      if (dsName === 'Parameters' || dsName === 'パラメーター')
-        return `[${t('nav.datasources')}].[${caption}]`
-      return `[${caption}]`
+      // すでに括弧で囲まれている場合はそのまま返し、そうでなければ [] で囲む
+      const result =
+        caption.startsWith('[') && caption.endsWith(']')
+          ? caption
+          : `[${caption}]`
+
+      // パラメーター等の特殊なプレフィックスが必要な場合はここで調整可能
+      return result
     },
   )
 }
