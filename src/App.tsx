@@ -284,6 +284,14 @@ export default function App() {
         )}
 
         <div className="flex items-center gap-4">
+          <button
+            onClick={() => setIsAboutOpen(true)}
+            className="p-2.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all"
+            title={t('app.about_title')}
+          >
+            <Info size={20} />
+          </button>
+
           <div className="flex items-center bg-slate-100 p-1 rounded-xl">
             <button
               onClick={() => handleLanguageChange('ja')}
@@ -461,15 +469,6 @@ export default function App() {
           </div>
         </main>
       )}
-
-      {/* About アクセスボタン (右下) */}
-      <button
-        onClick={() => setIsAboutOpen(true)}
-        className="fixed bottom-6 right-6 p-3 bg-white border border-slate-200 text-slate-300 hover:text-slate-600 hover:border-slate-300 hover:shadow-lg transition-all rounded-full z-[60] group"
-        title="About VizVerso"
-      >
-        <Info size={18} />
-      </button>
 
       {/* モーダル */}
       <AboutModal isOpen={isAboutOpen} onClose={() => setIsAboutOpen(false)} />
