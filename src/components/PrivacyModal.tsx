@@ -26,7 +26,7 @@ export function PrivacyModal({ isOpen, onClose }: PrivacyModalProps) {
       key: 'stripe',
       icon: <ShieldCheck size={18} className="text-orange-500" />,
     },
-  ]
+  ] as const
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-300">
@@ -65,11 +65,13 @@ export function PrivacyModal({ isOpen, onClose }: PrivacyModalProps) {
             <div key={section.key} className="space-y-3">
               <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
                 {section.icon}
-                {t(`privacy.sections.${section.key}.title`)}
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                {t(`privacy.sections.${section.key}.title` as any)}
               </h3>
               <div className="bg-slate-50 border border-slate-100 p-5 rounded-2xl">
                 <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">
-                  {t(`privacy.sections.${section.key}.content`)}
+                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                  {t(`privacy.sections.${section.key}.content` as any)}
                 </p>
               </div>
             </div>

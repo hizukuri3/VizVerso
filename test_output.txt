@@ -1,0 +1,44 @@
+
+ RUN  v4.1.5 /Users/hizukuri/Documents/workspace/Tableau
+
+ ❯ src/utils/xmlParser.test.ts (7 tests | 2 failed) 8ms
+     ✓ ダッシュボードに含まれるシート構成を抽出できること 3ms
+     × シートと依存フィールドを抽出できること 2ms
+     ✓ データソースからフィールドを抽出できること 0ms
+     × ネストされたゾーン構造からワークシートを再帰的に抽出できること 1ms
+     ✓ 空のワークブックをパースしてもクラッシュせず空のデータを返すこと 0ms
+     ✓ XXE攻撃などの悪意のある実体参照を含むXMLでもクラッシュしないこと（または安全にパースされること） 0ms
+     ✓ コロンを含むシート名が正しく抽出されること 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/utils/xmlParser.test.ts > xmlParser - parseTableauXml > シートと依存フィールドを抽出できること
+AssertionError: expected [] to include 'Calculation_123'
+ ❯ src/utils/xmlParser.test.ts:46:47
+     44|     expect(result.worksheets).toHaveLength(1)
+     45|     expect(result.worksheets[0].name).toBe('Sales Sheet')
+     46|     expect(result.worksheets[0].dependencies).toContain('Calculation_1…
+       |                                               ^
+     47|   })
+     48|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/utils/xmlParser.test.ts > xmlParser - parseTableauXml > ネストされたゾーン構造からワークシートを再帰的に抽出できること
+AssertionError: expected [] to include 'Sheet In Nest'
+ ❯ src/utils/xmlParser.test.ts:77:45
+     75|     </workbook>`
+     76|     const result = parseTableauXml(complexDbXml)
+     77|     expect(result.dashboards[0].worksheets).toContain('Sheet In Nest')
+       |                                             ^
+     78|   })
+     79|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 5 passed (7)
+   Start at  17:18:12
+   Duration  216ms (transform 30ms, setup 79ms, import 42ms, tests 8ms, environment 0ms)
+
