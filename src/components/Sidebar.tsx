@@ -79,7 +79,7 @@ export default function Sidebar({
         )}
       </div>
 
-      <div className="flex-1 p-4 space-y-8">
+      <div className="flex-1 p-4 pb-32 space-y-8">
         {/* Dashboards Section */}
         {doc.dashboards.length > 0 && (
           <div>
