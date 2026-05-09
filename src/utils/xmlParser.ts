@@ -76,13 +76,18 @@ export function normalizeFieldId(name: string | undefined): string {
   return filteredParts.join('.')
 }
 
-function decodeTableauFormula(formula: string): string {
-  if (!formula) return ''
-  let decoded = formula.replace(/&amp;/g, '&')
+/**
+ * XMLの実体参照（&quot; や &#13; など）をデコードする
+ */
+function decodeXmlString(str: string | undefined): string {
+  if (!str) return ''
+  let decoded = str.replace(/&amp;/g, '&')
+  // 10進数参照
   decoded = decoded.replace(/&#(\d+);/g, (_: string, dec: string) => {
     const charCode = parseInt(dec, 10)
     return charCode === 13 ? '' : String.fromCharCode(charCode)
   })
+  // 16進数参照
   decoded = decoded.replace(/&#x([0-9a-fA-F]+);/g, (_: string, hex: string) => {
     const charCode = parseInt(hex, 16)
     return charCode === 13 ? '' : String.fromCharCode(charCode)
@@ -149,7 +154,7 @@ export function parseTableauXml(xmlText: string): TableauDocument {
           column: normId,
           datasourceName: dsName,
           parentName: parentName || undefined,
-          caption: localName || undefined,
+          caption: decodeXmlString(localName || undefined),
           dataType:
             ((rec['local-type'] as Record<string, unknown> | undefined)?.[
               '#text'
@@ -178,14 +183,16 @@ export function parseTableauXml(xmlText: string): TableauDocument {
         column: colName,
         datasourceName: dsName,
         parentName: existing?.parentName, // 物理テーブル名を保持
-        caption: (col['@_caption'] as string) || existing?.caption,
+        caption: decodeXmlString(
+          (col['@_caption'] as string) || existing?.caption,
+        ),
         dataType: (col['@_datatype'] as string) || existing?.dataType,
         role:
           (col['@_role'] as string) ||
           (col['@_type'] as string) ||
           existing?.role,
         isCalc: !!formula,
-        formula: formula ? decodeTableauFormula(formula) : existing?.formula,
+        formula: formula ? decodeXmlString(formula) : existing?.formula,
         isContinuous:
           col['@_type'] === 'quantitative' || existing?.isContinuous,
         paramDomainType: col['@_param-domain-type'] as
@@ -201,7 +208,9 @@ export function parseTableauXml(xmlText: string): TableauDocument {
                   const m = mNode as Record<string, unknown>
                   return {
                     value: m['@_value'] as string | number,
-                    alias: (m['@_alias'] as string) || undefined,
+                    alias: decodeXmlString(
+                      (m['@_alias'] as string) || undefined,
+                    ),
                   }
                 },
               )
@@ -212,7 +221,7 @@ export function parseTableauXml(xmlText: string): TableauDocument {
     const fields = Array.from(fieldMap.values())
     return {
       name: dsName,
-      caption: (ds['@_caption'] as string) || undefined,
+      caption: decodeXmlString((ds['@_caption'] as string) || undefined),
       fields,
     }
   })
@@ -325,11 +334,11 @@ export function parseTableauXml(xmlText: string): TableauDocument {
           localFields.push({
             column: colName,
             datasourceName: dsName,
-            caption: (col['@_caption'] as string) || undefined,
+            caption: decodeXmlString((col['@_caption'] as string) || undefined),
             dataType: col['@_datatype'] as string,
             role: (col['@_role'] || col['@_type']) as string,
             isCalc: !!formula,
-            formula: formula ? decodeTableauFormula(formula) : undefined,
+            formula: formula ? decodeXmlString(formula) : undefined,
             isContinuous: col['@_type'] === 'quantitative',
           })
         })
@@ -347,12 +356,14 @@ export function parseTableauXml(xmlText: string): TableauDocument {
             localFields.push({
               column: ciName,
               datasourceName: dsName,
-              caption: (ci['@_caption'] as string) || undefined,
+              caption: decodeXmlString(
+                (ci['@_caption'] as string) || undefined,
+              ),
               dataType: ci['@_datatype'] as string,
               role: (ci['@_role'] || ci['@_type']) as string,
               class: stripBrackets(ci['@_column'] as string) || undefined,
               isCalc: !!formula,
-              formula: formula ? decodeTableauFormula(formula) : undefined,
+              formula: formula ? decodeXmlString(formula) : undefined,
             })
           }
         })
@@ -377,7 +388,7 @@ export function parseTableauXml(xmlText: string): TableauDocument {
 
     return {
       name: stripBrackets(ws['@_name'] as string),
-      caption: (ws['@_caption'] as string) || undefined,
+      caption: decodeXmlString((ws['@_caption'] as string) || undefined),
       dependencies,
       datasourceNames: Array.from(datasourceNamesSet),
       localFields,
