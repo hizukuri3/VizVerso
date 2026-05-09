@@ -77,7 +77,8 @@
     "step": "Step",
     "all_values": "All Values",
     "any": "Any",
-    "all": "All"
+    "all": "All",
+    "current_value": "Current Value"
   },
   "agg": {
     "sum": "SUM",

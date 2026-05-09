@@ -13,6 +13,7 @@ export interface TableauField {
   paramDomainType?: 'list' | 'range' | 'any'
   paramMembers?: { value: string | number; alias?: string }[]
   paramRange?: { min?: string; max?: string; step?: string }
+  value?: string | number // 現在の値（パラメータ等）
 }
 
 export interface ShelfField {

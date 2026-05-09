@@ -215,6 +215,16 @@ export function SideDrawer({
                 {t('detail.param_settings')}
               </h3>
               <div className="bg-slate-50/50 rounded-2xl border border-slate-100 p-6 space-y-6">
+                {field.value !== undefined && (
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                      {t('detail.current_value')}
+                    </p>
+                    <div className="px-4 py-3 bg-blue-50 text-blue-700 rounded-xl text-sm font-bold border border-blue-100 shadow-sm inline-block">
+                      {String(field.value)}
+                    </div>
+                  </div>
+                )}
                 {field.paramDomainType === 'list' && field.paramMembers && (
                   <div className="space-y-3">
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">

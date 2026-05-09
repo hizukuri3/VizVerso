@@ -77,7 +77,8 @@
     "step": "ステップ",
     "all_values": "すべての値",
     "any": "すべて",
-    "all": "すべて"
+    "all": "すべて",
+    "current_value": "現在の値"
   },
   "agg": {
     "sum": "合計",

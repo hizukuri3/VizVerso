@@ -208,7 +208,10 @@ export function parseTableauXml(xmlText: string): TableauDocument {
                 (mNode: unknown) => {
                   const m = mNode as Record<string, unknown>
                   return {
-                    value: m['@_value'] as string | number,
+                    value:
+                      typeof m['@_value'] === 'string'
+                        ? decodeXmlString(m['@_value'])
+                        : (m['@_value'] as string | number),
                     alias: decodeXmlString(
                       (m['@_alias'] as string) || undefined,
                     ),
@@ -216,6 +219,27 @@ export function parseTableauXml(xmlText: string): TableauDocument {
                 },
               )
             : existing?.paramMembers,
+        paramRange: col.range
+          ? {
+              min: decodeXmlString(
+                ((col.range as Record<string, unknown>)?.['@_min'] as string) ||
+                  undefined,
+              ),
+              max: decodeXmlString(
+                ((col.range as Record<string, unknown>)?.['@_max'] as string) ||
+                  undefined,
+              ),
+              step: decodeXmlString(
+                ((col.range as Record<string, unknown>)?.[
+                  '@_step'
+                ] as string) || undefined,
+              ),
+            }
+          : existing?.paramRange,
+        value:
+          typeof col['@_value'] === 'string'
+            ? decodeXmlString(col['@_value'] as string)
+            : (col['@_value'] as string | number),
       })
     })
 
