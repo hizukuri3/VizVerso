@@ -14,8 +14,7 @@ dist-ssr
 # Tableau Schemas (DO NOT DEPLOY - Copyright restrictions)
 /tableau-document-schemas/
 
-# Local Test Fixtures (DO NOT DEPLOY)
-/tests/fixtures/
+# Local Test Fixtures (Enabled for CI)
 
 # Editor directories and files
 .vscode/*
