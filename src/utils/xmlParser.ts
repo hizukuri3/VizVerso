@@ -95,11 +95,19 @@ function decodeTableauFormula(formula: string): string {
 }
 
 export function parseTableauXml(xmlText: string): TableauDocument {
+  // XXE攻撃対策および解析エラー防止のため、DOCTYPE宣言を事前に除去する
+  const sanitizedXml = xmlText.replace(/<!DOCTYPE[^>]*(\[[^\]]*\])?>/gi, '')
+
   const parser = new XMLParser({
     ignoreAttributes: false,
     attributeNamePrefix: '@_',
+    processEntities: false,
+    ignoreDeclaration: true,
   })
-  const workbook = parser.parse(xmlText).workbook as Record<string, unknown>
+  const workbook = parser.parse(sanitizedXml).workbook as Record<
+    string,
+    unknown
+  >
 
   // 1. データソース
   const datasources: TableauDatasource[] = ensureArray(
@@ -307,6 +315,7 @@ export function parseTableauXml(xmlText: string): TableauDocument {
           const col = colNode as Record<string, unknown>
           const colName = normalizeFieldId(col['@_name'] as string)
           if (!colName) return
+          if (!dependencies.includes(colName)) dependencies.push(colName)
           const calc = ensureArray(col.calculation)?.[0] as
             | Record<string, unknown>
             | undefined
@@ -334,6 +343,7 @@ export function parseTableauXml(xmlText: string): TableauDocument {
             | string
             | undefined
           if (ciName) {
+            if (!dependencies.includes(ciName)) dependencies.push(ciName)
             localFields.push({
               column: ciName,
               datasourceName: dsName,
@@ -387,7 +397,12 @@ export function parseTableauXml(xmlText: string): TableauDocument {
       ensureArray(zones).forEach((zNode: unknown) => {
         const z = zNode as Record<string, unknown>
         if (z['@_name']) wsNames.add(stripBrackets(z['@_name'] as string))
+        // zone または zones タグの再帰
         if (z.zone) collect(z.zone)
+        if (z.zones) {
+          const zs = z.zones as Record<string, unknown>
+          if (zs.zone) collect(zs.zone)
+        }
       })
     }
     collect((db.zones as Record<string, unknown>)?.zone)
