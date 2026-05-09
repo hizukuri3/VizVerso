@@ -8,11 +8,10 @@ describe('Integration - twbx to XML Parsing', () => {
   it('実ファイル B2VB2026W8.twbx から設計情報を抽出できること', async () => {
     const filePath = resolve(__dirname, '../../tests/fixtures/B2VB2026W8.twbx')
     const buffer = readFileSync(filePath)
-    const file = new File([buffer], 'B2VB2026W8.twbx', {
-      type: 'application/zip',
-    })
+    // JSZipが確実に読めるように Uint8Array に変換して渡す
+    const data = new Uint8Array(buffer)
 
-    const xmlString = await extractTwbFromTwbx(file)
+    const xmlString = await extractTwbFromTwbx(data)
     expect(xmlString).toBeDefined()
 
     const documentInfo = parseTableauXml(xmlString)
