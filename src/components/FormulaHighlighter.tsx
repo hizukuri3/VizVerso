@@ -22,7 +22,6 @@ export function FormulaHighlighter({
     }
   }, [searchQuery, formula])
 
-  const paramLabel = t('nav.datasources')
   const tokenRegex =
     /(".*?"|'.*?'|\[(?:Parameters|パラメーター)\]\.\[[^\]]+\]|\[[^\]]+\]|\b(?:IF|THEN|ELSE|ELSEIF|END|CASE|WHEN|AND|OR|NOT)\b|\b[A-Z_]+\b(?=\s*\())/gi
   const lines = formula.split('\n')
