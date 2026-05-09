@@ -342,16 +342,10 @@ export default function App() {
               </h1>
             </div>
             <h2 className="text-5xl font-black text-slate-900 mb-6 tracking-tight leading-tight [text-wrap:balance]">
-              <span className="inline-block">Tableau ワークブックを解析。</span>
-              <span className="inline-block">計算の依存関係を可視化。</span>
+              {t('app.tagline')}
             </h2>
             <p className="text-slate-500 mb-12 text-lg font-medium leading-relaxed max-w-2xl mx-auto [text-wrap:balance]">
-              <span className="inline-block">
-                Tableau ワークブックをドロップするだけで、
-              </span>
-              <span className="inline-block">
-                構成要素や計算式のつながりを即座に解明します。
-              </span>
+              {t('app.description')}
             </p>
             <div className="max-w-xl mx-auto">
               <DragDropZone onFileDrop={handleFileDrop} />
