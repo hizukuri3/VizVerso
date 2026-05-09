@@ -41,7 +41,7 @@ export function formatFormulaText(
   return decoded.replace(
     // eslint-disable-next-line security/detect-unsafe-regex
     /\[(?:([^\]]+)\]\.\[)?([^\]]+)\]/g,
-    (_match, dsName, fieldName) => {
+    (_match, _dsName, fieldName) => {
       const caption = getCaption(fieldName)
       // すでに括弧で囲まれている場合はそのまま返し、そうでなければ [] で囲む
       const result =
