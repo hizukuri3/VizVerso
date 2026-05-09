@@ -12,7 +12,8 @@
     "test:e2e": "playwright test",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "prepare": "husky"
+    "prepare": "husky",
+    "release": "standard-version"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.2.4",
@@ -49,6 +50,7 @@
     "lint-staged": "^16.4.0",
     "postcss": "^8.5.14",
     "prettier": "^3.8.3",
+    "standard-version": "^9.5.0",
     "tailwindcss": "^4.2.4",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.58.2",

@@ -1,0 +1,175 @@
+{
+  "app": {
+    "title": "Verso-viz",
+    "tagline": "Analyze Tableau workbooks and visualize dependencies.",
+    "description": "Drop a .twbx file to visualize dashboard structures and calculated field dependencies in detail.",
+    "about_title": "About Verso-viz"
+  },
+  "button": {
+    "excel_export": "Excel Export",
+    "new_upload": "New Upload",
+    "retry": "Retry",
+    "close": "Close",
+    "view_detail": "View Detail →"
+  },
+  "header": {
+    "sheet_count": "{{count}} Sheets"
+  },
+  "features": {
+    "safe_analysis": {
+      "title": "Safe Analysis",
+      "desc": "Data is never sent to any server."
+    },
+    "detail_viz": {
+      "title": "Detailed Visualization",
+      "desc": "Covers formulas and mark settings."
+    },
+    "parallel_proc": {
+      "title": "Fast Performance",
+      "desc": "Parallel processing using Web Workers."
+    }
+  },
+  "status": {
+    "processing": "Analyzing workbook...",
+    "empty_state_hint": "Please select an item from the navigator"
+  },
+  "error": {
+    "title": "An error occurred",
+    "default": "An error occurred while parsing the file"
+  },
+  "nav": {
+    "navigator": "Navigator",
+    "dashboards": "Dashboards",
+    "sheets": "Sheets",
+    "datasources": "Data Sources",
+    "home": "Home"
+  },
+  "detail": {
+    "dashboard_summary": "Dashboard Summary",
+    "worksheet_count": "{{count}} Sheets",
+    "inner_worksheets": "Worksheets in this dashboard",
+    "calculated_fields": "Calculated Fields",
+    "standard_fields": "Standard Fields",
+    "marks": "Marks",
+    "color": "Color",
+    "size": "Size",
+    "label": "Label",
+    "detail": "Detail",
+    "tooltip": "Tooltip",
+    "columns": "Columns",
+    "rows": "Rows",
+    "filters": "Filters",
+    "marks_all": "All",
+    "layer_axis": "Layer / Axis",
+    "mark_type": "Mark Type",
+    "role": "Role",
+    "agg": "Agg",
+    "field_name": "Field Name",
+    "none": "(None)",
+    "physical_name": "Physical Name",
+    "parameters": "Parameters",
+    "param_settings": "Parameter Settings",
+    "list": "List",
+    "range": "Range",
+    "min": "Min",
+    "max": "Max",
+    "step": "Step",
+    "all_values": "All Values"
+  },
+  "agg": {
+    "sum": "SUM",
+    "avg": "AVG",
+    "min": "MIN",
+    "max": "MAX",
+    "count": "COUNT",
+    "attr": "ATTR",
+    "collect": "COLLECT",
+    "none": "None"
+  },
+  "mark": {
+    "automatic": "Automatic",
+    "line": "Line",
+    "bar": "Bar",
+    "area": "Area",
+    "square": "Square",
+    "circle": "Circle",
+    "shape": "Shape",
+    "text": "Text",
+    "map": "Map",
+    "pie": "Pie",
+    "gantt": "Gantt Bar",
+    "polygon": "Polygon",
+    "density": "Density"
+  },
+  "about": {
+    "title": "About Verso-viz",
+    "description": "A minimal analysis tool to understand the structure of Tableau workbooks.",
+    "disclaimer": "Disclaimer",
+    "privacy_title": "Data Privacy",
+    "privacy_desc": "This tool operates solely on the client side (within the browser). Uploaded files or data are never sent to or stored on external servers.",
+    "as_is_title": "As Is",
+    "as_is_desc": "This tool is provided 'as is'. The author takes no responsibility for any direct or indirect damages (data corruption, impact on business, etc.) caused by using this tool.",
+    "relationship_title": "Relationship",
+    "relationship_desc": "This project is a personal development and is not affiliated with Salesforce.com, Inc. or Tableau Software, LLC.",
+    "credits_title": "Credits & Licenses",
+    "special_thanks": "To the Tableau DataFam community",
+    "created_by": "Created by @hizukuri3",
+    "version": "Version {{version}}"
+  },
+  "dropzone": {
+    "title": "Drop Tableau Workbook",
+    "hint": "or click to select a file (.twbx, .twb)",
+    "aria_label": "Upload"
+  },
+  "excel": {
+    "sheet_dashboard": "Dashboard Structure",
+    "sheet_worksheet_list": "Worksheet List",
+    "sheet_calc_fields": "Calculated Fields",
+    "sheet_fields": "Field List",
+    "col_dashboard_name": "Dashboard Name",
+    "col_included_sheets": "Included Sheets",
+    "col_sheet_name": "Sheet Name",
+    "col_datasource": "Data Source",
+    "col_columns": "Columns",
+    "col_rows": "Rows",
+    "col_filters": "Filters",
+    "col_mark_type": "Mark Type",
+    "col_color": "Color",
+    "col_size": "Size",
+    "col_label": "Label",
+    "col_detail": "Detail",
+    "col_tooltip": "Tooltip",
+    "col_caption": "Caption",
+    "col_formula": "Formula",
+    "col_datatype": "Data Type",
+    "col_role": "Role",
+    "col_layer_axis": "Layer / Axis",
+    "col_agg": "Agg",
+    "col_fieldname": "Field Name",
+    "suffix_analysis_result": "_analysis_result"
+  },
+  "search": {
+    "placeholder": "Search sheets, datasources, fields...",
+    "no_results": "No matching items found",
+    "direct_match": "Direct Match",
+    "dependency_match": "Dependency",
+    "hit_formula": "Hit in formula",
+    "hit_dependency": "Referenced by",
+    "definition": "Show Definition",
+    "usage": "Show Usage",
+    "type_worksheet": "Sheet",
+    "type_datasource": "Datasource",
+    "type_field": "Field"
+  },
+  "drawer": {
+    "title": "Field Details",
+    "formula": "Calculation Formula",
+    "upstream": "Sources (References)",
+    "downstream": "Consumers (Referenced by)",
+    "no_upstream": "No upstream dependencies",
+    "no_downstream": "No downstream dependencies",
+    "no_sheets": "Not used in any sheets",
+    "drill_down": "Drill Down",
+    "view_in_main": "Highlight in main view"
+  }
+}

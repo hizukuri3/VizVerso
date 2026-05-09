@@ -1,0 +1,176 @@
+{
+  "app": {
+    "title": "Verso-viz",
+    "tagline": "Tableau ワークブックを解析し、構成や計算式の依存関係を可視化。",
+    "description": ".twbx ファイルをドロップするだけで、ダッシュボードの構成や計算フィールドの依存関係を詳細に可視化します。",
+    "about_title": "About Verso-viz"
+  },
+  "button": {
+    "excel_export": "Excel 出力",
+    "new_upload": "新規アップロード",
+    "retry": "再試行",
+    "close": "閉じる",
+    "view_detail": "詳細を表示 →"
+  },
+  "header": {
+    "sheet_count": "{{count}} シート"
+  },
+  "features": {
+    "safe_analysis": {
+      "title": "安全な解析",
+      "desc": "データは一切サーバーに送信されません"
+    },
+    "detail_viz": {
+      "title": "詳細な可視化",
+      "desc": "計算式やマークの設定まで網羅"
+    },
+    "parallel_proc": {
+      "title": "高速動作",
+      "desc": "Web Worker を活用した並列処理"
+    }
+  },
+  "status": {
+    "processing": "ワークブックを解析中...",
+    "empty_state_hint": "ナビゲーターからアイテムを選択してください"
+  },
+  "error": {
+    "title": "エラーが発生しました",
+    "default": "ファイルの解析中にエラーが発生しました"
+  },
+  "nav": {
+    "navigator": "ナビゲーター",
+    "dashboards": "ダッシュボード",
+    "sheets": "シート",
+    "datasources": "データソース",
+    "home": "ホーム"
+  },
+  "detail": {
+    "dashboard_summary": "ダッシュボードの概要",
+    "worksheet_count": "{{count}} シート",
+    "inner_worksheets": "このダッシュボード内のワークシート",
+    "calculated_fields": "計算フィールド",
+    "standard_fields": "標準フィールド",
+    "marks": "マーク",
+    "color": "色",
+    "size": "サイズ",
+    "label": "ラベル",
+    "detail": "詳細",
+    "tooltip": "ツールヒント",
+    "columns": "列",
+    "rows": "行",
+    "filters": "フィルター",
+    "marks_all": "すべて",
+    "layer_axis": "レイヤー / 軸",
+    "mark_type": "マーク種類",
+    "role": "役割",
+    "agg": "集計",
+    "field_name": "フィールド名",
+    "none": "（なし）",
+    "physical_name": "物理名",
+    "parameters": "パラメータ",
+    "param_settings": "パラメータ設定",
+    "list": "リスト",
+    "range": "範囲",
+    "min": "最小値",
+    "max": "最大値",
+    "step": "ステップ",
+    "all_values": "すべての値"
+  },
+  "agg": {
+    "sum": "合計",
+    "avg": "平均",
+    "min": "最小",
+    "max": "最大",
+    "count": "カウント",
+    "attr": "属性",
+    "collect": "収集",
+    "agg": "集計",
+    "none": "なし"
+  },
+  "mark": {
+    "automatic": "自動",
+    "line": "線",
+    "bar": "棒",
+    "area": "エリア",
+    "square": "四角",
+    "circle": "円",
+    "shape": "形状",
+    "text": "テキスト",
+    "map": "マップ",
+    "pie": "円グラフ",
+    "gantt": "ガント チャート",
+    "polygon": "多角形",
+    "density": "密度"
+  },
+  "about": {
+    "title": "Verso-viz について",
+    "description": "Tableau ワークブックの構成を把握するための、ミニマルな解析ツール。",
+    "disclaimer": "免責事項",
+    "privacy_title": "データのプライバシー",
+    "privacy_desc": "本ツールはクライアントサイド（ブラウザ内）でのみ動作します。アップロードされたファイルやデータが外部サーバーに送信・保存されることは一切ありません。",
+    "as_is_title": "現状有姿",
+    "as_is_desc": "本ツールは現状有姿で提供されます。ツールの利用により生じた直接的・間接的な損害（データ破損、業務への影響等）について、作者は一切の責任を負いません。",
+    "relationship_title": "関係性",
+    "relationship_desc": "本プロジェクトは個人による開発であり、Salesforce.com, Inc. および Tableau Software, LLC とは一切関係ありません。",
+    "credits_title": "クレジット & ライセンス",
+    "special_thanks": "Tableau DataFam コミュニティの皆様へ",
+    "created_by": "@hizukuri3 による開発",
+    "version": "バージョン {{version}}"
+  },
+  "dropzone": {
+    "title": "Tableau ワークブックをドロップ",
+    "hint": "またはクリックしてファイルを選択 (.twbx, .twb)",
+    "aria_label": "アップロード"
+  },
+  "excel": {
+    "sheet_dashboard": "ダッシュボード構成",
+    "sheet_worksheet_list": "ワークシート一覧",
+    "sheet_calc_fields": "計算フィールド一覧",
+    "sheet_fields": "フィールド一覧",
+    "col_dashboard_name": "ダッシュボード名",
+    "col_included_sheets": "含まれるシート",
+    "col_sheet_name": "シート名",
+    "col_datasource": "データソース",
+    "col_columns": "列",
+    "col_rows": "行",
+    "col_filters": "フィルター",
+    "col_mark_type": "マーク種類",
+    "col_color": "色",
+    "col_size": "サイズ",
+    "col_label": "ラベル",
+    "col_detail": "詳細",
+    "col_tooltip": "ツールヒント",
+    "col_caption": "表示名（Caption）",
+    "col_formula": "計算式",
+    "col_datatype": "データ型",
+    "col_role": "ロール",
+    "col_layer_axis": "レイヤー / 軸",
+    "col_agg": "集計",
+    "col_fieldname": "フィールド名",
+    "suffix_analysis_result": "_解析結果"
+  },
+  "search": {
+    "placeholder": "シート、データソース、計算フィールドを検索...",
+    "no_results": "一致するアイテムが見つかりませんでした",
+    "direct_match": "直接一致",
+    "dependency_match": "依存関係",
+    "hit_formula": "計算式内にヒット",
+    "hit_dependency": "参照元",
+    "definition": "定義元を表示",
+    "usage": "利用箇所を表示",
+    "type_worksheet": "シート",
+    "type_datasource": "データソース",
+    "type_field": "フィールド"
+  },
+  "drawer": {
+    "title": "フィールド詳細",
+    "formula": "計算式",
+    "upstream": "参照元 (この項目が参照している)",
+    "downstream": "参照先 (この項目を参照している)",
+    "no_upstream": "参照元はありません",
+    "no_downstream": "参照先はありません",
+    "no_sheets": "この項目を使用しているシートはありません",
+    "drill_down": "詳細を表示",
+    "view_in_main": "一覧で強調表示"
+  }
+}

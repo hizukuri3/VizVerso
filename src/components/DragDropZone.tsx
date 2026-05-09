@@ -1,5 +1,6 @@
-import { useState, useRef, type DragEvent, type KeyboardEvent } from 'react'
+import React, { useState, useRef, type DragEvent, type KeyboardEvent } from 'react'
 import { UploadCloud } from 'lucide-react'
+import { t } from '../utils/i18n'
 
 interface DragDropZoneProps {
   onFileDrop: (file: File) => void
@@ -48,7 +49,7 @@ export default function DragDropZone({ onFileDrop }: DragDropZoneProps) {
     <div
       role="button"
       tabIndex={0}
-      aria-label="アップロード"
+      aria-label={t('dropzone.aria_label')}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -87,10 +88,10 @@ export default function DragDropZone({ onFileDrop }: DragDropZoneProps) {
 
       <div className="text-center">
         <h3 className="text-xl font-semibold text-slate-700 mb-2">
-          Tableauワークブックをドロップ
+          {t('dropzone.title')}
         </h3>
         <p className="text-sm text-slate-500">
-          またはクリックしてファイルを選択 (.twbx, .twb)
+          {t('dropzone.hint')}
         </p>
       </div>
     </div>

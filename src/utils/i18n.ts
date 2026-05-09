@@ -1,117 +1,79 @@
-export const translations = {
-  ja: {
-    navigator: 'ナビゲーター',
-    dashboards: 'ダッシュボード',
-    sheets: 'シート',
-    datasources: 'データソース',
-    parameters: 'パラメーター',
-    columns: '列',
-    rows: '行',
-    filters: 'フィルター',
-    marks: 'マーク',
-    color: '色',
-    size: 'サイズ',
-    label: 'ラベル',
-    detail: '詳細',
-    tooltip: 'ツールヒント',
-    shape: '形状',
-    angle: '角度',
-    path: 'パス',
-    none: '（なし）',
-    worksheet: 'ワークシート',
-    dashboard: 'ダッシュボード',
-    datasource: 'データソース',
-    physicalName: '物理名',
-    formula: '計算式',
-    formula_decoded: '整形済み数式',
-    search: '検索...',
-    upload_hint: 'Tableau ワークブック (.twbx, .twb) をドラッグ＆ドロップ',
-    processing: '解析中...',
-    empty_state: '表示するデータがありません。ファイルをアップロードしてください。',
-    sum: '合計',
-    avg: '平均',
-    count: 'カウント',
-    mark_automatic: '自動',
-    mark_line: '線',
-    mark_bar: '棒',
-    mark_area: 'エリア',
-    mark_square: '四角',
-    mark_circle: '円',
-    mark_shape: '形状',
-    mark_text: 'テキスト',
-    mark_map: 'マップ',
-    mark_pie: '円グラフ',
-    mark_gantt: 'ガント チャート',
-    mark_multipolygon: '多角形',
-    mark_polygon: '多角形',
-    mark_density: '密度',
-  },
-  en: {
-    navigator: 'Navigator',
-    dashboards: 'Dashboards',
-    sheets: 'Sheets',
-    datasources: 'Data Sources',
-    parameters: 'Parameters',
-    columns: 'Columns',
-    rows: 'Rows',
-    filters: 'Filters',
-    marks: 'Marks',
-    color: 'Color',
-    size: 'Size',
-    label: 'Label',
-    detail: 'Detail',
-    tooltip: 'Tooltip',
-    shape: 'Shape',
-    angle: 'Angle',
-    path: 'Path',
-    none: '(None)',
-    worksheet: 'Worksheet',
-    dashboard: 'Dashboard',
-    datasource: 'Data Source',
-    physicalName: 'Physical Name',
-    formula: 'Formula',
-    formula_decoded: 'Formatted Formula',
-    search: 'Search...',
-    upload_hint: 'Drag & drop Tableau workbook (.twbx, .twb)',
-    processing: 'Processing...',
-    empty_state: 'No data to display. Please upload a file.',
-    sum: 'SUM',
-    avg: 'AVG',
-    count: 'COUNT',
-    mark_automatic: 'Automatic',
-    mark_line: 'Line',
-    mark_bar: 'Bar',
-    mark_area: 'Area',
-    mark_square: 'Square',
-    mark_circle: 'Circle',
-    mark_shape: 'Shape',
-    mark_text: 'Text',
-    mark_map: 'Map',
-    mark_pie: 'Pie',
-    mark_gantt: 'Gantt Bar',
-    mark_multipolygon: 'Polygon',
-    mark_polygon: 'Polygon',
-    mark_density: 'Density',
-  }
-};
+import ja from '../locales/ja.json';
+import en from '../locales/en.json';
+
+export const translations = { ja, en };
 
 export type Language = keyof typeof translations;
+export type TranslationKeys = typeof ja;
+
+// ネストされたキーに対応するための型定義（簡易版）
+type Join<K, P> = K extends string | number
+  ? P extends string | number
+    ? `${K}${'' extends P ? '' : '.'}${P}`
+    : never
+  : never;
+
+type Paths<T, D extends number = 10> = [D] extends [never]
+  ? never
+  : T extends object
+  ? { [K in keyof T]-?: K extends string | number ? `${K}` | Join<K, Paths<T[K], Prev[D]>> : never }[keyof T]
+  : '';
+
+type Prev = [never, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+export type TKey = Paths<TranslationKeys>;
 
 let currentLang: Language = 'ja';
 
-export const t = (key: keyof typeof translations['ja']) => {
-  return translations[currentLang][key] || key;
+/**
+ * 翻訳キーから文字列を取得する
+ * @param key 翻訳キー（例: 'app.title'）
+ * @param params 置換パラメータ（例: { count: 5 }）
+ */
+export const t = (key: TKey, params?: Record<string, string | number>): string => {
+  const keys = key.split('.');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let value: any = translations[currentLang];
+
+  for (const k of keys) {
+    if (value && typeof value === 'object') {
+      value = value[k];
+    } else {
+      return key;
+    }
+  }
+
+  if (typeof value !== 'string') return key;
+
+  if (params) {
+    let result = value;
+    for (const [pKey, pValue] of Object.entries(params)) {
+      result = result.replace(new RegExp(`{{${pKey}}}`, 'g'), String(pValue));
+    }
+    return result;
+  }
+
+  return value;
 };
 
 export const setLanguage = (lang: Language) => {
   currentLang = lang;
 };
 
+export const getLanguage = () => currentLang;
+
 /** マークタイプ（XML内部キー）を表示名に変換 */
-export const tMark = (rawMarkClass: string): string => {
-  if (!rawMarkClass || rawMarkClass.toLowerCase() === 'automatic') {
-    return translations[currentLang].mark_automatic;
-  }
-  const key = `mark_${rawMarkClass.toLowerCase()}` as keyof typeof translations['ja'];
-  return translations[currentLang][key] || rawMarkClass;
+export const tMark = (rawMarkClass: string | undefined): string => {
+  const markClass = (rawMarkClass || 'automatic').toLowerCase();
+  const key = `mark.${markClass}` as TKey;
+  const result = t(key);
+  // キーが見つからない場合は元の値を返す（t関数がキーをそのまま返す性質を利用）
+  return result === key ? markClass : result;
+};
+
+/** 集計関数名を表示名に変換 */
+export const tAgg = (agg: string): string => {
+  const key = `agg.${agg.toLowerCase()}` as TKey;
+  const result = t(key);
+  return result === key ? agg : result;
 };

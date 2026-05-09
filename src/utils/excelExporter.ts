@@ -1,6 +1,6 @@
 import * as XLSX from 'xlsx'
 import type { TableauDocument, TableauField } from '../types/tableau'
-import { tMark } from './i18n'
+import { t, tMark } from './i18n'
 
 // ────────────────────────────────────────────
 // 表示名（Caption）解決ヘルパー
@@ -80,17 +80,17 @@ function resolveCaption(
     displayName = displayName.substring(1, displayName.length - 1)
   }
 
-  const isSum = /\bsum:/i.test(fieldName) && !displayName.includes('合計')
-  const isAvg = /\bavg:/i.test(fieldName) && !displayName.includes('平均')
-  const isMin = /\bmin:/i.test(fieldName) && !displayName.includes('最小')
-  const isMax = /\bmax:/i.test(fieldName) && !displayName.includes('最大')
+  const isSum = /\bsum:/i.test(fieldName) && !displayName.includes(t('agg.sum'))
+  const isAvg = /\bavg:/i.test(fieldName) && !displayName.includes(t('agg.avg'))
+  const isMin = /\bmin:/i.test(fieldName) && !displayName.includes(t('agg.min'))
+  const isMax = /\bmax:/i.test(fieldName) && !displayName.includes(t('agg.max'))
   const isCount =
-    /\bcnt:|\bcntd:/i.test(fieldName) && !displayName.includes('カウント')
-  const isAttr = /\battr:/i.test(fieldName) && !displayName.includes('属性')
+    /\bcnt:|\bcntd:/i.test(fieldName) && !displayName.includes(t('agg.count'))
+  const isAttr = /\battr:/i.test(fieldName) && !displayName.includes(t('agg.attr'))
   const isCollect =
     (/\bcollect:|\bspatial:/i.test(fieldName) ||
       meta?.dataType === 'spatial') &&
-    !displayName.includes('収集')
+    !displayName.includes(t('agg.collect'))
   const isTableCalc =
     (fieldName.includes('rank:') ||
       fieldName.includes('running:') ||
@@ -106,13 +106,13 @@ function resolveCaption(
     formattedName = `[${formattedName}]`
   }
 
-  if (isSum) displayName = `合計(${formattedName})`
-  else if (isAvg) displayName = `平均(${formattedName})`
-  else if (isMin) displayName = `最小(${formattedName})`
-  else if (isMax) displayName = `最大(${formattedName})`
-  else if (isCount) displayName = `カウント(${formattedName})`
-  else if (isAttr) displayName = `属性(${formattedName})`
-  else if (isCollect) displayName = `収集(${formattedName})`
+  if (isSum) displayName = `${t('agg.sum')}(${formattedName})`
+  else if (isAvg) displayName = `${t('agg.avg')}(${formattedName})`
+  else if (isMin) displayName = `${t('agg.min')}(${formattedName})`
+  else if (isMax) displayName = `${t('agg.max')}(${formattedName})`
+  else if (isCount) displayName = `${t('agg.count')}(${formattedName})`
+  else if (isAttr) displayName = `${t('agg.attr')}(${formattedName})`
+  else if (isCollect) displayName = `${t('agg.collect')}(${formattedName})`
   else displayName = formattedName
 
   if (isTableCalc) displayName = `${displayName} △`
@@ -131,7 +131,7 @@ export function exportToExcel(
   // シート①: ダッシュボード構成一覧
   // ──────────────────────────────────────────
   const dashboardRows: (string | number | boolean | null | undefined)[][] = [
-    ['ダッシュボード名', '含まれるシート'],
+    [t('excel.col_dashboard_name'), t('excel.col_included_sheets')],
   ]
   doc.dashboards.forEach((db) => {
     const wsNames = db.worksheets
@@ -144,24 +144,24 @@ export function exportToExcel(
   })
   const dashboardSheet = XLSX.utils.aoa_to_sheet(dashboardRows)
   dashboardSheet['!cols'] = [{ wch: 30 }, { wch: 80 }]
-  XLSX.utils.book_append_sheet(wb, dashboardSheet, 'ダッシュボード構成')
+  XLSX.utils.book_append_sheet(wb, dashboardSheet, t('excel.sheet_dashboard'))
 
   // ──────────────────────────────────────────
   // シート②: ワークシート一覧（シェルフ・マーク情報）
   // ──────────────────────────────────────────
   const wsRows: (string | number | boolean | null | undefined)[][] = [
     [
-      'シート名',
-      'データソース',
-      '列',
-      '行',
-      'フィルター',
-      'マーク種類',
-      '色',
-      'サイズ',
-      'ラベル',
-      '詳細',
-      'ツールヒント',
+      t('excel.col_sheet_name'),
+      t('excel.col_datasource'),
+      t('excel.col_columns'),
+      t('excel.col_rows'),
+      t('excel.col_filters'),
+      t('excel.col_mark_type'),
+      t('excel.col_color'),
+      t('excel.col_size'),
+      t('excel.col_label'),
+      t('excel.col_detail'),
+      t('excel.col_tooltip'),
     ],
   ]
 
@@ -199,13 +199,13 @@ export function exportToExcel(
     { wch: 25 },
     { wch: 25 },
   ]
-  XLSX.utils.book_append_sheet(wb, wsSheet, 'ワークシート一覧')
+  XLSX.utils.book_append_sheet(wb, wsSheet, t('excel.sheet_worksheet_list'))
 
   // ──────────────────────────────────────────
   // シート③: 計算フィールド一覧
   // ──────────────────────────────────────────
   const calcRows: (string | number | boolean | null | undefined)[][] = [
-    ['データソース', '表示名（Caption）', '計算式'],
+    [t('excel.col_datasource'), t('excel.col_caption'), t('excel.col_formula')],
   ]
   doc.datasources.forEach((ds) => {
     ds.fields
@@ -220,13 +220,13 @@ export function exportToExcel(
   })
   const calcSheet = XLSX.utils.aoa_to_sheet(calcRows)
   calcSheet['!cols'] = [{ wch: 30 }, { wch: 35 }, { wch: 100 }]
-  XLSX.utils.book_append_sheet(wb, calcSheet, '計算フィールド一覧')
+  XLSX.utils.book_append_sheet(wb, calcSheet, t('excel.sheet_calc_fields'))
 
   // ──────────────────────────────────────────
   // シート④: フィールド一覧（計算フィールド以外）
   // ──────────────────────────────────────────
   const fieldRows: (string | number | boolean | null | undefined)[][] = [
-    ['データソース', '表示名（Caption）', 'データ型', 'ロール'],
+    [t('excel.col_datasource'), t('excel.col_caption'), t('excel.col_datatype'), t('excel.col_role')],
   ]
   doc.datasources.forEach((ds) => {
     ds.fields
@@ -242,7 +242,7 @@ export function exportToExcel(
   })
   const fieldSheet = XLSX.utils.aoa_to_sheet(fieldRows)
   fieldSheet['!cols'] = [{ wch: 30 }, { wch: 35 }, { wch: 12 }, { wch: 12 }]
-  XLSX.utils.book_append_sheet(wb, fieldSheet, 'フィールド一覧')
+  XLSX.utils.book_append_sheet(wb, fieldSheet, t('excel.sheet_fields'))
 
   // ──────────────────────────────────────────
   // シート⑤～: ワークシートごとの詳細（レイヤー対応）
@@ -254,7 +254,7 @@ export function exportToExcel(
     const resolve = (name: string) => resolveCaption(name, fieldMap)
 
     const rows: (string | number | boolean | null | undefined)[][] = [
-      ['レイヤー / 軸', 'マーク種類', '役割', '集計', 'フィールド名'],
+      [t('excel.col_layer_axis'), t('excel.col_mark_type'), t('excel.col_role'), t('excel.col_agg'), t('excel.col_fieldname')],
     ]
 
     const layerNameCounts = new Map<string, number>()
@@ -274,7 +274,7 @@ export function exportToExcel(
         const hasAllPane = panes.length > splitMeasures.length
 
         if (hasAllPane && i === 0) {
-          layerName = 'すべて'
+          layerName = t('detail.marks_all')
         } else {
           // 軸の参照名があればそれを使用
           if (pane.yAxisName || pane.xAxisName) {
@@ -282,7 +282,7 @@ export function exportToExcel(
             layerName = resolve(axisRef!)
             // MIN(0) 調整
             if (layerName.toLowerCase().startsWith('min(0)')) {
-              layerName = '集計(MIN(0))'
+              layerName = `${t('agg.collect')}(MIN(0))`
             }
           } else {
             const measureIndex = hasAllPane ? i - 1 : i
@@ -291,20 +291,22 @@ export function exportToExcel(
             if (shelfField) {
               layerName = resolve(shelfField.name)
             } else {
-              layerName = `マーク ${i + (hasAllPane ? 0 : 1)}`
+              layerName = `${t('detail.marks')} ${i + (hasAllPane ? 0 : 1)}`
             }
           }
         }
       }
 
       // 重複サフィックス付与
-      if (layerName !== 'すべて') {
+      if (layerName !== t('detail.marks_all')) {
+        // eslint-disable-next-line security/detect-object-injection
         const count = layerNameCounts.get(layerName) || 0
         const baseName = layerName
         if (count > 0) {
           layerName = `${baseName}(${count + 1})`
         }
 
+        // eslint-disable-next-line security/detect-object-injection
         layerNameCounts.set(baseName, count + 1)
       }
 
@@ -374,14 +376,14 @@ export function exportToExcel(
             /\bcollect:|\bspatial:/i.test(f.name) ||
             meta?.dataType === 'spatial'
 
-          let agg = 'なし'
-          if (isSum) agg = '合計'
-          else if (isAvg) agg = '平均'
-          else if (isMin) agg = '最小'
-          else if (isMax) agg = '最大'
-          else if (isCount) agg = 'カウント'
-          else if (isAttr) agg = '属性'
-          else if (isCollect) agg = '収集'
+          let agg = t('agg.none')
+          if (isSum) agg = t('agg.sum')
+          else if (isAvg) agg = t('agg.avg')
+          else if (isMin) agg = t('agg.min')
+          else if (isMax) agg = t('agg.max')
+          else if (isCount) agg = t('agg.count')
+          else if (isAttr) agg = t('agg.attr')
+          else if (isCollect) agg = t('agg.collect')
 
           let formattedName = displayName
           if (
@@ -395,11 +397,11 @@ export function exportToExcel(
         })
       }
 
-      addRows(pane.encodings.color, '色')
-      addRows(pane.encodings.size, 'サイズ')
-      addRows(pane.encodings.label, 'ラベル')
-      addRows(pane.encodings.detail, '詳細')
-      addRows(pane.encodings.tooltip, 'ツールヒント')
+      addRows(pane.encodings.color, t('detail.color'))
+      addRows(pane.encodings.size, t('detail.size'))
+      addRows(pane.encodings.label, t('detail.label'))
+      addRows(pane.encodings.detail, t('detail.detail'))
+      addRows(pane.encodings.tooltip, t('detail.tooltip'))
     })
 
     if (rows.length <= 1) return // ヘッダーのみならスキップ
@@ -416,5 +418,5 @@ export function exportToExcel(
     XLSX.utils.book_append_sheet(wb, detailSheet, sheetName)
   })
 
-  XLSX.writeFile(wb, `${workbookName}_解析結果.xlsx`)
+  XLSX.writeFile(wb, `${workbookName}${t('excel.suffix_analysis_result')}.xlsx`)
 }

@@ -1,29 +1,37 @@
-# Cloudflare デプロイ準備（main ブランチへのマージ）
+# シート名抽出不具合の修正（水平展開含む）
 
-現在の開発内容を本番環境（Cloudflare Pages など）で公開可能な状態にするため、`feature/twbx-parser` ブランチを `main` ブランチに統合し、GitHub にプッシュします。
+## 現状と原因
+`src/utils/xmlParser.ts` 内の `strip` 関数が、名前の中にコロン `:` が含まれている場合に「集計関数（sum:等）」や「型識別子（:qk等）」と誤認して、コロン以降のみを抽出してしまっています。
+シート名（`worksheet name`, `dashboard name`, `zone name`）は、フィールド参照（`[Field]:qk` 等）とは異なり、このような短縮処理を行ってはいけません。
 
-## 実施内容
+## 修正方針
 
-### 1. main ブランチへのマージ
+### 1. `src/utils/xmlParser.ts` の修正
+- `strip` 関数を以下の2つに分離、または用途に応じて処理を切り替えます。
+  - `stripBrackets(name: string)`: `[]` を取り除くだけの処理。シート名、ダッシュボード名、データソース名に使用。
+  - `stripFieldRef(name: string)`: `[]` の除去に加え、コロンによる集計・型の除去も行う。フィールド参照の解析に使用。
+- 各パース箇所で適切な関数を呼び出すように修正します。
 
-- ローカルの `main` ブランチに切り替え、`feature/twbx-parser` をマージします。
-- マージ後、`main` ブランチを GitHub にプッシュします。
+### 2. `src/components/DetailView.tsx` の確認と修正
+- `DetailView.tsx` 内の `getCaption` や `getFieldInfo > clean` においても、同様にシート名に対して過度なクレンジングが行われていないか確認し、必要であれば修正します。
 
-### 2. Cloudflare Pages の設定案内
+### 3. 水平展開（他の不具合の防止）
+- パラメータ名やデータソース名など、コロンを含みうる「実体名」のパース箇所をすべて点検します。
+- テストコードにコロンを含むシート名のケースを追加し、再発を防止します。
 
-Cloudflare Pages でデプロイ設定を行う際の推奨値は以下の通りです：
+## 変更ファイル
 
-- **フレームワーク プリセット**: `Vite`
-- **ビルドコマンド**: `npm run build`
-- **ビルド出力ディレクトリ**: `dist`
+### [MODIFY] [xmlParser.ts](file:///Users/hizukuri/Documents/workspace/Tableau/src/utils/xmlParser.ts)
+- `strip` 関数の見直しと、各呼び出し箇所の修正。
 
-## 変更ファイル（マージ対象）
-
-- プロジェクト全般の修正（UI, ロジック, ドキュメント等）
+### [MODIFY] [DetailView.tsx](file:///Users/hizukuri/Documents/workspace/Tableau/src/components/DetailView.tsx)
+- UI表示時のフィルタリングロジックの修正。
 
 ## 検証計画
 
-### 手動確認
+### 自動テスト
+- `xmlParser.test.ts` に「コロンを含むシート名」のテストケースを追加。
+- 既存のテストが壊れていないことを確認。
 
-- `git branch` で `main` ブランチが最新であることを確認。
-- ローカルで `npm run build` が正常に終了することを確認。
+### 手動確認
+- `Sample.twbx` を読み込み、「Annotations Button: Inactive」が正しく表示されることを確認。

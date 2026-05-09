@@ -1,13 +1,17 @@
-import { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import DragDropZone from './components/DragDropZone'
 import Sidebar from './components/Sidebar'
 import DetailView from './components/DetailView'
 import Breadcrumbs from './components/Breadcrumbs'
 import { parseWorkbookAsync } from './utils/workerManager'
 import type { TableauDocument } from './types/tableau'
-import { FileUp, Search, Download, AlertCircle, Info } from 'lucide-react'
+import { FileUp, Search, Download, AlertCircle, Info, X } from 'lucide-react'
 import { exportToExcel } from './utils/excelExporter'
 import { AboutModal } from './components/AboutModal'
+import { t } from './utils/i18n'
+import { useSearch } from './hooks/useSearch'
+import { SearchResultsList } from './components/SearchResultsList'
+import { SideDrawer } from './components/SideDrawer'
 
 type SelectionType = 'dashboard' | 'worksheet' | 'datasource'
 
@@ -45,7 +49,7 @@ export default function App() {
       const message =
         err instanceof Error
           ? err.message
-          : 'ファイルの解析中にエラーが発生しました'
+          : t('error.default')
       setError(message)
     } finally {
       setLoading(false)
@@ -62,38 +66,173 @@ export default function App() {
     setSelectedType(null)
   }
 
+  // ── 検索機能のステートとフック ──
+  const [searchQuery, setSearchQuery] = useState('')
+  const [showSearchResults, setShowSearchResults] = useState(false)
+  const searchResults = useSearch(documentData, searchQuery)
+  const searchRef = useRef<HTMLDivElement>(null)
+
+  // ── サイドドロワーの状態 ──
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+  const [targetFieldName, setTargetFieldName] = useState<string | null>(null)
+
+  // URL パラメータの監視
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const type = params.get('type') as SelectionType | null
+    const id = params.get('id')
+    const field = params.get('field')
+    const q = params.get('q')
+
+    if (q) setSearchQuery(q)
+
+    if (type && id) {
+      handleSelect(type, id)
+      if (field) {
+        setTargetFieldName(field)
+        setIsDrawerOpen(true)
+      }
+    }
+  }, [documentData]) // ドキュメントがロードされた時に実行
+
+  const updateUrl = (type: SelectionType, id: string, field?: string, q?: string) => {
+    const params = new URLSearchParams()
+    params.set('type', type)
+    params.set('id', id)
+    if (field) params.set('field', field)
+    if (q) params.set('q', q)
+    window.history.pushState({}, '', `?${params.toString()}`)
+  }
+
+  const handleNavigateFromSearch = (type: SelectionType, id: string, field?: string) => {
+    handleSelect(type, id)
+    if (field) {
+      setTargetFieldName(field)
+      setIsDrawerOpen(true)
+    } else {
+      setIsDrawerOpen(false)
+    }
+    updateUrl(type, id, field, searchQuery)
+  }
+
+  const handleNavigateFieldInDrawer = (fieldName: string) => {
+    // フィールドの定義元を探す
+    if (!documentData) return
+    
+    let parentDs = documentData.datasources.find(ds => ds.fields.some(f => f.column === fieldName))
+    if (parentDs) {
+      handleSelect('datasource', parentDs.name)
+      setTargetFieldName(fieldName)
+      updateUrl('datasource', parentDs.name, fieldName, searchQuery)
+      return
+    }
+
+    let parentWs = documentData.worksheets.find(ws => ws.localFields?.some(f => f.column === fieldName))
+    if (parentWs) {
+      handleSelect('worksheet', parentWs.name)
+      setTargetFieldName(fieldName)
+      updateUrl('worksheet', parentWs.name, fieldName, searchQuery)
+    }
+  }
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement
+      
+      // 検索窓の外側クリック判定（既存）
+      if (searchRef.current && !searchRef.current.contains(target)) {
+        setShowSearchResults(false)
+      }
+
+      // ハイライト（targetFieldName）がある際の外側クリック判定
+      if (targetFieldName) {
+        const isPill = target.closest('.pill-container')
+        const isDrawer = target.closest('.side-drawer')
+        const isBackdrop = target.closest('.drawer-backdrop')
+
+        // Pillの外、ドロワーの外、バックドロップの外をクリックした場合は解除
+        if (!isPill && !isDrawer && !isBackdrop) {
+          setIsDrawerOpen(false)
+          setTargetFieldName(null)
+          // URLパラメータを更新
+          const params = new URLSearchParams(window.location.search)
+          params.delete('field')
+          window.history.pushState({}, '', params.toString() ? `?${params.toString()}` : window.location.pathname)
+        }
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [isDrawerOpen, targetFieldName])
+
   return (
     <div className="h-screen flex flex-col bg-slate-50 font-sans text-slate-800 overflow-hidden">
       {/* グローバルヘッダー */}
       <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 z-50 flex-shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-black text-xl shadow-lg shadow-blue-200">
-            V
-          </div>
-          <h1 className="text-xl font-black text-slate-800 tracking-tight">
-            Verso-viz
-          </h1>
+        <div className="flex items-center gap-2">
+          <img src="/favicon.png" alt="" className="h-8 w-8 object-contain" />
+          <span className="text-xl font-black text-slate-800 tracking-tight">Verso-viz</span>
         </div>
 
         {documentData && (
-          <div className="flex items-center gap-4">
-            <div className="hidden md:flex items-center px-3 py-1.5 bg-slate-100 rounded-full border border-slate-200 gap-2 text-xs font-semibold text-slate-500">
-              <Search size={14} />
-              <span>{documentData.worksheets.length} シート</span>
+          <div className="flex-1 max-w-xl mx-8 relative" ref={searchRef}>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search size={16} className="text-slate-400" />
+              </div>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value)
+                  setShowSearchResults(true)
+                }}
+                onFocus={() => setShowSearchResults(true)}
+                placeholder={t('search.placeholder')}
+                className="block w-full pl-10 pr-10 py-2 border border-slate-200 rounded-2xl bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600"
+                >
+                  <X size={16} />
+                </button>
+              )}
             </div>
+
+            {showSearchResults && searchQuery.trim() && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-2xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="p-3 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    {t('search.type_field')} ({searchResults.length})
+                  </span>
+                </div>
+                <SearchResultsList
+                  results={searchResults}
+                  onNavigate={handleNavigateFromSearch}
+                  onClose={() => setShowSearchResults(false)}
+                />
+              </div>
+            )}
+          </div>
+        )}
+
+        {documentData && (
+          <div className="flex items-center gap-4">
             <button
               onClick={() => exportToExcel(documentData, uploadedFileName)}
               className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-100"
             >
               <Download size={14} />
-              <span>Excel 出力</span>
+              <span>{t('button.excel_export')}</span>
             </button>
             <button
               onClick={() => setDocumentData(null)}
               className="flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-slate-200"
             >
               <FileUp size={14} />
-              <span>新規アップロード</span>
+              <span>{t('button.new_upload')}</span>
             </button>
           </div>
         )}
@@ -102,16 +241,15 @@ export default function App() {
       {!documentData && !loading && (
         <main className="flex-1 flex flex-col items-center justify-center p-6 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-50 via-white to-white">
           <div className="max-w-3xl w-full text-center animate-in fade-in zoom-in duration-700">
+            <div className="flex items-center justify-center gap-6 mb-10">
+              <img src="/favicon.png" alt="" className="h-20 w-20 object-contain" />
+              <h1 className="text-6xl font-black text-slate-900 tracking-tight">{t('app.title')}</h1>
+            </div>
             <h2 className="text-5xl font-black text-slate-900 mb-6 tracking-tight leading-tight">
-              Tableau ワークブックを解析し、
-              <br />
-              構成や計算式の依存関係を可視化。
+              {t('app.tagline')}
             </h2>
             <p className="text-slate-500 mb-12 text-lg font-medium leading-relaxed">
-              .twbx
-              ファイルをドロップするだけで、ダッシュボードの構成や計算フィールドの依存関係を
-              <br />
-              詳細に可視化します。
+              {t('app.description')}
             </p>
             <div className="max-w-xl mx-auto">
               <DragDropZone onFileDrop={handleFileDrop} />
@@ -121,18 +259,18 @@ export default function App() {
               {[
                 {
                   icon: <AlertCircle className="text-blue-500" />,
-                  title: '安全な解析',
-                  desc: 'データは一切サーバーに送信されません',
+                  title: t('features.safe_analysis.title'),
+                  desc: t('features.safe_analysis.desc'),
                 },
                 {
                   icon: <Search className="text-emerald-500" />,
-                  title: '詳細な可視化',
-                  desc: '計算式やマークの設定まで網羅',
+                  title: t('features.detail_viz.title'),
+                  desc: t('features.detail_viz.desc'),
                 },
                 {
                   icon: <FileUp className="text-amber-500" />,
-                  title: '高速動作',
-                  desc: 'Web Worker を活用した並列処理',
+                  title: t('features.parallel_proc.title'),
+                  desc: t('features.parallel_proc.desc'),
                 },
               ].map((item, i) => (
                 <div key={i} className="p-4">
@@ -153,7 +291,7 @@ export default function App() {
             <div className="absolute top-0 w-20 h-20 border-4 border-blue-600 rounded-full border-t-transparent animate-spin"></div>
           </div>
           <p className="mt-6 text-slate-400 font-bold tracking-widest uppercase text-xs animate-pulse">
-            ワークブックを解析中...
+            {t('status.processing')}
           </p>
         </main>
       )}
@@ -165,14 +303,14 @@ export default function App() {
               <AlertCircle size={32} />
             </div>
             <h3 className="text-xl font-bold text-red-900 mb-2">
-              エラーが発生しました
+              {t('error.title')}
             </h3>
             <p className="text-red-700 text-sm mb-6 leading-relaxed">{error}</p>
             <button
               onClick={() => setError(null)}
               className="w-full py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition-all"
             >
-              再試行
+              {t('button.retry')}
             </button>
           </div>
         </main>
@@ -197,8 +335,8 @@ export default function App() {
                     ? selectedId!
                     : selectedType === 'worksheet'
                       ? documentData.dashboards.find((d) =>
-                          d.worksheets.includes(selectedId!),
-                        )?.name
+                        d.worksheets.includes(selectedId!),
+                      )?.name
                       : undefined
                 }
                 worksheetName={
@@ -214,6 +352,11 @@ export default function App() {
               selectedId={selectedId}
               selectedType={selectedType}
               onNavigate={handleSelect}
+              activeFieldName={targetFieldName}
+              onOpenDrawer={(fieldName) => {
+                setTargetFieldName(fieldName)
+                setIsDrawerOpen(true)
+              }}
             />
           </div>
         </main>
@@ -230,6 +373,22 @@ export default function App() {
 
       {/* モーダル */}
       <AboutModal isOpen={isAboutOpen} onClose={() => setIsAboutOpen(false)} />
+
+      {/* サイドドロワー (計算フィールド詳細) */}
+      {documentData && (
+        <SideDrawer
+          isOpen={isDrawerOpen}
+          onClose={() => setIsDrawerOpen(false)}
+          doc={documentData}
+          targetFieldName={targetFieldName}
+          searchQuery={searchQuery}
+          onNavigateField={handleNavigateFieldInDrawer}
+          onNavigateToSheet={(sheetName) => {
+            handleSelect('worksheet', sheetName)
+            setIsDrawerOpen(false)
+          }}
+        />
+      )}
     </div>
   )
 }

@@ -3,528 +3,250 @@ import type {
   TableauDocument,
   TableauDatasource,
   TableauWorksheet,
-  TableauDashboard,
   TableauField,
+  WorksheetShelf,
   WorksheetPane,
+  ShelfField,
 } from '../types/tableau'
 
+function ensureArray<T>(obj: T | T[] | undefined | null): T[] {
+  if (obj === undefined || obj === null) return []
+  return Array.isArray(obj) ? obj : [obj]
+}
+
+function stripBrackets(name: string | undefined): string {
+  if (!name) return ''
+  return name.replace(/[\[\]]/g, '').trim()
+}
+
 /**
- * TableauのXML文字列（.twbの中身）をパースし、
- * ダッシュボード、シート、フィールドの依存関係を抽出する。
- *
- * 実データ構造:
- *   - ワークシートのフィールド依存:  worksheet > table > view > datasource-dependencies > column
- *   - ダッシュボードのシート参照:    dashboard > zones(再帰) > zone[@name=シート名]
- *   - データソースのフィールド:      workbook > datasources > datasource > column
+ * 統一されたフィールドID正規化ロジック
  */
-export function parseTableauXml(xmlString: string): TableauDocument {
+export function normalizeFieldId(name: string | undefined): string {
+  if (!name) return ''
+  
+  // 1. [Datasource].[Field] のような形式から最後のフィールド名部分だけを取り出す
+  const parts = name.split('].[');
+  const lastPart = parts[parts.length - 1];
+  
+  // 2. ブラケットの除去
+  let n = lastPart.replace(/[\[\]]/g, '').trim();
+  
+  // 3. プレフィックス (federated. 等) がまだ残っている場合の除去
+  n = n.replace(/^(?:federated|sqlproxy|excel-direct|csv-direct|text-direct)\.[a-z0-9-.]+\./i, '');
+
+  // 4. 集計関数や型の除去
+  const typeIds = ['nk', 'qk', 'ok', 'ok2', 'ni', 'oi', 'ni2']
+  const aggFns = [
+    'sum', 'avg', 'min', 'max', 'count', 'cnt', 'cntd', 'attr', 
+    'median', 'stdev', 'stdevp', 'var', 'varp', 'collect',
+    'running', 'rank', 'window', 'pct', 'total', 'usr', 'agg',
+    'none', 'multiple', 'calculation'
+  ]
+
+  const allParts = n.replace(/:/g, '.').split('.')
+  const filteredParts = allParts.filter(p => {
+    const low = p.toLowerCase()
+    return !aggFns.includes(low) && !typeIds.includes(low)
+  })
+  
+  return filteredParts.join('.')
+}
+
+function decodeTableauFormula(formula: string): string {
+  if (!formula) return ''
+  let decoded = formula.replace(/&amp;/g, '&')
+  decoded = decoded.replace(/&#(\d+);/g, (_: string, dec: string) => {
+    const charCode = parseInt(dec, 10)
+    return charCode === 13 ? '' : String.fromCharCode(charCode)
+  })
+  decoded = decoded.replace(/&#x([0-9a-fA-F]+);/g, (_: string, hex: string) => {
+    const charCode = parseInt(hex, 16)
+    return charCode === 13 ? '' : String.fromCharCode(charCode)
+  })
+  return decoded
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+}
+
+export function parseTableauXml(xmlText: string): TableauDocument {
   const parser = new XMLParser({
     ignoreAttributes: false,
     attributeNamePrefix: '@_',
-    allowBooleanAttributes: true,
-    isArray: (name) =>
-      [
-        'datasource',
-        'worksheet',
-        'dashboard',
-        'column',
-        'column-instance',
-        'zone',
-      ].includes(name),
   })
+  const workbook = parser.parse(xmlText).workbook
 
-  let jsonObj: Record<string, unknown>
-  try {
-    jsonObj = parser.parse(xmlString) as Record<string, unknown>
-  } catch (e: unknown) {
-    console.error('XML Parse Error:', e)
-    if (xmlString) {
-      console.log(
-        'Problematic XML Snippet (First 1000 chars):',
-        xmlString.substring(0, 1000),
-      )
-    }
-    return { datasources: [], worksheets: [], dashboards: [] }
-  }
-
-  const workbook = jsonObj?.workbook
-  if (!workbook) {
-    return { datasources: [], worksheets: [], dashboards: [] }
-  }
-
-  const datasources: TableauDatasource[] = []
-  const worksheets: TableauWorksheet[] = []
-  const dashboards: TableauDashboard[] = []
-
-  // ────────────────────────────────────────────
-  // 1. トップレベルのデータソース → フィールド一覧を抽出
-  // ────────────────────────────────────────────
-  const dsList = ensureArray(workbook.datasources?.datasource)
-  dsList.forEach((ds: Record<string, unknown>) => {
-    const name = stripBrackets(ds['@_name'])
-    const caption = ds['@_caption'] || undefined
+  // 1. データソース
+  const datasources: TableauDatasource[] = ensureArray(workbook.datasources?.datasource).map((ds: any) => {
     const fields: TableauField[] = []
-
-    // datasource 直下の column を全て取得
-    ensureArray(ds.column).forEach((col: Record<string, unknown>) => {
-      const colName = stripBrackets(col['@_name'] as string)
+    ensureArray(ds.column).forEach((col: any) => {
+      const colName = normalizeFieldId(col['@_name'])
       if (!colName) return
-
-      let formula = col.calculation?.['@_formula']
-      if (formula) {
-        // 1. まず &amp; をデコード
-        let decoded = formula.replace(/&amp;/g, '&')
-
-        // 2. 数値実体参照 (&#10;, &#13; 等) を変換
-        decoded = decoded.replace(/&#(\d+);/g, (_: string, dec: string) => {
-          const charCode = parseInt(dec, 10)
-          if (charCode === 13) return ''
-          return String.fromCharCode(charCode)
-        })
-
-        // 3. 16進数実体参照 (&#x0A; 等) を変換
-        decoded = decoded.replace(
-          /&#x([0-9a-fA-F]+);/g,
-          (_: string, hex: string) => {
-            const charCode = parseInt(hex, 16)
-            if (charCode === 13) return ''
-            return String.fromCharCode(charCode)
-          },
-        )
-
-        // 4. その他の主要な実体参照
-        formula = decoded
-          .replace(/&quot;/g, '"')
-          .replace(/&apos;/g, "'")
-          .replace(/&lt;/g, '<')
-          .replace(/&gt;/g, '>')
-          .replace(/&nbsp;/g, ' ')
-      }
+      const calc = ensureArray(col.calculation)?.[0]
+      const formula = calc?.['@_formula'] || col['@_formula']
+      
+      const paramDomainType = col['@_param-domain-type']
+      const paramMembers = ensureArray(col.members?.member).map((m: any) => ({
+        value: m['@_value'],
+        alias: m['@_alias'] || undefined,
+      }))
+      const r = ensureArray(col.range)?.[0]
+      const paramRange = r ? {
+        min: r['@_min'],
+        max: r['@_max'],
+        step: r['@_step'],
+      } : undefined
 
       fields.push({
         column: colName,
         caption: col['@_caption'] || undefined,
-        formula,
-        class: col.calculation?.['@_class'] || undefined,
-        role: col['@_role'] || undefined,
-        type: col['@_type'] || undefined,
-        dataType: col['@_datatype'] || undefined,
+        dataType: col['@_datatype'],
+        isCalc: !!formula,
+        formula: formula ? decodeTableauFormula(formula) : undefined,
+        isContinuous: col['@_type'] === 'quantitative',
+        paramDomainType,
+        paramMembers: paramMembers.length > 0 ? paramMembers : undefined,
+        paramRange,
       })
     })
-
-    datasources.push({ name, caption, fields })
+    return {
+      name: stripBrackets(ds['@_name']),
+      caption: ds['@_caption'] || undefined,
+      fields,
+    }
   })
 
-  // ────────────────────────────────────────────
-  // 2. ワークシート → 使用フィールドを抽出
-  //    実際のパス:
-  //      行/列    : worksheet > table > rows / cols  (テキスト内容)
-  //      フィルター: worksheet > table > view > filter[@column]
-  //      マーク   : worksheet > table > panes > pane > encodings > color/size/label/detail/tooltip
-  //      マーク種類: worksheet > table > panes > pane > mark[@class]
-  // ────────────────────────────────────────────
-  const wsList = ensureArray(workbook.worksheets?.worksheet)
-  wsList.forEach((ws: Record<string, unknown>) => {
-    const name = stripBrackets(ws['@_name'])
-    const caption = ws['@_caption'] || undefined
+  // 2. ワークシート
+  const worksheets: TableauWorksheet[] = ensureArray(workbook.worksheets?.worksheet).map((ws: any) => {
     const dependencies: string[] = []
-    const datasourceNames: string[] = [] // 依存するデータソース名
-
-    const table = ws?.table
-    const view = table?.view
-
     const localFields: TableauField[] = []
-    if (view) {
-      // 依存データソース名を収集
-      ensureArray(view?.datasources?.datasource).forEach(
-        (ds: Record<string, unknown>) => {
-          const dsName = stripBrackets(ds['@_name'] as string)
-          if (dsName && !datasourceNames.includes(dsName)) {
-            datasourceNames.push(dsName)
-          }
-        },
-      )
+    const datasourceNamesSet = new Set<string>()
 
-      // datasource-dependencies 内の column/column-instance を収集
-      ensureArray(view['datasource-dependencies']).forEach(
-        (dep: Record<string, unknown>) => {
-          // 1. column (ローカル計算フィールドなど)
-          ensureArray(dep.column).forEach((col: Record<string, unknown>) => {
-            const colName = stripBrackets(col['@_name'] as string)
-            if (colName) {
-              if (!dependencies.includes(colName)) dependencies.push(colName)
-              localFields.push({
-                column: colName,
-                caption: col['@_caption'] || undefined,
-                dataType: col['@_datatype'],
-                isCalc: !!col.calculation,
-                formula: col.calculation?.['@_formula'],
-                isContinuous: col['@_role'] === 'measure',
-                type: col['@_type'] || undefined,
-              })
-            }
-          })
-          // 2. column-instance (集計、ランク等)
-          ensureArray(dep['column-instance']).forEach(
-            (ci: Record<string, unknown>) => {
-              const ciName = stripFieldRef(ci['@_name'] as string)
-              const sourceColName = stripBrackets(ci['@_column'] as string)
-              if (ciName) {
-                if (!dependencies.includes(ciName)) dependencies.push(ciName)
-                localFields.push({
-                  column: ciName,
-                  caption: ci['@_caption'] || undefined,
-                  class: sourceColName,
-                })
-              }
-            },
-          )
-        },
-      )
-    }
-
-    // ── 棚別フィールドの抽出 ──
-    const parseFieldRefObj = (raw: string | undefined) => {
-      if (!raw) return null
-
-      // 最後にある [...] を探す
-      const bracketMatches = [...raw.matchAll(/\[([^\]]+)\]/g)]
-      let inner: string
-      if (bracketMatches.length > 0) {
-        inner = bracketMatches[bracketMatches.length - 1][1]
-      } else {
-        // [] がない場合はコロン区切りで型識別子を除いた最後を取る
-        const parts = raw.split(':').filter((p) => !/^\d+$/.test(p))
-        const typeIdentifiers = ['nk', 'qk', 'ok', 'ok2', 'ni', 'oi']
-        const filtered = parts.filter(
-          (p) => !typeIdentifiers.includes(p.toLowerCase()),
-        )
-        inner = filtered[filtered.length - 1] || raw
+    const createShelfField = (rawName: string | undefined): ShelfField | null => {
+      if (!rawName) return null
+      const cleanName = normalizeFieldId(rawName)
+      if (cleanName && !dependencies.includes(cleanName)) dependencies.push(cleanName)
+      return {
+        name: rawName,
+        isContinuous: rawName.includes(':qk'),
       }
-
-      let isContinuous: boolean | undefined = undefined
-      if (/:qk$/i.test(raw)) isContinuous = true
-      else if (/:(nk|ok|ok2)$/i.test(raw)) isContinuous = false
-
-      // stripFieldRef でさらに [] などを除去
-      const name = stripFieldRef(inner)
-      return name ? { name, isContinuous } : null
     }
 
-    const extractShelfFields = (raw: string | undefined) => {
+    const parseShelfList = (raw: any): ShelfField[] => {
       if (!raw) return []
-      // eslint-disable-next-line security/detect-unsafe-regex
-      const regex =
-        /(?:[a-z0-9_-]+:)?(?:\[[^\]]+\]\.)?\[[^\]]+\](?::[a-z0-9_-]+)*/gi
-      return (raw.match(regex) || [])
-        .map((r) => {
-          const info = parseFieldRefObj(r)
-          return info ? { name: r, isContinuous: info.isContinuous } : null
-        })
-        .filter((f): f is { name: string; isContinuous: boolean } => f !== null)
+      const text = typeof raw === 'string' ? raw : JSON.stringify(raw)
+      const matches = text.match(/\[[^\]]+\](?:\.\[[^\]]+\])*/g) || []
+      return matches.map(m => createShelfField(m)).filter((f): f is ShelfField => f !== null)
     }
 
-    const rowsRaw: string =
-      typeof table?.rows === 'string'
-        ? table.rows
-        : table?.rows?.['#text'] || ''
-    const colsRaw: string =
-      typeof table?.cols === 'string'
-        ? table.cols
-        : table?.cols?.['#text'] || ''
-
-    const rowFields = extractShelfFields(rowsRaw)
-    const colFields = extractShelfFields(colsRaw)
-
-    // フィルター: view > filter[@column]
-    const filterFields: { name: string; isContinuous?: boolean }[] = []
-    ensureArray(view?.filter).forEach((f: Record<string, unknown>) => {
-      const obj = parseFieldRefObj(f['@_column'] as string)
-      if (obj && !filterFields.some((x) => x.name === obj.name))
-        filterFields.push(obj)
-    })
-
-    // マーク: panes > pane
-    const allPanes: WorksheetPane[] = []
-    const panes = ensureArray(table?.panes?.pane)
-
-    panes.forEach((p: Record<string, unknown>) => {
-      const id = p['@_id'] as string
-      const yAxisName = p['@_y-axis-name'] as string
-      const xAxisName = p['@_x-axis-name'] as string
-
-      // レイヤー名の取得を大幅強化 (子要素も含めて探索)
-      let pName: string | undefined
-
-      // 再帰的に name 属性を探す
-      const findName = (obj: Record<string, unknown>): string | undefined => {
-        if (!obj || typeof obj !== 'object') return undefined
-        // mp. で始まる属性があれば最優先
-        for (const k in obj) {
-          // eslint-disable-next-line security/detect-object-injection
-          const val = obj[k]
-          if (typeof val === 'string' && val.includes('mp.')) return val
-        }
-        if (obj['@_name']) return obj['@_name']
-        if (obj['name']) return obj['name']
-
-        for (const key in obj) {
-          if (key === 'mark' || key === 'encodings') continue
-          // eslint-disable-next-line security/detect-object-injection
-          const val = obj[key]
-          if (Array.isArray(val)) {
-            for (const item of val) {
-              const res = findName(item)
-              if (res) return res
-            }
-          } else {
-            const res = findName(val)
-            if (res) return res
-          }
-        }
-        return undefined
-      }
-
-      pName = findName(p)
-
-      const isInternalName = (name: string | undefined) => {
-        if (!name) return true
-        const internalNames = [
-          'selection-relaxation-allow',
-          'selection-relaxation-option',
-          'none',
-          'true',
-          'false',
-        ]
-        return (
-          internalNames.includes(name.toLowerCase()) ||
-          name.includes('__INTERNAL__')
-        )
-      }
-
-      // 不自然な内部属性ならIDへフォールバック
-      if (isInternalName(pName)) {
-        pName = id
-      }
-
-      // マークタイプ (XML内部キーをそのまま保持、UI側で日本語変換する)
-      const rawMark = p?.mark?.['@_class'] || ''
-      const markType = rawMark
-
-      // automatic 時の推定マークタイプ
-      let resolvedMarkType: string | undefined = undefined
-      if (!rawMark || rawMark.toLowerCase() === 'automatic') {
-        // 行/列フィールドの型から推定
-        const allShelfNames = [...rowFields, ...colFields].map((f) => f.name)
-        const hasDate = allShelfNames.some((n) => {
-          const parts = n.split(':')
-          const last = parts[parts.length - 1]
-            .replace(/^\[/, '')
-            .replace(/\]$/, '')
-          const localF = localFields.find((f) => f.column === last)
-          return localF?.dataType === 'date' || localF?.dataType === 'datetime'
+    const parsePane = (p: any): WorksheetPane => {
+      // encodings が子タグとしてある場合と、pane 直下にある場合の両方を考慮
+      const enc = p.encodings || p
+      
+      const getEnc = (tags: string[]) => {
+        const result: ShelfField[] = []
+        tags.forEach(tag => {
+          ensureArray(enc[tag]).forEach(e => {
+            const f = createShelfField(e?.['@_column'])
+            if (f) result.push(f)
+          })
         })
-        const hasGeo = allShelfNames.some(
-          (n) =>
-            n.toLowerCase().includes('latitude') ||
-            n.toLowerCase().includes('longitude'),
-        )
-        const continuousCount = [...rowFields, ...colFields].filter(
-          (f) => f.isContinuous,
-        ).length
-
-        if (hasGeo) {
-          resolvedMarkType = 'map'
-        } else if (hasDate) {
-          resolvedMarkType = 'line'
-        } else if (continuousCount >= 2) {
-          resolvedMarkType = 'circle'
-        } else if (continuousCount >= 1) {
-          resolvedMarkType = 'bar'
-        }
+        return result
       }
-
-      const enc = p?.encodings
-
-      const pane: WorksheetPane = {
-        id,
-        name: pName,
-        yAxisName,
-        xAxisName,
-        markType,
-        resolvedMarkType,
+      
+      return {
+        id: p['@_id'],
+        name: p['@_generated-title'],
+        // 軸名としてさらに多くの可能性をチェック
+        yAxisName: p['@_y-axis-name'] || p['@_y-metadata'] || p['@_name'] || p['@_y-axis'],
+        xAxisName: p['@_x-axis-name'] || p['@_x-metadata'] || p['@_x-axis'],
+        markType: p.mark?.['@_class'] || 'automatic',
         encodings: {
-          color: [],
-          size: [],
-          label: [],
-          detail: [],
-          tooltip: [],
+          color: getEnc(['color']),
+          size: getEnc(['size']),
+          label: getEnc(['label', 'text', 'tooltip']),
+          detail: getEnc(['lod', 'detail']),
+          tooltip: getEnc(['tooltip']),
         },
       }
-
-      if (enc) {
-        const getCols = (v: unknown) =>
-          ensureArray(v)
-            .map((e: unknown) => {
-              const item = e as Record<string, unknown>
-              const raw = item['@_column'] as string
-              if (!raw) return null
-              return {
-                name: raw,
-                isContinuous:
-                  raw.includes(':qk') ||
-                  raw.includes(':ok') ||
-                  raw.includes(':ok2') ||
-                  raw.includes(':ni') ||
-                  raw.includes(':oi'),
-              }
-            })
-            .filter(
-              (f): f is { name: string; isContinuous: boolean } => f !== null,
-            )
-        pane.encodings.color = getCols(enc.color)
-        pane.encodings.size = getCols(enc.size)
-        pane.encodings.label = getCols(enc.text)
-        pane.encodings.detail = getCols(enc.lod)
-        pane.encodings.tooltip = getCols(enc.tooltip)
-      }
-      allPanes.push(pane)
-    })
-
-    const defaultPane: WorksheetPane = allPanes[0] || {
-      markType: '',
-      encodings: { color: [], size: [], label: [], detail: [], tooltip: [] },
     }
 
-    worksheets.push({
-      name,
-      caption,
-      dependencies,
-      datasourceNames,
-      shelf: {
-        rows: rowFields,
-        cols: colFields,
-        filters: filterFields,
-        panes: allPanes,
-        marks: defaultPane,
-      },
-      localFields,
+    // 依存関係収集 (ws直下, ws.view, ws.table.view, ws.table.panes.pane など広範囲を探索)
+    const sources = [ws, ws.view, ws.table?.view]
+    if (ws.table?.panes?.pane) {
+      ensureArray(ws.table.panes.pane).forEach((p: any) => sources.push(p))
+    }
+
+    sources.forEach(src => {
+      if (!src || !src['datasource-dependencies']) return
+      ensureArray(src['datasource-dependencies']).forEach((dd: any) => {
+        const dsName = stripBrackets(dd['@_name'])
+        if (dsName) datasourceNamesSet.add(dsName)
+
+        ensureArray(dd.column).forEach((col: any) => {
+          const colName = normalizeFieldId(col['@_name'])
+          if (!colName) return
+          const calc = ensureArray(col.calculation)?.[0]
+          const formula = calc?.['@_formula'] || col['@_formula']
+          localFields.push({
+            column: colName,
+            caption: col['@_caption'] || undefined,
+            dataType: col['@_datatype'],
+            isCalc: !!formula,
+            formula: formula ? decodeTableauFormula(formula) : undefined,
+            isContinuous: col['@_type'] === 'quantitative',
+          })
+        })
+        ensureArray(dd['column-instance']).forEach((ci: any) => {
+          const ciName = normalizeFieldId(ci['@_name'])
+          const calc = ensureArray(ci.calculation)?.[0]
+          const formula = calc?.['@_formula'] || ci['@_formula']
+          if (ciName) {
+            localFields.push({
+              column: ciName,
+              caption: ci['@_caption'] || undefined,
+              class: stripBrackets(ci['@_column']) || undefined,
+              isCalc: !!formula,
+              formula: formula ? decodeTableauFormula(formula) : undefined,
+            })
+          }
+        })
+      })
     })
+
+    const table = ws.table || {}
+    const shelf: WorksheetShelf = {
+      rows: parseShelfList(table.rows),
+      cols: parseShelfList(table.cols),
+      filters: ensureArray(table.view?.filter).map(f => createShelfField(f?.['@_column'])).filter((f): f is ShelfField => f !== null),
+      panes: ensureArray(table.panes?.pane).map(parsePane),
+      marks: parsePane(ensureArray(table.panes?.pane)[0] || {}),
+    }
+
+    return {
+      name: stripBrackets(ws['@_name']),
+      caption: ws['@_caption'] || undefined,
+      dependencies,
+      datasourceNames: Array.from(datasourceNamesSet),
+      localFields,
+      shelf,
+    }
   })
 
-  // ────────────────────────────────────────────
-  // 3. ダッシュボード → 配置されているシートを抽出
-  //    dashboard > zones(再帰) > zone[@name] でシート名を拾う
-  // ────────────────────────────────────────────
-  const wsNameSet = new Set(worksheets.map((w) => w.name))
-
-  const dbList = ensureArray(workbook.dashboards?.dashboard)
-  dbList.forEach((db: unknown) => {
-    const d = db as Record<string, unknown>
-    const name = stripBrackets(d['@_name'] as string)
-    const caption = (d['@_caption'] as string) || undefined
-    const wSheets: string[] = []
-
-    const findSheetsInZones = (obj: unknown) => {
-      if (!obj || typeof obj !== 'object') return
-      const o = obj as Record<string, unknown>
-
-      // zone 要素があれば処理
-      const zones = ensureArray(o.zone || o)
-      zones.forEach((zone: unknown) => {
-        if (!zone || typeof zone !== 'object') return
-        const z = zone as Record<string, unknown>
-
-        const zoneName = stripBrackets(z['@_name'] as string)
-        // type='worksheet' または名前がシート一覧に存在する場合に抽出
-        if (zoneName && wsNameSet.has(zoneName)) {
-          if (!wSheets.includes(zoneName)) {
-            wSheets.push(zoneName)
-          }
-        }
-
-        // 子要素を再帰的に探索（zone, zones, layout 等）
-        for (const key in zone) {
-          // eslint-disable-next-line security/detect-object-injection
-          const val = zone[key]
-          if (typeof val === 'object') {
-            findSheetsInZones(val)
-          }
-        }
+  // 3. ダッシュボード
+  const dashboards = ensureArray(workbook.dashboards?.dashboard).map((db: any) => {
+    const wsNames = new Set<string>()
+    const collect = (zones: any) => {
+      ensureArray(zones).forEach((z: any) => {
+        if (z['@_name']) wsNames.add(stripBrackets(z['@_name']))
+        if (z.zone) collect(z.zone)
       })
     }
-
-    findSheetsInZones(db)
-
-    dashboards.push({ name, caption, worksheets: wSheets })
+    collect(db.zones?.zone)
+    return { name: stripBrackets(db['@_name']), worksheets: Array.from(wsNames) }
   })
 
   return { datasources, worksheets, dashboards }
-}
-
-/**
- * Tableau内部名のブラケット [] を除去して正規化する。
- * シート名やデータソース名など、実体名に使用する。
- */
-function stripBrackets(name: string | undefined): string {
-  if (!name) return ''
-  let n = name.toString().trim()
-
-  // ブラケットの除去
-  if (n.startsWith('[') && n.endsWith(']')) {
-    n = n.substring(1, n.length - 1).trim()
-  }
-
-  // [DS].[Field] 形式の処理
-  if (n.includes('].[')) {
-    const parts = n.split('].[')
-    n = parts[parts.length - 1]
-    if (n.endsWith(']')) n = n.substring(0, n.length - 1)
-  } else if (n.startsWith('[') && n.includes('].')) {
-    const parts = n.split('].')
-    n = parts[parts.length - 1]
-  }
-
-  return n.trim()
-}
-
-/**
- * フィールド参照用の正規化。
- * 集計関数や型識別子（sum:Field:qk 等）を除去する。
- */
-function stripFieldRef(name: string | undefined): string {
-  if (!name) return ''
-  const n = stripBrackets(name)
-
-  // 集計・型の除去 (sum:Field:qk -> Field)
-  const pts = n.split(':').filter((p) => !/^\d+$/.test(p))
-  const typeIds = ['nk', 'qk', 'ok', 'ok2', 'ni', 'oi']
-  const aggFns = [
-    'sum',
-    'avg',
-    'min',
-    'max',
-    'count',
-    'cnt',
-    'cntd',
-    'attr',
-    'median',
-    'stdev',
-    'var',
-    'collect',
-  ]
-  const filtered = pts.filter(
-    (p) =>
-      !typeIds.includes(p.toLowerCase()) && !aggFns.includes(p.toLowerCase()),
-  )
-
-  return (filtered[filtered.length - 1] || pts[pts.length - 1] || n)
-    .replace(/^\[/, '')
-    .replace(/\]$/, '')
-    .trim()
-}
-
-function ensureArray<T>(obj: T | T[] | undefined | null): T[] {
-  if (!obj) return []
-  return Array.isArray(obj) ? obj : [obj]
 }

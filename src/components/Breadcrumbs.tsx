@@ -1,4 +1,6 @@
+import React from 'react';
 import { ChevronRight, Home, Layout, FileText } from 'lucide-react';
+import { t } from '../utils/i18n';
 
 interface BreadcrumbsProps {
   dashboardName?: string;
@@ -14,7 +16,7 @@ export default function Breadcrumbs({ dashboardName, worksheetName, onReset }: B
         className="flex items-center hover:text-blue-600 transition-colors gap-1 px-2 py-1 rounded hover:bg-slate-50"
       >
         <Home size={14} />
-        <span className="font-medium">ホーム</span>
+        <span className="font-medium">{t('nav.home')}</span>
       </button>
       
       {dashboardName && (

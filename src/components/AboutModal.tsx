@@ -1,4 +1,6 @@
+import React from 'react'
 import { X, Info, ExternalLink, Heart } from 'lucide-react'
+import { t } from '../utils/i18n'
 
 interface AboutModalProps {
   isOpen: boolean
@@ -29,37 +31,39 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
         <div className="flex-1 overflow-y-auto px-12 py-6 space-y-12">
           {/* Main Title */}
           <section>
-            <h2 className="text-3xl font-black text-slate-800 tracking-tight mb-2">
-              Verso-viz
-            </h2>
+            <div className="flex items-center gap-4 mb-4">
+              <img src="/favicon.png" alt="" className="h-12 w-12 object-contain" />
+              <h2 className="text-3xl font-black text-slate-800 tracking-tight">
+                {t('app.title')}
+              </h2>
+            </div>
             <p className="text-slate-400 text-sm leading-relaxed">
-              Tableau ワークブックの構成を把握するための、ミニマルな解析ツール。
+              {t('about.description')}
             </p>
           </section>
 
           {/* Disclaimer */}
           <section className="space-y-6">
             <h3 className="text-[10px] font-bold text-slate-300 uppercase tracking-[0.3em] border-b border-slate-100 pb-2">
-              Disclaimer
+              {t('about.disclaimer')}
             </h3>
             <div className="grid gap-6 text-slate-500 text-xs leading-relaxed">
               <div>
-                <h4 className="font-bold text-slate-700 mb-1">Data Privacy</h4>
+                <h4 className="font-bold text-slate-700 mb-1">{t('about.privacy_title')}</h4>
                 <p>
-                  本ツールはクライアントサイド（ブラウザ内）でのみ動作します。アップロードされたファイルやデータが外部サーバーに送信・保存されることは一切ありません。
+                  {t('about.privacy_desc')}
                 </p>
               </div>
               <div>
-                <h4 className="font-bold text-slate-700 mb-1">As Is</h4>
+                <h4 className="font-bold text-slate-700 mb-1">{t('about.as_is_title')}</h4>
                 <p>
-                  本ツールは現状有姿で提供されます。ツールの利用により生じた直接的・間接的な損害（データ破損、業務への影響等）について、作者は一切の責任を負いません。
+                  {t('about.as_is_desc')}
                 </p>
               </div>
               <div>
-                <h4 className="font-bold text-slate-700 mb-1">Relationship</h4>
+                <h4 className="font-bold text-slate-700 mb-1">{t('about.relationship_title')}</h4>
                 <p>
-                  本プロジェクトは個人による開発であり、Salesforce.com, Inc.
-                  および Tableau Software, LLC とは一切関係ありません。
+                  {t('about.relationship_desc')}
                 </p>
               </div>
             </div>
@@ -68,7 +72,7 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
           {/* Credits & Licenses */}
           <section className="space-y-6">
             <h3 className="text-[10px] font-bold text-slate-300 uppercase tracking-[0.3em] border-b border-slate-100 pb-2">
-              Credits & Licenses
+              {t('about.credits_title')}
             </h3>
             <div className="grid grid-cols-2 gap-4 text-[10px] text-slate-400">
               <div>
@@ -82,7 +86,7 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
               <div>
                 <p className="font-bold text-slate-600">Special Thanks</p>
                 <p className="flex items-center gap-1">
-                  To the Tableau DataFam community{' '}
+                  {t('about.special_thanks')}{' '}
                   <Heart size={10} className="text-red-400 fill-red-400" />
                 </p>
               </div>
@@ -101,11 +105,11 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
               <ExternalLink size={14} />
             </div>
             <span className="text-[10px] font-bold tracking-widest uppercase">
-              Created by @hizukuri3
+              {t('about.created_by')}
             </span>
           </a>
           <p className="text-[10px] text-slate-300 font-medium">
-            Version 1.0.0
+            {t('about.version', { version: import.meta.env.VITE_APP_VERSION })}
           </p>
         </footer>
       </div>

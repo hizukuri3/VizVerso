@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Layout, FileText, ChevronRight, Database } from 'lucide-react';
 import { t } from '../utils/i18n';
 import type { TableauDocument } from '../types/tableau';
@@ -33,7 +33,7 @@ export default function Sidebar({ doc, selectedId, onSelect }: SidebarProps) {
     <aside className="w-80 flex-shrink-0 bg-white border-r border-slate-200 overflow-y-auto flex flex-col h-full">
       <div className="p-4 border-b border-slate-200 bg-slate-50/50">
         <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-          {t('navigator')}
+          {t('nav.navigator')}
         </h2>
       </div>
       
@@ -42,7 +42,7 @@ export default function Sidebar({ doc, selectedId, onSelect }: SidebarProps) {
         {doc.dashboards.length > 0 && (
           <div>
             <h3 className="px-3 mb-3 text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-              <Layout size={14} className="text-blue-500 opacity-70" /> {t('dashboards')}
+              <Layout size={14} className="text-blue-500 opacity-70" /> {t('nav.dashboards')}
             </h3>
             <div className="space-y-1">
               {doc.dashboards.map((db) => {
@@ -93,7 +93,7 @@ export default function Sidebar({ doc, selectedId, onSelect }: SidebarProps) {
         {floatingSheets.length > 0 && (
           <div>
             <h3 className="px-3 mb-3 text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-              <FileText size={14} className="text-emerald-500 opacity-70" /> {t('sheets')}
+              <FileText size={14} className="text-emerald-500 opacity-70" /> {t('nav.sheets')}
             </h3>
             <div className="space-y-1">
               {floatingSheets.map((ws) => (
@@ -115,7 +115,7 @@ export default function Sidebar({ doc, selectedId, onSelect }: SidebarProps) {
         {/* Datasources Section */}
         <div>
           <h3 className="px-3 mb-3 text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-            <Database size={14} className="text-amber-500 opacity-70" /> {t('datasources')}
+            <Database size={14} className="text-amber-500 opacity-70" /> {t('nav.datasources')}
           </h3>
           <div className="space-y-1">
             {doc.datasources.map((ds) => (

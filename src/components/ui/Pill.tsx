@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { t } from '../../utils/i18n';
 
 // ────────────────────────────
 // 計算式のシンタックスハイライト
@@ -7,7 +8,8 @@ import { createPortal } from 'react-dom';
 export function SyntaxHighlightedFormula({ formula }: { formula: string }) {
   if (!formula) return null;
 
-  const tokenRegex = /(".*?"|'.*?'|\[パラメーター\]\.\[[^\]]+\]|\[[^\]]+\]|\b(?:IF|THEN|ELSE|ELSEIF|END|CASE|WHEN|AND|OR|NOT)\b|\b[A-Z_]+\b(?=\s*\())/gi;
+  const paramLabel = t('nav.datasources');
+  const tokenRegex = new RegExp(`(".*?"|'.*?'|\\[${paramLabel}\\]\\.\\[[^\\]]+\\]|\\[[^\\]]+\\]|\\b(?:IF|THEN|ELSE|ELSEIF|END|CASE|WHEN|AND|OR|NOT)\\b|\\b[A-Z_]+\\b(?=\\s*\\())`, 'gi');
   const lines = formula.split('\n');
 
   return (
@@ -25,7 +27,7 @@ export function SyntaxHighlightedFormula({ formula }: { formula: string }) {
                   {parts.map((part, i) => {
                     if (!part) return null;
                     if (part.startsWith('"') || part.startsWith("'")) return <span key={i} className="text-slate-400">{part}</span>;
-                    if (part.startsWith('[パラメーター].')) return <span key={i} className="text-purple-500">{part}</span>;
+                    if (part.startsWith(`[${paramLabel}].`)) return <span key={i} className="text-purple-500">{part}</span>;
                     if (part.startsWith('[')) return <span key={i} className="text-orange-400 font-semibold">{part}</span>;
                     if (/^(IF|THEN|ELSE|ELSEIF|END|CASE|WHEN|AND|OR|NOT)$/i.test(part)) return <span key={i} className="font-bold text-slate-800">{part.toUpperCase()}</span>;
                     if (/^[A-Z_]+$/i.test(part)) return <span key={i} className="text-blue-600">{part.toUpperCase()}</span>;
@@ -105,7 +107,7 @@ function PortalTooltip({ anchorRect, title, formula, physicalName }: PortalToolt
           <SyntaxHighlightedFormula formula={formula} />
         ) : (
           <div className="px-3 py-2 bg-slate-900 text-white rounded-lg text-[10px] font-mono">
-            物理名: {physicalName}
+            {t('detail.physical_name')}: {physicalName}
           </div>
         )}
       </div>
@@ -122,10 +124,13 @@ interface PillProps {
   caption?: string;
   isCalc?: boolean;
   isContinuous?: boolean;
+  dataType?: string;
   formula?: string;
+  isActive?: boolean;
+  onClick?: () => void;
 }
 
-export function Pill({ name, caption, isCalc, isContinuous, formula }: PillProps) {
+export function Pill({ name, caption, isCalc, isContinuous, dataType, formula, isActive, onClick }: PillProps) {
   const [hovered, setHovered] = useState(false);
   const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
 
@@ -142,11 +147,43 @@ export function Pill({ name, caption, isCalc, isContinuous, formula }: PillProps
     <div 
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      className="relative inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold shadow-sm text-white mr-2 mb-2 cursor-default hover:brightness-105 transition-all z-0" 
+      onClick={onClick}
+      className={`pill-container relative inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold shadow-sm text-white transition-all z-0 
+        ${onClick ? 'cursor-pointer hover:brightness-110 active:scale-95' : 'cursor-default'}
+        ${isActive ? 'ring-4 ring-offset-2 ring-yellow-400 scale-105 shadow-xl animate-pulse brightness-110' : ''}
+      `} 
       style={{ backgroundColor: isContinuous ? '#10b981' : '#0284c7' }}
     >
-      <span className="opacity-70 font-mono text-[10px] leading-none">{isCalc ? '=' : (isContinuous ? '#' : 'Abc')}</span>
-      <span className="truncate max-w-[180px]">{caption || name}</span>
+      <div className="flex items-center gap-0.5 opacity-80 font-mono text-[9px] leading-none shrink-0">
+        {isCalc && <span className="font-bold text-[11px] mr-0.5">=</span>}
+        {(() => {
+          const type = dataType?.toLowerCase();
+          if (type === 'string') return <span>Abc</span>;
+          if (type === 'integer' || type === 'real') return <span>#</span>;
+          if (type === 'date' || type === 'datetime') {
+            return (
+              <svg size={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="w-2.5 h-2.5">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+            );
+          }
+          if (type === 'boolean') return <span className="font-bold">T|F</span>;
+          if (type === 'spatial') {
+            return (
+              <svg size={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="w-2.5 h-2.5">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="2" y1="12" x2="22" y2="12"></line>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+              </svg>
+            );
+          }
+          return isContinuous ? <span>#</span> : <span>Abc</span>;
+        })()}
+      </div>
+      <span className="truncate max-w-[180px] leading-tight">{caption || name}</span>
 
       {hovered && anchorRect && (
         <PortalTooltip 

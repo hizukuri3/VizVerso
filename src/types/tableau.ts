@@ -8,6 +8,9 @@ export interface TableauField {
   dataType?: string;  // string, real, integer, date, datetime, boolean, spatial
   isCalc?: boolean;
   isContinuous?: boolean;
+  paramDomainType?: 'list' | 'range' | 'any';
+  paramMembers?: { value: string; alias?: string }[];
+  paramRange?: { min?: string; max?: string; step?: string };
 }
 
 export interface ShelfField {
