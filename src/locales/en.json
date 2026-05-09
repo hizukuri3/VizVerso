@@ -19,7 +19,7 @@
   "features": {
     "safe_analysis": {
       "title": "Safe Analysis",
-      "desc": "Data is never sent to any server."
+      "desc": "Analysis data is never sent to any server."
     },
     "detail_viz": {
       "title": "Detailed Visualization",
@@ -109,7 +109,7 @@
     "description": "A minimal analysis tool to understand the structure of Tableau workbooks.",
     "disclaimer": "Disclaimer",
     "privacy_title": "Data Privacy",
-    "privacy_desc": "This tool operates solely on the client side (within the browser). Uploaded files or data are never sent to or stored on external servers.",
+    "privacy_desc": "This tool operates solely on the client side; workbook analysis data is never sent to external servers. We collect anonymous usage statistics via Cloudflare Analytics for service improvement purposes.",
     "as_is_title": "As Is",
     "as_is_desc": "This tool is provided 'as is'. The author takes no responsibility for any direct or indirect damages (data corruption, impact on business, etc.) caused by using this tool.",
     "relationship_title": "Relationship",
