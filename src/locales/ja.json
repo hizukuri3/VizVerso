@@ -236,7 +236,10 @@
     "drill_down": "詳細を表示",
     "view_in_main": "一覧で強調表示",
     "copy_formula": "計算式をコピー",
-    "copied": "コピーしました"
+    "copied": "コピーしました",
+    "dependency_tree": "依存ツリー",
+    "circular_ref": "循環参照",
+    "tree_depth_note": "最大{{depth}}階層まで表示"
   },
   "legal": {
     "title": "特定商取引法に基づく表記",
@@ -284,5 +287,14 @@
         "content": "決済処理にはStripe, Inc.のサービスを利用しています。お客様のカード情報はStripeのプライバシーポリシーに従って保護・管理されます。"
       }
     }
+  },
+  "calctype": {
+    "lod": "LOD表現",
+    "table_calc": "表計算",
+    "regular": "通常"
+  },
+  "view": {
+    "pills": "ピル表示",
+    "list": "リスト表示"
   }
 }

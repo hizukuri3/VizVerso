@@ -204,7 +204,7 @@ describe('SideDrawer - 依存関係リストと使用シート', () => {
     expect(onNavigateField).toHaveBeenCalledWith('Double Sales')
   })
 
-  it('upstream（参照元）リストで存在しないフィールドは無効化されること', () => {
+  it('依存ツリーの1階層目で存在しないフィールドは無効化され、存在するフィールドはナビゲーションされること', () => {
     const onNavigateField = vi.fn()
     render(
       <SideDrawer
@@ -215,10 +215,12 @@ describe('SideDrawer - 依存関係リストと使用シート', () => {
         onNavigateField={onNavigateField}
       />,
     )
-    // [Profit] はドキュメントに存在しない → 無効ボタン
+    // 依存ツリーセクションが表示される
+    expect(screen.getByText('依存ツリー')).toBeInTheDocument()
+    // [Profit] はドキュメントに存在しない → 未解決ノード（無効ボタン）
     const profitBtn = screen.getByText('Profit').closest('button')
     expect(profitBtn).toBeDisabled()
-    // [Sales] は存在する → クリックでナビゲーション
+    // [Sales] は存在する → クリックでナビゲーション（ツリー1階層目 = 旧 upstream 相当）
     const salesBtn = screen.getByText('Sales').closest('button')
     expect(salesBtn).not.toBeDisabled()
     fireEvent.click(salesBtn!)
@@ -357,5 +359,111 @@ describe('SideDrawer - ナビゲーション履歴', () => {
     // 対象外のキーでは呼ばれない
     fireEvent.keyDown(backdrop!, { key: 'Tab' })
     expect(onClose).toHaveBeenCalledTimes(1)
+  })
+})
+
+// ネストした計算式・種別バッジ・循環参照を検証するための依存ツリー用フィクスチャ
+const docTree: TableauDocument = {
+  datasources: [
+    {
+      name: 'ds1',
+      fields: [
+        { column: 'Sales', isCalc: false, dataType: 'real' },
+        {
+          column: 'Base LOD',
+          isCalc: true,
+          formula: '{ FIXED [Sales] : SUM([Sales]) }',
+          dataType: 'real',
+        },
+        {
+          // Base LOD をネストして参照する計算フィールド
+          column: 'Nested Calc',
+          isCalc: true,
+          formula: '[Base LOD] + 1',
+          dataType: 'real',
+        },
+        // 循環参照ペア
+        { column: 'CycA', isCalc: true, formula: '[CycB]' },
+        { column: 'CycB', isCalc: true, formula: '[CycA]' },
+      ],
+    },
+  ],
+  worksheets: [
+    { name: 'Sheet 1', dependencies: ['Nested Calc'], localFields: [] },
+  ],
+  dashboards: [],
+}
+
+describe('SideDrawer - 依存ツリー', () => {
+  it('計算フィールドで子があるときのみ依存ツリーを表示すること', () => {
+    // 非計算フィールドではツリーを表示しない
+    const { rerender } = render(
+      <SideDrawer
+        isOpen={true}
+        onClose={() => {}}
+        doc={docTree}
+        targetFieldName="Sales"
+        onNavigateField={() => {}}
+      />,
+    )
+    expect(screen.queryByText('依存ツリー')).not.toBeInTheDocument()
+
+    // 計算フィールドではツリーを表示する
+    rerender(
+      <SideDrawer
+        isOpen={true}
+        onClose={() => {}}
+        doc={docTree}
+        targetFieldName="Nested Calc"
+        onNavigateField={() => {}}
+      />,
+    )
+    expect(screen.getByText('依存ツリー')).toBeInTheDocument()
+  })
+
+  it('ネストした計算式を再帰展開し、種別バッジを表示すること', () => {
+    render(
+      <SideDrawer
+        isOpen={true}
+        onClose={() => {}}
+        doc={docTree}
+        targetFieldName="Nested Calc"
+        onNavigateField={() => {}}
+      />,
+    )
+    // 1階層目に Base LOD、その子として Sales が展開される
+    expect(screen.getByText('Base LOD')).toBeInTheDocument()
+    expect(screen.getByText('Sales')).toBeInTheDocument()
+    // Base LOD には LOD 種別バッジが付く
+    expect(screen.getByText('LOD表現')).toBeInTheDocument()
+  })
+
+  it('循環参照ノードに循環参照の注記を表示すること', () => {
+    render(
+      <SideDrawer
+        isOpen={true}
+        onClose={() => {}}
+        doc={docTree}
+        targetFieldName="CycA"
+        onNavigateField={() => {}}
+      />,
+    )
+    // CycA -> CycB -> CycA(循環) の注記
+    expect(screen.getByText('循環参照')).toBeInTheDocument()
+  })
+
+  it('ツリー内の計算フィールドをクリックするとドリルダウンされること', () => {
+    const onNavigateField = vi.fn()
+    render(
+      <SideDrawer
+        isOpen={true}
+        onClose={() => {}}
+        doc={docTree}
+        targetFieldName="Nested Calc"
+        onNavigateField={onNavigateField}
+      />,
+    )
+    fireEvent.click(screen.getByText('Base LOD'))
+    expect(onNavigateField).toHaveBeenCalledWith('Base LOD')
   })
 })
