@@ -30,7 +30,7 @@ tests/fixtures/DetectiveConan.twbx
 *.sw?
 
 # Temporary test files
-public/sample.twbx
+# NOTE: public/sample.twbx はデモモード（サンプルで試す）の同梱ファイルのため追跡する
 public/corrupt.twbx
 scratch/
 test-results/

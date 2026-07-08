@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://viz-verso.pages.dev/sitemap.xml
