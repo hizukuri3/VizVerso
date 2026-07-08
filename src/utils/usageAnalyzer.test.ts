@@ -124,6 +124,80 @@ describe('usageAnalyzer', () => {
     expect(viaFields.length).toBe(2)
   })
 
+  it('column が空文字で正規化IDが得られないフィールドは収集対象から除外されること', () => {
+    const doc = makeDoc()
+    // normalizeFieldId('') は '' を返すため allFields に追加されない
+    doc.datasources[0].fields.push({ column: '', isCalc: false })
+    const result = analyzeFieldUsage(doc)
+    expect(result.usage.has('')).toBe(false)
+  })
+
+  it('計算フィールドが自分自身を参照する場合、自己参照は参照グラフに含まれないこと', () => {
+    const doc = makeDoc()
+    doc.datasources[0].fields.push({
+      column: 'SelfRef',
+      isCalc: true,
+      formula: '[SelfRef] + 1',
+    })
+    doc.worksheets[0].dependencies.push('SelfRef')
+    const result = analyzeFieldUsage(doc)
+    // SelfRef は直接使用されているが、自己参照分は viaFields 等の対象外
+    expect(result.usage.get('SelfRef')?.used).toBe(true)
+    expect(result.usage.get('SelfRef')?.viaFields).not.toContain('SelfRef')
+  })
+
+  it('ワークシートの依存関係に空文字が含まれても無視されること', () => {
+    const doc = makeDoc()
+    doc.worksheets[0].dependencies.push('')
+    // 空文字の依存関係が例外を起こさず、既存の判定に影響しないこと
+    expect(() => analyzeFieldUsage(doc)).not.toThrow()
+    const result = analyzeFieldUsage(doc)
+    expect(result.usage.get('Sales')?.used).toBe(true)
+  })
+
+  it('複数のワークシートが同じフィールドに依存する場合、directSheets に両方のシート名が記録されること', () => {
+    const doc = makeDoc()
+    doc.worksheets.push({
+      name: 'Sheet 2',
+      dependencies: ['Sales'],
+      localFields: [],
+    })
+    const result = analyzeFieldUsage(doc)
+    const directSheets = result.usage.get('Sales')?.directSheets ?? []
+    expect(directSheets).toContain('Sheet 1')
+    expect(directSheets).toContain('Sheet 2')
+    expect(directSheets.length).toBe(2)
+  })
+
+  it('ダッシュボードの usedFields に空文字が含まれても無視されること', () => {
+    const doc = makeDoc()
+    doc.dashboards.push({
+      name: 'Dashboard 1',
+      worksheets: ['Sheet 1'],
+      usedFields: ['', 'Unused Param'],
+    })
+    const result = analyzeFieldUsage(doc)
+    expect(result.usage.get('Unused Param')?.used).toBe(true)
+  })
+
+  it('ワークブックレベルの usedFields（datagraph 等）で参照されるフィールドは used=true になること', () => {
+    const doc = makeDoc()
+    // ワークブック直下の usedFields（ダッシュボードではなく doc 自体が持つ参照）
+    doc.usedFields = ['Unused Param']
+    const result = analyzeFieldUsage(doc)
+    expect(result.usage.get('Unused Param')?.used).toBe(true)
+    expect(result.unusedFields).not.toContain('Unused Param')
+  })
+
+  it('ワークブックレベルの usedFields に正規化できない空文字が含まれても無視されること', () => {
+    const doc = makeDoc()
+    // normalizeFieldId が空文字を返すケース（undefined 相当の参照）を混在させる
+    doc.usedFields = ['', 'Unused Param']
+    const result = analyzeFieldUsage(doc)
+    // 空文字は無視され、有効な参照のみ used=true になること
+    expect(result.usage.get('Unused Param')?.used).toBe(true)
+  })
+
   it('ダッシュボードのみで使用されるフィールド（パラメータコントロール等）は used=true になること', () => {
     const doc = makeDoc()
     // Unused Param はダッシュボードのパラメータコントロールで使用される

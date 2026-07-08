@@ -2,12 +2,133 @@ import { useEffect, useRef, useMemo, useState } from 'react'
 import { X, ArrowLeft, Hash, ChevronRight, Copy, Check } from 'lucide-react'
 import { t } from '../utils/i18n'
 import type { TableauDocument } from '../types/tableau'
+import type { CalcType } from '../utils/calcClassifier'
 import { FormulaHighlighter } from './FormulaHighlighter'
 import { useDependencyIndex } from '../hooks/useDependencyIndex'
 import { normalizeFieldId } from '../utils/xmlParser'
 import { analyzeFieldUsage } from '../utils/usageAnalyzer'
+import {
+  buildUpstreamTree,
+  type DependencyTreeNode,
+} from '../utils/dependencyTree'
 
 import { formatFormulaText } from '../utils/formulaFormatter'
+
+// 依存ツリーの最大展開深度（buildUpstreamTree の既定値と一致させる）
+const TREE_MAX_DEPTH = 10
+
+/** キャプションが [ ] で囲まれている場合は括弧を除去して表示名にする */
+function stripBracketCaption(caption: string): string {
+  return caption.startsWith('[') && caption.endsWith(']')
+    ? caption.substring(1, caption.length - 1)
+    : caption
+}
+
+/** 計算式種別ごとのバッジ表記とカラークラスを返す（非計算は null） */
+function calcTypeBadge(
+  calcType: CalcType | null,
+): { label: string; className: string } | null {
+  switch (calcType) {
+    case 'lod':
+      return {
+        label: t('calctype.lod'),
+        className: 'bg-purple-50 text-purple-600 border border-purple-200',
+      }
+    case 'tableCalc':
+      return {
+        label: t('calctype.table_calc'),
+        className: 'bg-blue-50 text-blue-600 border border-blue-200',
+      }
+    case 'regular':
+      return {
+        label: t('calctype.regular'),
+        className: 'bg-slate-100 text-slate-500 border border-slate-200',
+      }
+    default:
+      return null
+  }
+}
+
+interface DependencyTreeItemProps {
+  node: DependencyTreeNode
+  depth: number
+  onNavigate: (fieldId: string) => void
+}
+
+/**
+ * 依存ツリーの1ノードを再帰的に描画する。
+ * - 解決済みノードはクリックでドリルダウン（既存の履歴機構に乗る）
+ * - 未解決ノードはグレーアウトして無効化
+ * - 循環参照ノードには注記を表示し、子は展開しない
+ */
+function DependencyTreeItem({
+  node,
+  depth,
+  onNavigate,
+}: DependencyTreeItemProps) {
+  const clickable = !node.isUnresolved
+  const label = stripBracketCaption(node.caption)
+  const badge = node.isCalc ? calcTypeBadge(node.calcType) : null
+
+  return (
+    <div>
+      <button
+        type="button"
+        disabled={!clickable}
+        onClick={() => clickable && onNavigate(node.fieldId)}
+        style={{ marginLeft: depth * 16 }}
+        className={`w-full flex items-center gap-2 p-3 bg-white border border-slate-100 rounded-xl transition-all group text-left ${
+          clickable
+            ? 'hover:border-purple-300 hover:shadow-sm'
+            : 'opacity-60 cursor-not-allowed'
+        }`}
+      >
+        <div
+          className={`p-1.5 rounded-lg transition-colors shrink-0 ${
+            clickable
+              ? 'bg-purple-50 text-purple-600 group-hover:bg-purple-100'
+              : 'bg-slate-100 text-slate-400'
+          }`}
+        >
+          <Hash size={14} />
+        </div>
+        {badge && (
+          <span
+            className={`whitespace-nowrap text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded shrink-0 ${badge.className}`}
+          >
+            {badge.label}
+          </span>
+        )}
+        <span className="text-sm font-bold text-slate-700 truncate">
+          {label}
+        </span>
+        {node.isCircular && (
+          <span className="whitespace-nowrap text-[9px] font-bold uppercase tracking-widest text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded shrink-0">
+            {t('drawer.circular_ref')}
+          </span>
+        )}
+        {clickable && (
+          <ChevronRight
+            size={16}
+            className="ml-auto text-slate-300 group-hover:text-purple-500 group-hover:translate-x-1 transition-all shrink-0"
+          />
+        )}
+      </button>
+      {node.children.length > 0 && (
+        <div className="mt-2 space-y-2">
+          {node.children.map((child) => (
+            <DependencyTreeItem
+              key={child.fieldId}
+              node={child}
+              depth={depth + 1}
+              onNavigate={onNavigate}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
 interface SideDrawerProps {
   isOpen: boolean
@@ -71,18 +192,11 @@ export function SideDrawer({
     return meta
   }, [index])
 
-  // 依存関係の取得
-  const upstreamNames = useMemo(() => {
-    const formula = fieldInfo?.resolvedFormula
-    if (!formula) return []
-    // [Field Name] 形式の抽出
-    const matches = Array.from(formula.matchAll(/\[([^\]]+)\]/g)).map(
-      (m) => m[1],
-    )
-    return Array.from(
-      new Set(matches.filter((name) => name !== resolvedFieldName)),
-    )
-  }, [fieldInfo, resolvedFieldName])
+  // 上流依存を再帰展開したツリー（計算式のネスト構造の全体像）
+  const dependencyTree = useMemo(
+    () => buildUpstreamTree(doc, targetFieldName || '', TREE_MAX_DEPTH),
+    [doc, targetFieldName],
+  )
 
   // このフィールドを使用しているシート
   const sheetNames = useMemo(() => {
@@ -360,56 +474,30 @@ export function SideDrawer({
             </div>
           </section>
 
-          {/* 依存関係: 上流 (Sources / この項目が参照している) */}
-          <section className="space-y-4">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-              <span className="w-1.5 h-4 bg-purple-500 rounded-full" />
-              {t('drawer.upstream')} ({upstreamNames.length})
-            </h3>
-            <div className="grid gap-2">
-              {upstreamNames.length > 0 ? (
-                upstreamNames.map((name) => {
-                  const info = index?.fields?.get(name)
-                  // index に存在しないフィールド（システムの組み込み項目など）はクリック不可に
-                  const exists = !!info
-                  return (
-                    <button
-                      key={name}
-                      disabled={!exists}
-                      onClick={() => handleDrillDown(name)}
-                      className={`flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl transition-all group text-left ${exists ? 'hover:border-purple-300 hover:shadow-md' : 'opacity-60 cursor-not-allowed'}`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`p-1.5 rounded-lg transition-colors ${exists ? 'bg-purple-50 text-purple-600 group-hover:bg-purple-100' : 'bg-slate-100 text-slate-400'}`}
-                        >
-                          <Hash size={14} />
-                        </div>
-                        <span className="text-sm font-bold text-slate-700">
-                          {(() => {
-                            const cap = info?.field.caption || name
-                            return cap.startsWith('[') && cap.endsWith(']')
-                              ? cap.substring(1, cap.length - 1)
-                              : cap
-                          })()}
-                        </span>
-                      </div>
-                      {exists && (
-                        <ChevronRight
-                          size={16}
-                          className="text-slate-300 group-hover:text-purple-500 group-hover:translate-x-1 transition-all"
-                        />
-                      )}
-                    </button>
-                  )
-                })
-              ) : (
-                <p className="text-sm text-slate-400 italic py-2 pl-4">
-                  {t('drawer.no_upstream')}
-                </p>
-              )}
-            </div>
-          </section>
+          {/* 依存ツリー: 上流依存を再帰展開（計算フィールドで子がある場合のみ表示） */}
+          {dependencyTree &&
+            dependencyTree.isCalc &&
+            dependencyTree.children.length > 0 && (
+              <section className="space-y-4">
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                  <span className="w-1.5 h-4 bg-purple-500 rounded-full" />
+                  {t('drawer.dependency_tree')}
+                  <span className="ml-auto normal-case tracking-normal text-[10px] font-medium text-slate-300">
+                    {t('drawer.tree_depth_note', { depth: TREE_MAX_DEPTH })}
+                  </span>
+                </h3>
+                <div className="space-y-2">
+                  {dependencyTree.children.map((child) => (
+                    <DependencyTreeItem
+                      key={child.fieldId}
+                      node={child}
+                      depth={0}
+                      onNavigate={handleDrillDown}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
 
           {/* 依存関係: 下流 (Consumers / この項目を参照している) */}
           <section className="space-y-4">

@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useMemo } from 'react'
+import React, { useRef, useEffect, useMemo, useState } from 'react'
 import {
   Layout,
   FileText,
@@ -6,14 +6,162 @@ import {
   Filter,
   MousePointer2,
   Hash,
+  List,
+  LayoutGrid,
+  Copy,
+  Check,
 } from 'lucide-react'
 import type { TableauDocument, WorksheetPane } from '../types/tableau'
-import { Pill } from './ui/Pill'
+import { Pill, SyntaxHighlightedFormula } from './ui/Pill'
 import { t, tMark } from '../utils/i18n'
 import { formatFormulaText } from '../utils/formulaFormatter'
+import { classifyFormula, type CalcType } from '../utils/calcClassifier'
 import { useDependencyIndex } from '../hooks/useDependencyIndex'
 import { normalizeFieldId } from '../utils/xmlParser'
 import { analyzeFieldUsage } from '../utils/usageAnalyzer'
+
+// ブラケット付きキャプション（[利益率] など）から表示用に括弧を除去する
+const stripBrackets = (label: string) =>
+  label.startsWith('[') && label.endsWith(']')
+    ? label.substring(1, label.length - 1)
+    : label
+
+// ────────────────────────────
+// 計算式の種別バッジ（LOD表現 / 表計算 / 通常）
+// ────────────────────────────
+const CALC_TYPE_STYLE: Record<
+  CalcType,
+  {
+    key: 'calctype.lod' | 'calctype.table_calc' | 'calctype.regular'
+    cls: string
+  }
+> = {
+  lod: {
+    key: 'calctype.lod',
+    cls: 'bg-purple-50 text-purple-700 border-purple-200',
+  },
+  tableCalc: {
+    key: 'calctype.table_calc',
+    cls: 'bg-blue-50 text-blue-700 border-blue-200',
+  },
+  regular: {
+    key: 'calctype.regular',
+    cls: 'bg-slate-100 text-slate-600 border-slate-200',
+  },
+}
+
+function CalcTypeBadge({ formula }: { formula?: string }) {
+  const type = classifyFormula(formula)
+  if (!type) return null
+  // type は CalcType のユニオン型に限定されており任意入力ではないため安全
+  // eslint-disable-next-line security/detect-object-injection
+  const style = CALC_TYPE_STYLE[type]
+  return (
+    <span
+      className={`shrink-0 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border ${style.cls}`}
+    >
+      {t(style.key)}
+    </span>
+  )
+}
+
+// ────────────────────────────
+// 計算フィールド1行（リスト表示）
+// 種別バッジ・名前・データ型・未使用バッジ・整形済み計算式・コピーボタンを表示する
+// ────────────────────────────
+interface CalcFieldRowProps {
+  name: string
+  displayName: string
+  rawFormula?: string
+  formattedFormula?: string
+  dataType?: string
+  isUnused: boolean
+  isActive: boolean
+  activeRef?: React.Ref<HTMLDivElement>
+  onOpenDrawer?: (fieldName: string) => void
+}
+
+function CalcFieldRow({
+  name,
+  displayName,
+  rawFormula,
+  formattedFormula,
+  dataType,
+  isUnused,
+  isActive,
+  activeRef,
+  onOpenDrawer,
+}: CalcFieldRowProps) {
+  // 行ごとにコピー状態を保持する
+  const [copied, setCopied] = useState(false)
+  useEffect(() => {
+    if (!copied) return
+    const timer = setTimeout(() => setCopied(false), 1500)
+    return () => clearTimeout(timer)
+  }, [copied])
+
+  return (
+    <div
+      ref={activeRef}
+      className={`rounded-2xl border shadow-sm overflow-hidden transition-all ${
+        isActive
+          ? 'border-yellow-400 ring-2 ring-yellow-300'
+          : 'border-slate-200'
+      }`}
+    >
+      <div className="flex items-center gap-2 px-4 py-2.5 border-b border-slate-100 bg-slate-50/50">
+        <CalcTypeBadge formula={rawFormula} />
+        <button
+          type="button"
+          onClick={() => onOpenDrawer?.(name)}
+          className="font-bold text-sm text-slate-700 hover:text-blue-600 transition-colors truncate text-left"
+          title={displayName}
+        >
+          {displayName}
+        </button>
+        {dataType && (
+          <span className="shrink-0 text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-white border border-slate-100 px-1.5 py-0.5 rounded">
+            {dataType}
+          </span>
+        )}
+        {isUnused && (
+          <span
+            data-testid="unused-badge"
+            title={t('usage.unused_hint')}
+            className="shrink-0 text-[9px] font-bold text-amber-700 uppercase tracking-wider bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full"
+          >
+            {t('usage.unused_badge')}
+          </span>
+        )}
+        {formattedFormula && (
+          <button
+            type="button"
+            data-testid="copy-formula-button"
+            onClick={() => {
+              void navigator.clipboard
+                .writeText(formattedFormula)
+                .then(() => setCopied(true))
+            }}
+            title={t('drawer.copy_formula')}
+            className={`ml-auto shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg border text-[10px] font-bold transition-all active:scale-95 ${
+              copied
+                ? 'bg-emerald-50 text-emerald-600 border-emerald-200'
+                : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300 hover:text-slate-700'
+            }`}
+          >
+            {copied ? <Check size={12} /> : <Copy size={12} />}
+            {copied ? t('drawer.copied') : t('drawer.copy_formula')}
+          </button>
+        )}
+      </div>
+      {formattedFormula && (
+        <div className="p-3">
+          <SyntaxHighlightedFormula formula={formattedFormula} />
+        </div>
+      )}
+    </div>
+  )
+}
 
 interface DetailViewProps {
   doc: TableauDocument
@@ -35,6 +183,9 @@ export default function DetailView({
   activeFieldName,
   onOpenDrawer,
 }: DetailViewProps) {
+  // データソース表示の表示モード（デフォルトはリスト表示）
+  const [dsViewMode, setDsViewMode] = useState<'list' | 'pills'>('list')
+
   // 自動スクロール処理
   const activePillRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
@@ -234,7 +385,9 @@ export default function DetailView({
     const ws = doc.worksheets.find((w) => w.name === selectedId)
     if (!ws) return null
 
-    const renderShelfCard = (
+    // Tableau Desktop 風の横長1行シェルフ
+    // 左に棚ラベル、右にピルを横並び、空なら（なし）を同じ行にインライン表示する
+    const renderShelfRow = (
       title: string,
       fields: { name: string; isContinuous?: boolean }[] | undefined,
       icon: React.ReactNode,
@@ -242,15 +395,13 @@ export default function DetailView({
     ) => {
       const hasFields = fields && fields.length > 0
       return (
-        <div
-          className={`bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col h-full`}
-        >
+        <div className="flex items-start gap-3 px-4 py-2.5 border-b border-slate-100 last:border-b-0">
           <div
-            className={`px-4 py-3 border-b border-slate-100 flex items-center gap-2 font-bold text-xs uppercase tracking-wider ${colorClass}`}
+            className={`flex items-center gap-1.5 shrink-0 w-20 pt-1 font-bold text-[11px] uppercase tracking-wider ${colorClass}`}
           >
             {icon} {title}
           </div>
-          <div className="p-5 flex flex-wrap flex-1 content-start gap-2">
+          <div className="flex flex-wrap items-center gap-1.5 flex-1 min-h-[1.75rem]">
             {hasFields ? (
               fields.map((f, i) => {
                 const info = getFieldInfo(f.name, f.isContinuous)
@@ -351,7 +502,8 @@ export default function DetailView({
               </span>
             )}
           </div>
-          <div className="p-5 space-y-6 flex-1">
+          <div className="p-4 space-y-2 flex-1">
+            {/* フィールドが存在するエンコーディング行のみをコンパクトに表示する */}
             {[
               { label: t('detail.color'), fields: pane.encodings.color },
               { label: t('detail.size'), fields: pane.encodings.size },
@@ -359,25 +511,21 @@ export default function DetailView({
               { label: t('detail.label'), fields: pane.encodings.label },
               { label: t('detail.detail'), fields: pane.encodings.detail },
               { label: t('detail.tooltip'), fields: pane.encodings.tooltip },
-            ].map((group) => (
-              <div key={group.label}>
-                <p className="text-[10px] font-bold text-slate-400 uppercase mb-3 tracking-widest">
-                  {group.label}
-                </p>
-                <div className="flex flex-wrap min-h-[1.5rem] gap-1">
-                  {group.fields && group.fields.length > 0 ? (
-                    group.fields.map((f, i) => {
+            ]
+              .filter((group) => group.fields && group.fields.length > 0)
+              .map((group) => (
+                <div key={group.label} className="flex items-start gap-3">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest shrink-0 w-14 pt-1.5">
+                    {group.label}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-1 flex-1">
+                    {group.fields.map((f, i) => {
                       const info = getFieldInfo(f.name, f.isContinuous)
                       return renderPill(info, `mark-${i}`)
-                    })
-                  ) : (
-                    <span className="text-[10px] text-slate-200 italic">
-                      {t('detail.none')}
-                    </span>
-                  )}
+                    })}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
           </div>
         </div>
       )
@@ -407,26 +555,28 @@ export default function DetailView({
         </header>
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 items-stretch">
-          {/* Columns & Rows */}
-          <div className="grid grid-cols-1 gap-6 content-start">
-            {renderShelfCard(
-              t('detail.columns'),
-              ws.shelf?.cols,
-              <Layout size={14} className="rotate-90" />,
-              'bg-blue-50/50 text-blue-700',
-            )}
-            {renderShelfCard(
-              t('detail.rows'),
-              ws.shelf?.rows,
-              <Layout size={14} />,
-              'bg-indigo-50/50 text-indigo-700',
-            )}
-            {renderShelfCard(
-              t('detail.filters'),
-              ws.shelf?.filters,
-              <Filter size={14} />,
-              'bg-amber-50/50 text-amber-700',
-            )}
+          {/* Columns / Rows / Filters（横長シェルフを1枚のカードにまとめる） */}
+          <div className="content-start">
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+              {renderShelfRow(
+                t('detail.columns'),
+                ws.shelf?.cols,
+                <Layout size={14} className="rotate-90" />,
+                'text-blue-700',
+              )}
+              {renderShelfRow(
+                t('detail.rows'),
+                ws.shelf?.rows,
+                <Layout size={14} />,
+                'text-indigo-700',
+              )}
+              {renderShelfRow(
+                t('detail.filters'),
+                ws.shelf?.filters,
+                <Filter size={14} />,
+                'text-amber-700',
+              )}
+            </div>
           </div>
 
           {/* Marks & Map Layers */}
@@ -577,13 +727,39 @@ export default function DetailView({
           <div className="p-4 bg-amber-100 text-amber-600 rounded-2xl">
             <Database size={40} />
           </div>
-          <div>
+          <div className="flex-1">
             <h1 className="text-4xl font-black text-slate-800 tracking-tight">
               {ds.caption || ds.name}
             </h1>
             <p className="text-slate-500 font-medium text-lg mt-1">
               {t('nav.datasources')}
             </p>
+          </div>
+
+          {/* リスト表示 / ピル表示 の切替トグル */}
+          <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl shrink-0">
+            <button
+              type="button"
+              onClick={() => setDsViewMode('list')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                dsViewMode === 'list'
+                  ? 'bg-white text-slate-800 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-600'
+              }`}
+            >
+              <List size={14} /> {t('view.list')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setDsViewMode('pills')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                dsViewMode === 'pills'
+                  ? 'bg-white text-slate-800 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-600'
+              }`}
+            >
+              <LayoutGrid size={14} /> {t('view.pills')}
+            </button>
           </div>
         </header>
 
@@ -598,17 +774,40 @@ export default function DetailView({
                 </span>
               )}
             </div>
-            <div className="p-8 flex flex-wrap gap-x-1 gap-y-1">
-              {ds.fields
-                .filter((f) => f.formula)
-                .map((f) => {
+            {dsViewMode === 'list' ? (
+              // リスト表示: 種別バッジ・整形済み計算式・コピーボタンを常時表示
+              <div className="p-5 space-y-3">
+                {calcs.map((f) => {
+                  const info = getFieldInfo(f.column)
+                  const resolved = index?.getFieldInfo(f.column)
+                  const isActive = activeFieldName === info.name
+                  return (
+                    <CalcFieldRow
+                      key={f.column}
+                      name={info.name}
+                      displayName={stripBrackets(info.caption)}
+                      rawFormula={resolved?.resolvedFormula ?? f.formula}
+                      formattedFormula={info.formula}
+                      dataType={info.dataType}
+                      isUnused={isFieldUnused(f.column)}
+                      isActive={isActive}
+                      activeRef={isActive ? activePillRef : undefined}
+                      onOpenDrawer={onOpenDrawer}
+                    />
+                  )
+                })}
+              </div>
+            ) : (
+              <div className="p-8 flex flex-wrap gap-x-1 gap-y-1">
+                {calcs.map((f) => {
                   const info = getFieldInfo(f.column)
                   return renderPill(
                     { ...info, isUnused: isFieldUnused(f.column) },
                     'ds-calc',
                   )
                 })}
-            </div>
+              </div>
+            )}
           </div>
 
           <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
@@ -621,17 +820,60 @@ export default function DetailView({
                 </span>
               )}
             </div>
-            <div className="p-8 flex flex-wrap gap-x-1 gap-y-1">
-              {ds.fields
-                .filter((f) => !f.formula)
-                .map((f) => {
+            {dsViewMode === 'list' ? (
+              // リスト表示（標準フィールド）: 名前・データ型・使用状況のコンパクトな表形式
+              <div className="divide-y divide-slate-100">
+                {normal.map((f) => {
+                  const info = getFieldInfo(f.column)
+                  const unused = isFieldUnused(f.column)
+                  const isActive = activeFieldName === info.name
+                  return (
+                    <div
+                      key={f.column}
+                      ref={isActive ? activePillRef : undefined}
+                      className={`flex items-center gap-3 px-6 py-2.5 ${
+                        isActive ? 'bg-yellow-50' : ''
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => onOpenDrawer?.(info.name)}
+                        className="font-bold text-sm text-slate-700 hover:text-blue-600 transition-colors truncate text-left flex-1"
+                        title={stripBrackets(info.caption)}
+                      >
+                        {stripBrackets(info.caption)}
+                      </button>
+                      {info.dataType && (
+                        <span className="shrink-0 text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-50 border border-slate-100 px-1.5 py-0.5 rounded">
+                          {info.dataType}
+                        </span>
+                      )}
+                      <span
+                        className={`shrink-0 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full border ${
+                          unused
+                            ? 'text-amber-700 bg-amber-50 border-amber-200'
+                            : 'text-emerald-600 bg-emerald-50 border-emerald-200'
+                        }`}
+                      >
+                        {unused
+                          ? t('usage.unused_badge')
+                          : t('usage.used_label')}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <div className="p-8 flex flex-wrap gap-x-1 gap-y-1">
+                {normal.map((f) => {
                   const info = getFieldInfo(f.column)
                   return renderPill(
                     { ...info, isUnused: isFieldUnused(f.column) },
                     'ds-std',
                   )
                 })}
-            </div>
+              </div>
+            )}
           </div>
         </section>
       </div>

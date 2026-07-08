@@ -235,7 +235,10 @@
     "drill_down": "Drill Down",
     "view_in_main": "Highlight in main view",
     "copy_formula": "Copy formula",
-    "copied": "Copied"
+    "copied": "Copied",
+    "dependency_tree": "Dependency Tree",
+    "circular_ref": "Circular reference",
+    "tree_depth_note": "Showing up to {{depth}} levels"
   },
   "legal": {
     "title": "Specified Commercial Transactions Act",
@@ -283,5 +286,14 @@
         "content": "We use services from Stripe, Inc. for payment processing. Your payment information is protected and managed according to Stripe's Privacy Policy."
       }
     }
+  },
+  "calctype": {
+    "lod": "LOD",
+    "table_calc": "Table Calc",
+    "regular": "Regular"
+  },
+  "view": {
+    "pills": "Pills",
+    "list": "List"
   }
 }
