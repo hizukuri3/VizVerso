@@ -106,6 +106,24 @@ describe('usageAnalyzer', () => {
     expect(result.unusedFields).not.toContain('Measure Names')
   })
 
+  it('2つの計算フィールドが同じフィールドを参照する場合、referencedBy 集約が両方の参照元を記録すること', () => {
+    const doc = makeDoc()
+    // Profit を参照する2つ目の計算フィールドを追加し、
+    // Sheet 1 の依存関係にも加えて used=true（直接使用）にする
+    doc.datasources[0].fields.push({
+      column: 'Profit Doubled',
+      isCalc: true,
+      formula: '[Profit] * 2',
+    })
+    doc.worksheets[0].dependencies.push('Profit Doubled')
+    const result = analyzeFieldUsage(doc)
+    // Profit は Profit Ratio と Profit Doubled の両方から参照される
+    const viaFields = result.usage.get('Profit')?.viaFields ?? []
+    expect(viaFields).toContain('Profit Ratio')
+    expect(viaFields).toContain('Profit Doubled')
+    expect(viaFields.length).toBe(2)
+  })
+
   it('ダッシュボードのみで使用されるフィールド（パラメータコントロール等）は used=true になること', () => {
     const doc = makeDoc()
     // Unused Param はダッシュボードのパラメータコントロールで使用される
