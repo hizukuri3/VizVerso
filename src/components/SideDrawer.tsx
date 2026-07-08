@@ -1,10 +1,11 @@
 import { useEffect, useRef, useMemo, useState } from 'react'
-import { X, ArrowLeft, Hash, ChevronRight } from 'lucide-react'
+import { X, ArrowLeft, Hash, ChevronRight, Copy, Check } from 'lucide-react'
 import { t } from '../utils/i18n'
 import type { TableauDocument } from '../types/tableau'
 import { FormulaHighlighter } from './FormulaHighlighter'
 import { useDependencyIndex } from '../hooks/useDependencyIndex'
 import { normalizeFieldId } from '../utils/xmlParser'
+import { analyzeFieldUsage } from '../utils/usageAnalyzer'
 
 import { formatFormulaText } from '../utils/formulaFormatter'
 
@@ -43,6 +44,21 @@ export function SideDrawer({
     [targetFieldName],
   )
   const resolvedFieldName = field?.column || cleanTargetName || ''
+
+  // 未使用フィールドの判定
+  const fieldUsage = useMemo(() => analyzeFieldUsage(doc), [doc])
+  const isUnused = useMemo(() => {
+    const usage = fieldUsage.usage.get(normalizeFieldId(resolvedFieldName))
+    return usage ? !usage.used : false
+  }, [fieldUsage, resolvedFieldName])
+
+  // 計算式コピー
+  const [copied, setCopied] = useState(false)
+  useEffect(() => {
+    if (!copied) return
+    const timer = setTimeout(() => setCopied(false), 1500)
+    return () => clearTimeout(timer)
+  }, [copied])
 
   // フィールドメタデータの構築（formatter用）
   const fieldMetaForFormatter = useMemo(() => {
@@ -175,6 +191,15 @@ export function SideDrawer({
                     </span>
                   </>
                 )}
+                {isUnused && (
+                  <span
+                    data-testid="drawer-unused-badge"
+                    title={t('usage.unused_hint')}
+                    className="whitespace-nowrap text-[10px] font-bold text-amber-700 uppercase tracking-widest bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full shrink-0"
+                  >
+                    {t('usage.unused_badge')}
+                  </span>
+                )}
               </div>
               <h2
                 className="text-2xl font-black text-slate-800 tracking-tight truncate"
@@ -199,6 +224,24 @@ export function SideDrawer({
               <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
                 <span className="w-1.5 h-4 bg-emerald-500 rounded-full" />
                 {t('drawer.formula')}
+                <button
+                  type="button"
+                  data-testid="copy-formula-button"
+                  onClick={() => {
+                    void navigator.clipboard
+                      .writeText(formattedFormula)
+                      .then(() => setCopied(true))
+                  }}
+                  title={t('drawer.copy_formula')}
+                  className={`ml-auto flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[10px] font-bold normal-case tracking-normal transition-all active:scale-95 ${
+                    copied
+                      ? 'bg-emerald-50 text-emerald-600 border-emerald-200'
+                      : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300 hover:text-slate-700'
+                  }`}
+                >
+                  {copied ? <Check size={12} /> : <Copy size={12} />}
+                  {copied ? t('drawer.copied') : t('drawer.copy_formula')}
+                </button>
               </h3>
               <FormulaHighlighter
                 formula={formattedFormula}

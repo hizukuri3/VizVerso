@@ -54,6 +54,7 @@
     "marks": "マーク",
     "color": "色",
     "size": "サイズ",
+    "shape": "形状",
     "label": "ラベル",
     "detail": "詳細",
     "tooltip": "ツールヒント",
@@ -163,7 +164,14 @@
     "col_referenced_field": "参照先フィールド",
     "col_used_field": "使用フィールド",
     "col_id": "ID",
-    "suffix_analysis_result": "_解析結果"
+    "suffix_analysis_result": "_解析結果",
+    "col_usage": "使用状況"
+  },
+  "usage": {
+    "unused_count": "未使用 {{count}}",
+    "unused_hint": "どのシート・計算式からも使用されていません",
+    "unused_badge": "未使用",
+    "used_label": "使用中"
   },
   "search": {
     "placeholder": "シート、データソース、計算フィールドを検索...",
@@ -187,7 +195,9 @@
     "no_downstream": "参照先はありません",
     "no_sheets": "この項目を使用しているシートはありません",
     "drill_down": "詳細を表示",
-    "view_in_main": "一覧で強調表示"
+    "view_in_main": "一覧で強調表示",
+    "copy_formula": "計算式をコピー",
+    "copied": "コピーしました"
   },
   "legal": {
     "title": "特定商取引法に基づく表記",

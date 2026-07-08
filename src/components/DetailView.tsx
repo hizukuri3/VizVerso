@@ -13,6 +13,7 @@ import { t, tMark } from '../utils/i18n'
 import { formatFormulaText } from '../utils/formulaFormatter'
 import { useDependencyIndex } from '../hooks/useDependencyIndex'
 import { normalizeFieldId } from '../utils/xmlParser'
+import { analyzeFieldUsage } from '../utils/usageAnalyzer'
 
 interface DetailViewProps {
   doc: TableauDocument
@@ -47,6 +48,13 @@ export default function DetailView({
 
   const index = useDependencyIndex(doc)
 
+  // 未使用フィールドの判定（データソース表示で使用）
+  const fieldUsage = useMemo(() => analyzeFieldUsage(doc), [doc])
+  const isFieldUnused = (column: string) => {
+    const usage = fieldUsage.usage.get(normalizeFieldId(column))
+    return usage ? !usage.used : false
+  }
+
   const renderPill = (
     info: {
       name: string
@@ -55,6 +63,7 @@ export default function DetailView({
       isContinuous?: boolean
       dataType?: string
       formula?: string
+      isUnused?: boolean
     },
     keySuffix: string = '',
   ) => {
@@ -346,6 +355,7 @@ export default function DetailView({
             {[
               { label: t('detail.color'), fields: pane.encodings.color },
               { label: t('detail.size'), fields: pane.encodings.size },
+              { label: t('detail.shape'), fields: pane.encodings.shape },
               { label: t('detail.label'), fields: pane.encodings.label },
               { label: t('detail.detail'), fields: pane.encodings.detail },
               { label: t('detail.tooltip'), fields: pane.encodings.tooltip },
@@ -462,7 +472,10 @@ export default function DetailView({
                   <div className="p-8">
                     <div className="flex items-center justify-between mb-6">
                       <div className="flex items-center gap-3">
-                        {renderPill(info, 'ds-param')}
+                        {renderPill(
+                          { ...info, isUnused: isFieldUnused(f.column) },
+                          'ds-param',
+                        )}
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-50 px-2 py-0.5 rounded">
                           {f.dataType}
                         </span>
@@ -553,6 +566,10 @@ export default function DetailView({
 
     const calcs = ds.fields.filter((f) => !!f.formula)
     const normal = ds.fields.filter((f) => !f.formula)
+    const unusedCalcCount = calcs.filter((f) => isFieldUnused(f.column)).length
+    const unusedNormalCount = normal.filter((f) =>
+      isFieldUnused(f.column),
+    ).length
 
     return (
       <div className="flex-1 overflow-y-auto p-10 space-y-10 animate-in fade-in slide-in-from-right-4 duration-500">
@@ -575,13 +592,21 @@ export default function DetailView({
             <div className="px-6 py-4 border-b border-slate-100 bg-emerald-50/50 text-emerald-700 font-bold text-xs uppercase tracking-widest flex items-center gap-3">
               <Hash size={16} /> {t('detail.calculated_fields')} ({calcs.length}
               )
+              {unusedCalcCount > 0 && (
+                <span className="ml-auto normal-case tracking-normal text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                  {t('usage.unused_count', { count: unusedCalcCount })}
+                </span>
+              )}
             </div>
             <div className="p-8 flex flex-wrap gap-x-1 gap-y-1">
               {ds.fields
                 .filter((f) => f.formula)
                 .map((f) => {
                   const info = getFieldInfo(f.column)
-                  return renderPill(info, 'ds-calc')
+                  return renderPill(
+                    { ...info, isUnused: isFieldUnused(f.column) },
+                    'ds-calc',
+                  )
                 })}
             </div>
           </div>
@@ -590,13 +615,21 @@ export default function DetailView({
             <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 text-slate-600 font-bold text-xs uppercase tracking-widest flex items-center gap-3">
               <Database size={16} /> {t('detail.standard_fields')} (
               {normal.length})
+              {unusedNormalCount > 0 && (
+                <span className="ml-auto normal-case tracking-normal text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                  {t('usage.unused_count', { count: unusedNormalCount })}
+                </span>
+              )}
             </div>
             <div className="p-8 flex flex-wrap gap-x-1 gap-y-1">
               {ds.fields
                 .filter((f) => !f.formula)
                 .map((f) => {
                   const info = getFieldInfo(f.column)
-                  return renderPill(info, 'ds-std')
+                  return renderPill(
+                    { ...info, isUnused: isFieldUnused(f.column) },
+                    'ds-std',
+                  )
                 })}
             </div>
           </div>

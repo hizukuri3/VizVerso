@@ -40,6 +40,7 @@ export interface WorksheetPane {
     label: ShelfField[]
     detail: ShelfField[]
     tooltip: ShelfField[]
+    shape: ShelfField[]
   }
 }
 
@@ -64,10 +65,12 @@ export interface TableauDashboard {
   name: string
   caption?: string
   worksheets: string[] // 配置されているワークシート名のリスト
+  usedFields?: string[] // パラメータコントロールや動的ゾーン表示が参照するフィールド
 }
 
 export interface TableauDocument {
   datasources: TableauDatasource[]
   worksheets: TableauWorksheet[]
   dashboards: TableauDashboard[]
+  usedFields?: string[] // datagraph（動的ゾーン表示）等、ワークブックレベルで参照されるフィールド
 }

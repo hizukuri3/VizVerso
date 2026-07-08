@@ -14,9 +14,42 @@ function ensureArray<T>(obj: T | T[] | undefined | null): T[] {
   return Array.isArray(obj) ? obj : [obj]
 }
 
+/**
+ * Tableau が暗黙的に提供する組み込み疑似フィールド名。
+ * パーサーの補完処理と未使用フィールド判定（usageAnalyzer）で共有する。
+ */
+export const BUILTIN_FIELD_NAMES = [
+  'Measure Names',
+  'Measure Values',
+  'Latitude (generated)',
+  'Longitude (generated)',
+  'Multiple Values',
+] as const
+
 function stripBrackets(name: string | undefined): string {
   if (!name) return ''
   return name.replace(/[[\]]/g, '').trim()
+}
+
+/**
+ * パース済みXMLノードを再帰的に走査し、param / fieldname 属性が参照する
+ * フィールドIDを収集する。パラメータコントロール（zone の param 属性）や
+ * 動的ゾーン表示（single-value-field-node の fieldname 属性）は
+ * ワークシート依存関係に現れないため、この走査で拾う。
+ */
+function collectFieldRefs(node: unknown, out: Set<string>): void {
+  if (!node || typeof node !== 'object') return
+  Object.entries(node as Record<string, unknown>).forEach(([key, val]) => {
+    if (
+      (key === '@_param' || key === '@_fieldname') &&
+      typeof val === 'string'
+    ) {
+      const id = normalizeFieldId(val)
+      if (id) out.add(id)
+    } else if (typeof val === 'object' && val !== null) {
+      ensureArray(val).forEach((v) => collectFieldRefs(v, out))
+    }
+  })
 }
 
 /**
@@ -318,19 +351,12 @@ export function parseTableauXml(xmlText: string): TableauDocument {
     // 1.4 Tableau が暗黙的に提供する組み込み疑似フィールドを補完
     // （<column> として明示定義されないことが多く、未補完だと参照元の
     // 系統関係が解決できなくなる）
-    const builtinFields: { name: string; caption: string }[] = [
-      { name: 'Measure Names', caption: 'Measure Names' },
-      { name: 'Measure Values', caption: 'Measure Values' },
-      { name: 'Latitude (generated)', caption: 'Latitude (generated)' },
-      { name: 'Longitude (generated)', caption: 'Longitude (generated)' },
-      { name: 'Multiple Values', caption: 'Multiple Values' },
-    ]
-    builtinFields.forEach(({ name, caption }) => {
+    BUILTIN_FIELD_NAMES.forEach((name) => {
       if (!fieldMap.has(name)) {
         fieldMap.set(name, {
           column: name,
           datasourceName: dsName,
-          caption,
+          caption: name,
           role: 'dimension',
           isCalc: false,
         })
@@ -421,9 +447,11 @@ export function parseTableauXml(xmlText: string): TableauDocument {
         encodings: {
           color: getEnc(['color']),
           size: getEnc(['size']),
-          label: getEnc(['label', 'text', 'tooltip']),
+          // tooltip は独立したバケットなので label には含めない
+          label: getEnc(['label', 'text']),
           detail: getEnc(['lod', 'detail']),
           tooltip: getEnc(['tooltip']),
+          shape: getEnc(['shape']),
         },
       }
     }
@@ -544,11 +572,29 @@ export function parseTableauXml(xmlText: string): TableauDocument {
       })
     }
     collect((db.zones as Record<string, unknown>)?.zone)
+
+    // ダッシュボードが直接参照するフィールド（パラメータコントロール等）の収集
+    const usedFieldsSet = new Set<string>()
+    collectFieldRefs(db, usedFieldsSet)
+
     return {
       name: stripBrackets(db['@_name'] as string),
       worksheets: Array.from(wsNames),
+      usedFields: Array.from(usedFieldsSet),
     }
   })
 
-  return { datasources, worksheets, dashboards }
+  // 4. ワークブックレベルのフィールド参照
+  //    （datagraph = 動的ゾーン表示のフィールド→ゾーンのグラフ定義）
+  const workbookUsedFields = new Set<string>()
+  if (workbook.datagraph) {
+    collectFieldRefs(workbook.datagraph, workbookUsedFields)
+  }
+
+  return {
+    datasources,
+    worksheets,
+    dashboards,
+    usedFields: Array.from(workbookUsedFields),
+  }
 }
