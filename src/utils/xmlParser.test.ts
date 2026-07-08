@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseTableauXml } from './xmlParser'
+import { parseTableauXml, normalizeFieldId } from './xmlParser'
 
 const dummyXml = `<?xml version='1.0' encoding='utf-8' ?>
 <workbook>
@@ -50,9 +50,12 @@ describe('xmlParser - parseTableauXml', () => {
     const result = parseTableauXml(dummyXml)
     expect(result.datasources).toHaveLength(1)
     expect(result.datasources[0].name).toBe('ds1')
-    expect(result.datasources[0].fields).toHaveLength(1)
-    expect(result.datasources[0].fields[0].column).toBe('Calculation_123')
-    expect(result.datasources[0].fields[0].formula).toBe('[Sales] / [Profit]')
+    // Measure Names 等の組み込み疑似フィールドが自動補完されるため、
+    // 実フィールドを名前で特定して検証する
+    const field = result.datasources[0].fields.find(
+      (f) => f.column === 'Calculation_123',
+    )
+    expect(field?.formula).toBe('[Sales] / [Profit]')
   })
 
   it('ネストされたゾーン構造からワークシートを再帰的に抽出できること', () => {
@@ -138,6 +141,58 @@ describe('xmlParser - parseTableauXml', () => {
     expect(field.formula).toBe('[A] > [B] & [C]')
   })
 
+  it('グループフィールド（<group>）がデータソースのフィールドとして抽出されること', () => {
+    const groupXml = `
+    <workbook>
+      <datasources>
+        <datasource name="ds1">
+          <column name="[Sales]" datatype="real" role="measure" type="quantitative" />
+          <group caption='アクション (_TRUE)' hidden='true' name='[Action (_TRUE)]' name-style='unqualified'>
+            <groupfilter function='crossjoin'>
+              <groupfilter function='level-members' level='[Sales]' />
+            </groupfilter>
+          </group>
+        </datasource>
+      </datasources>
+    </workbook>`
+    const result = parseTableauXml(groupXml)
+    const group = result.datasources[0].fields.find(
+      (f) => f.column === 'Action (_TRUE)',
+    )
+    expect(group).toBeDefined()
+    expect(group?.caption).toBe('アクション (_TRUE)')
+  })
+
+  it('組み込み疑似フィールド（Measure Names 等）が自動補完されること', () => {
+    const result = parseTableauXml(dummyXml)
+    const columns = result.datasources[0].fields.map((f) => f.column)
+    expect(columns).toContain('Measure Names')
+    expect(columns).toContain('Measure Values')
+    expect(columns).toContain('Latitude (generated)')
+    expect(columns).toContain('Longitude (generated)')
+    expect(columns).toContain('Multiple Values')
+  })
+
+  it('3セグメントの棚参照から幻の依存関係（名前空間）が生成されないこと', () => {
+    const threeSegXml = `
+    <workbook>
+      <worksheets>
+        <worksheet name="TS Sheet">
+          <table>
+            <rows>[federated.abc123].[__tableau_internal_object_id__].[cnt:Foo.csv_ABC:qk]</rows>
+            <cols>[federated.abc123].[sum:Sales:qk]</cols>
+          </table>
+        </worksheet>
+      </worksheets>
+    </workbook>`
+    const result = parseTableauXml(threeSegXml)
+    const deps = result.worksheets[0].dependencies
+    expect(deps).not.toContain('__tableau_internal_object_id__')
+    // 最終セグメント（実在するテーブルオブジェクト列）は解決される
+    expect(deps).toContain('Foo.csv_ABC')
+    expect(deps).toContain('Sales')
+  })
+
   it('column-instance からの依存関係が正規化されて抽出されること', () => {
     const ciXml = `
     <workbook>
@@ -158,5 +213,36 @@ describe('xmlParser - parseTableauXml', () => {
     // none:Sales:nk は Sales に正規化されるため、dependencies には Sales が含まれる
     expect(result.worksheets[0].dependencies).toContain('Sales')
     expect(result.worksheets[0].dependencies).toContain('Profit')
+  })
+})
+
+describe('xmlParser - normalizeFieldId', () => {
+  it('ピルの複製インスタンス番号（:4 等）が除去されること', () => {
+    expect(normalizeFieldId('[usr:Calculation_123:qk:4]')).toBe(
+      'Calculation_123',
+    )
+  })
+
+  it('空のロールセグメント（[:Measure Names]）が除去されること', () => {
+    expect(normalizeFieldId('[:Measure Names]')).toBe('Measure Names')
+  })
+
+  it('日付切り捨て・日付パーツのプレフィックスが除去されること', () => {
+    expect(normalizeFieldId('[tmn:Order Date:ok]')).toBe('Order Date')
+    expect(normalizeFieldId('[yr:Order Date:ok]')).toBe('Order Date')
+  })
+
+  it('セットの IN/OUT プレフィックス（io:）が除去されること', () => {
+    expect(normalizeFieldId('[io:Category セット:nk]')).toBe('Category セット')
+  })
+
+  it('テーブル計算プレフィックス（diff/pcto/ctd 等）が除去されること', () => {
+    expect(normalizeFieldId('[diff:sum:Sales:qk:2]')).toBe('Sales')
+    expect(normalizeFieldId('[pcto:sum:Female:qk]')).toBe('Female')
+    expect(normalizeFieldId('[ctd:Customer ID:qk]')).toBe('Customer ID')
+  })
+
+  it('__tableau_internal_object_id__（名前空間）は空文字になること', () => {
+    expect(normalizeFieldId('[__tableau_internal_object_id__]')).toBe('')
   })
 })

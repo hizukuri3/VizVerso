@@ -38,7 +38,7 @@ export function normalizeFieldId(name: string | undefined): string {
     '',
   )
 
-  // 4. 集計関数や型の除去
+  // 4. 集計関数や型、ピルの複製インスタンス番号の除去
   const typeIds = ['nk', 'qk', 'ok', 'ok2', 'ni', 'oi', 'ni2']
   const aggFns = [
     'sum',
@@ -48,32 +48,81 @@ export function normalizeFieldId(name: string | undefined): string {
     'count',
     'cnt',
     'cntd',
+    'ctd', // COUNTD の別表記
     'attr',
     'median',
+    'med', // MEDIAN の別表記
     'stdev',
+    'std', // STDEV の別表記
     'stdevp',
+    'stdp', // STDEVP の別表記
     'var',
     'varp',
     'collect',
+    'clct', // クラスタ分析（COLLECT）の別表記
     'running',
     'rank',
     'window',
+    'win', // WINDOW_* テーブル計算の別表記
     'pct',
+    'pcto', // 合計に対する割合（PERCENT_OF_TOTAL）
+    'pcdf', // 差の割合（PERCENT_DIFFERENCE）
+    'diff', // 差（DIFFERENCE）
+    'cum', // 累計（RUNNING_SUM 等）
+    'first',
+    'last',
+    'index',
+    'size',
+    'lookup',
+    'script',
     'total',
     'usr',
     'agg',
     'none',
     'multiple',
     'calculation',
+    'io', // セットの IN/OUT
+    // 日付パーツ（YEAR/QUARTER/MONTH/WEEK/DAY/HOUR 等）
+    'yr',
+    'qr',
+    'mn',
+    'wk',
+    'dy',
+    'hr',
+    'mi',
+    'sc',
+    'wd',
+    'md',
+    'my',
+    'qtr',
+    // 日付の切り捨て（TRUNC_YEAR/QUARTER/MONTH/WEEK/DAY/HOUR 等）
+    'tyr',
+    'tqr',
+    'tmn',
+    'twk',
+    'tdy',
+    'thr',
+    'tmi',
+    'tsc',
   ]
 
   const allParts = n.replace(/:/g, '.').split('.')
   const filteredParts = allParts.filter((p) => {
     const low = p.toLowerCase()
+    // [:Measure Names] のようにロール部分が空のケースを除去
+    if (low === '') return false
+    // ピルを複数回ドラッグした際に付与される複製インスタンス番号（例: :4）を除去
+    if (/^\d+$/.test(low)) return false
     return !aggFns.includes(low) && !typeIds.includes(low)
   })
 
-  return filteredParts.join('.')
+  const result = filteredParts.join('.')
+
+  // __tableau_internal_object_id__ は論理テーブルの名前空間であって
+  // フィールドではないため、依存関係として扱わない（呼び出し側は空文字をスキップする）
+  if (result === '__tableau_internal_object_id__') return ''
+
+  return result
 }
 
 /**
@@ -243,6 +292,51 @@ export function parseTableauXml(xmlText: string): TableauDocument {
       })
     })
 
+    // 1.3 <group> からの抽出（グループフィールド／アクション用の自動生成フィールド）
+    // <column> には現れないため、これがないとグループを参照するワークシートの
+    // 依存関係が解決できず、系統図が途切れる原因になる
+    ensureArray(ds.group).forEach((groupNode: unknown) => {
+      const group = groupNode as Record<string, unknown>
+      const groupName = normalizeFieldId(group['@_name'] as string)
+      if (!groupName) return
+      const existing = fieldMap.get(groupName)
+
+      fieldMap.set(groupName, {
+        column: groupName,
+        datasourceName: dsName,
+        parentName: existing?.parentName,
+        caption: decodeXmlString(
+          (group['@_caption'] as string) || existing?.caption,
+        ),
+        dataType: existing?.dataType,
+        role: existing?.role || 'dimension',
+        isCalc: existing?.isCalc || false,
+        formula: existing?.formula,
+      })
+    })
+
+    // 1.4 Tableau が暗黙的に提供する組み込み疑似フィールドを補完
+    // （<column> として明示定義されないことが多く、未補完だと参照元の
+    // 系統関係が解決できなくなる）
+    const builtinFields: { name: string; caption: string }[] = [
+      { name: 'Measure Names', caption: 'Measure Names' },
+      { name: 'Measure Values', caption: 'Measure Values' },
+      { name: 'Latitude (generated)', caption: 'Latitude (generated)' },
+      { name: 'Longitude (generated)', caption: 'Longitude (generated)' },
+      { name: 'Multiple Values', caption: 'Multiple Values' },
+    ]
+    builtinFields.forEach(({ name, caption }) => {
+      if (!fieldMap.has(name)) {
+        fieldMap.set(name, {
+          column: name,
+          datasourceName: dsName,
+          caption,
+          role: 'dimension',
+          isCalc: false,
+        })
+      }
+    })
+
     const fields = Array.from(fieldMap.values())
     return {
       name: dsName,
@@ -278,8 +372,12 @@ export function parseTableauXml(xmlText: string): TableauDocument {
     const parseShelfList = (raw: unknown): ShelfField[] => {
       if (!raw) return []
       const text = typeof raw === 'string' ? raw : JSON.stringify(raw)
+      // [ds].[ns].[field] のような3セグメント以上の参照も1つのフィールドとして
+      // マッチさせる（分断すると名前空間部分が幻の依存関係になる）
+      // 各繰り返しはリテラル "].[" 区切りを要求し文字クラスが ] を除外するため
+      // バックトラッキング爆発は発生しない
       // eslint-disable-next-line security/detect-unsafe-regex
-      const matches = text.match(/\[(?:[^\]]+\]\.\[)?[^\]]+\]/g) || []
+      const matches = text.match(/\[[^\]]+\](?:\.\[[^\]]+\])*/g) || []
       return matches
         .map((m) => createShelfField(m))
         .filter((f): f is ShelfField => f !== null)
