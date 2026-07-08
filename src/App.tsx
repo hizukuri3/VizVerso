@@ -22,6 +22,8 @@ import { SearchResultsList } from './components/SearchResultsList'
 import { SideDrawer } from './components/SideDrawer'
 import { LegalModal } from './components/LegalModal'
 import { PrivacyModal } from './components/PrivacyModal'
+import { TrySampleButton } from './components/TrySampleButton'
+import { LandingSections } from './components/LandingSections'
 
 type SelectionType = 'dashboard' | 'worksheet' | 'datasource'
 
@@ -414,6 +416,8 @@ export default function App() {
             </p>
             <div className="max-w-xl mx-auto">
               <DragDropZone onFileDrop={handleFileDrop} />
+              {/* サンプルで試すデモボタン（既存の解析フローに投入） */}
+              <TrySampleButton onFileDrop={handleFileDrop} onError={setError} />
             </div>
 
             <div className="mt-12 sm:mt-16 grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8 text-center">
@@ -447,6 +451,9 @@ export default function App() {
                 </div>
               ))}
             </div>
+
+            {/* ユースケース + FAQ セクション */}
+            <LandingSections />
           </div>
         </main>
       )}

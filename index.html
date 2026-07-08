@@ -1,12 +1,13 @@
 <!doctype html>
-<html lang="en">
+<html lang="ja">
 
 <head>
   <meta charset="UTF-8" />
   <link rel="icon" type="image/png" href="/favicon.png" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Tableauワークブック（.twbx）の内部構造を解析し、計算式の依存関係を可視化。Excel出力も可能なブラウザ完結型解析ツール。データは一切サーバーに送信されません。" />
-  <title>VizVerso</title>
+  <title>VizVerso | Tableau ワークブック解析ツール（.twbx / .twb）</title>
+  <link rel="canonical" href="https://viz-verso.pages.dev/" />
 
   <!-- OGP / Social Media -->
   <meta property="og:title" content="VizVerso | Tableau Workbook Analyzer" />
@@ -17,6 +18,66 @@
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:site" content="@hizukuri3" />
   <meta name="twitter:image" content="https://viz-verso.pages.dev/og-image.png" />
+
+  <!-- 構造化データ: SoftwareApplication -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "VizVerso",
+    "description": "Tableauワークブック（.twbx / .twb）の内部構造を解析し、計算フィールドの依存関係や未使用フィールドを可視化するブラウザ完結型ツール",
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "Web",
+    "url": "https://viz-verso.pages.dev/",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "JPY"
+    }
+  }
+  </script>
+
+  <!-- 構造化データ: FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "アップロードしたワークブックのデータは安全ですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "すべての解析はブラウザ内で完結し、ワークブックの内容がサーバーに送信されることはありません。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "どのファイル形式に対応していますか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": ".twbx（パッケージドワークブック）と .twb（XML）に対応しています。ファイルサイズは100MBまでです。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "利用は無料ですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "無料でご利用いただけます。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Tableau のライセンスやインストールは必要ですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "不要です。ブラウザだけで動作します。"
+        }
+      }
+    ]
+  }
+  </script>
 </head>
 
 <body>
