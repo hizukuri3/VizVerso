@@ -15,11 +15,15 @@ A twbx analysis tool for peeking into the backend of Tableau and unraveling its 
 - **計算フィールドの解析**: 複雑な計算ロジックや依存関係を詳細に表示。
 - **Excel エクスポート**: 開発者やドキュメント作成に役立つ詳細な定義一覧を Excel 形式で出力。
 - **マルチレイヤー解析**: 二重軸やマップレイヤーなど、Tableau 特有の複雑なペイン構造を解明。
+- **未使用フィールド検出**: どのシート・計算式・ダッシュボード（パラメータコントロールや動的ゾーン表示を含む）からも参照されていないフィールドを検出し、バッジ表示と Excel 出力の「使用状況」列で確認可能。
+- **計算式コピー**: フィールド詳細ドロワーからワンクリックで計算式をクリップボードにコピー。
 
 - **Structure Visualization**: Explore relationships between all entities within a workbook in your browser.
 - **Calculated Field Analysis**: View detailed calculation logic and dependencies.
 - **Excel Export**: Generate detailed definition lists in Excel format for developers and documentation.
 - **Multi-layer Analysis**: Unravel complex pane structures like dual axes and map layers.
+- **Unused Field Detection**: Detect fields not referenced by any sheet, calculation, or dashboard (including parameter controls and dynamic zone visibility), with badge indicators and a "Usage Status" column in the Excel export.
+- **Formula Copy**: Copy a calculated field's formula to the clipboard with one click from the field detail drawer.
 
 ## 技術スタック / Tech Stack
 

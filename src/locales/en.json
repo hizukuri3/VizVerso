@@ -54,6 +54,7 @@
     "marks": "Marks",
     "color": "Color",
     "size": "Size",
+    "shape": "Shape",
     "label": "Label",
     "detail": "Detail",
     "tooltip": "Tooltip",
@@ -162,7 +163,14 @@
     "col_used_field": "Used Field",
     "col_referenced_field": "Referenced Field",
     "col_id": "ID",
-    "suffix_analysis_result": "_analysis_result"
+    "suffix_analysis_result": "_analysis_result",
+    "col_usage": "Usage"
+  },
+  "usage": {
+    "unused_count": "Unused {{count}}",
+    "unused_hint": "Not used by any sheet or calculation",
+    "unused_badge": "Unused",
+    "used_label": "Used"
   },
   "search": {
     "placeholder": "Search sheets, datasources, fields...",
@@ -186,7 +194,9 @@
     "no_downstream": "No downstream dependencies",
     "no_sheets": "Not used in any sheets",
     "drill_down": "Drill Down",
-    "view_in_main": "Highlight in main view"
+    "view_in_main": "Highlight in main view",
+    "copy_formula": "Copy formula",
+    "copied": "Copied"
   },
   "legal": {
     "title": "Specified Commercial Transactions Act",

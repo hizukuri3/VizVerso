@@ -216,6 +216,92 @@ describe('xmlParser - parseTableauXml', () => {
   })
 })
 
+describe('xmlParser - マークカードのエンコーディング', () => {
+  const encXml = `
+  <workbook>
+    <worksheets>
+      <worksheet name="Enc Sheet">
+        <table>
+          <panes>
+            <pane>
+              <mark class="Shape" />
+              <encodings>
+                <text column="[federated.abc].[sum:Sales:qk]" />
+                <tooltip column="[federated.abc].[none:Region:nk]" />
+                <shape column="[federated.abc].[none:Category:nk]" />
+                <color column="[federated.abc].[none:Segment:nk]" />
+              </encodings>
+            </pane>
+          </panes>
+        </table>
+      </worksheet>
+    </worksheets>
+  </workbook>`
+
+  it('tooltip のフィールドが label バケットに混入しないこと', () => {
+    const result = parseTableauXml(encXml)
+    const marks = result.worksheets[0].shelf!.marks
+    // label には text 由来の1件のみ
+    expect(marks.encodings.label).toHaveLength(1)
+    expect(marks.encodings.label[0].name).toContain('Sales')
+    // tooltip は tooltip バケットにのみ入る
+    expect(marks.encodings.tooltip).toHaveLength(1)
+    expect(marks.encodings.tooltip[0].name).toContain('Region')
+  })
+
+  it('shape エンコーディングが抽出されること', () => {
+    const result = parseTableauXml(encXml)
+    const marks = result.worksheets[0].shelf!.marks
+    expect(marks.encodings.shape).toHaveLength(1)
+    expect(marks.encodings.shape[0].name).toContain('Category')
+  })
+})
+
+describe('xmlParser - ダッシュボードのフィールド使用', () => {
+  it('パラメータコントロールと動的ゾーン表示のフィールド参照が usedFields に抽出されること', () => {
+    const dbXml = `
+    <workbook>
+      <dashboards>
+        <dashboard name="Dashboard 1">
+          <zones>
+            <zone id="1" name="Sheet A">
+              <zone id="27" mode="list" param="[Parameters].[パラメーター 1]" type-v2="paramctrl" />
+              <zone id="28" name="Sheet B">
+                <visibility>
+                  <single-value-field-node fieldname="[federated.abc].[isShowPage1 (コピー)_123]" />
+                </visibility>
+              </zone>
+            </zone>
+          </zones>
+        </dashboard>
+      </dashboards>
+    </workbook>`
+    const result = parseTableauXml(dbXml)
+    const db = result.dashboards[0]
+    expect(db.usedFields).toContain('パラメーター 1')
+    expect(db.usedFields).toContain('isShowPage1 (コピー)_123')
+  })
+
+  it('datagraph（動的ゾーン表示）のフィールド参照が document.usedFields に抽出されること', () => {
+    const dgXml = `
+    <workbook>
+      <worksheets>
+        <worksheet name="Sheet 1"><table><rows /></table></worksheet>
+      </worksheets>
+      <datagraph>
+        <graph>
+          <nodes>
+            <single-value-field-node fieldname="[federated.abc].[isShowPage2 (コピー)_456]" node-guid="x" />
+            <dashboard-zone-visibility-node dashboard-identifier="{GUID}" node-guid="y" />
+          </nodes>
+        </graph>
+      </datagraph>
+    </workbook>`
+    const result = parseTableauXml(dgXml)
+    expect(result.usedFields).toContain('isShowPage2 (コピー)_456')
+  })
+})
+
 describe('xmlParser - normalizeFieldId', () => {
   it('ピルの複製インスタンス番号（:4 等）が除去されること', () => {
     expect(normalizeFieldId('[usr:Calculation_123:qk:4]')).toBe(

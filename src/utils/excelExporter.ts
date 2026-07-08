@@ -2,6 +2,7 @@ import * as XLSX from 'xlsx'
 import type { TableauDocument, TableauField } from '../types/tableau'
 import { t, tMark } from './i18n'
 import { normalizeFieldId } from './xmlParser'
+import { analyzeFieldUsage } from './usageAnalyzer'
 
 // ────────────────────────────────────────────
 // フィールド解決エンジン
@@ -352,6 +353,14 @@ export function exportToExcel(
       XLSX.utils.aoa_to_sheet(paramRows),
       t('excel.sheet_parameters'),
     )
+  // 未使用フィールドの判定（フィールド一覧の「使用状況」列に出力）
+  const fieldUsage = analyzeFieldUsage(doc)
+  const usageLabel = (column: string) => {
+    const usage = fieldUsage.usage.get(normalizeFieldId(column))
+    if (!usage) return ''
+    return usage.used ? t('usage.used_label') : t('usage.unused_badge')
+  }
+
   const fieldRows: (string | number)[][] = [
     [
       t('excel.col_id'),
@@ -359,6 +368,7 @@ export function exportToExcel(
       t('excel.col_fieldname'),
       t('excel.col_datatype'),
       t('excel.col_role'),
+      t('excel.col_usage'),
       t('excel.col_formula'),
     ],
   ]
@@ -369,6 +379,7 @@ export function exportToExcel(
       f.resolvedCaption,
       f.resolvedDataType || '',
       f.field.role || '',
+      usageLabel(f.field.column),
       getDisplayFormula(f.resolvedFormula, f.field, resolver),
     ])
   })
@@ -486,6 +497,7 @@ export function exportToExcel(
         })
       add(pane.encodings.color, t('detail.color'))
       add(pane.encodings.size, t('detail.size'))
+      add(pane.encodings.shape, t('detail.shape'))
       add(pane.encodings.label, t('detail.label'))
       add(pane.encodings.detail, t('detail.detail'))
       add(pane.encodings.tooltip, t('detail.tooltip'))

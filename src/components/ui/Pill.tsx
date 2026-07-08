@@ -171,6 +171,8 @@ interface PillProps {
   dataType?: string
   formula?: string
   isActive?: boolean
+  /** どのシート・計算式からも使用されていないフィールド */
+  isUnused?: boolean
   onClick?: () => void
 }
 
@@ -182,6 +184,7 @@ export function Pill({
   dataType,
   formula,
   isActive,
+  isUnused,
   onClick,
 }: PillProps) {
   const [hovered, setHovered] = useState(false)
@@ -212,6 +215,7 @@ export function Pill({
       className={`pill-container relative inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold shadow-sm text-white transition-all z-0 
         ${onClick ? 'cursor-pointer hover:brightness-110 active:scale-95' : 'cursor-default'}
         ${isActive ? 'ring-4 ring-offset-2 ring-yellow-400 scale-105 shadow-xl animate-pulse brightness-110' : ''}
+        ${isUnused ? 'opacity-50 saturate-50' : ''}
       `}
       style={{ backgroundColor: isContinuous ? '#10b981' : '#0284c7' }}
     >
@@ -263,6 +267,15 @@ export function Pill({
       <span className="truncate max-w-[180px] leading-tight">
         {caption || name}
       </span>
+      {isUnused && (
+        <span
+          title={t('usage.unused_hint')}
+          data-testid="unused-badge"
+          className="shrink-0 inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-amber-400 text-amber-900 text-[9px] font-black leading-none"
+        >
+          !
+        </span>
+      )}
 
       {hovered && anchorRect && (
         <PortalTooltip
