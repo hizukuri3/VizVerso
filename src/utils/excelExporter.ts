@@ -513,6 +513,12 @@ export function buildExcelWorkbook(doc: TableauDocument): ExcelJS.Workbook {
       t('excel.col_height'),
     ],
   ]
+  // zone 座標は twbx 上 0-100000 の正規化値。ダッシュボードの実サイズ (px) が
+  // 分かる場合は実ピクセルへ換算する（例: w=100000 → dashboard 幅 1300px）。
+  // サイズ不明時は正規化値のまま出力する。
+  const NORM = 100000
+  const toPx = (v: number, size?: number) =>
+    size ? Math.round((v / NORM) * size) : v
   doc.dashboards.forEach((db) => {
     ;(db.zones || []).forEach((z) => {
       let markType = ''
@@ -537,10 +543,10 @@ export function buildExcelWorkbook(doc: TableauDocument): ExcelJS.Workbook {
         objectName,
         markType,
         content,
-        z.x,
-        z.y,
-        z.w,
-        z.h,
+        toPx(z.x, db.width),
+        toPx(z.y, db.height),
+        toPx(z.w, db.width),
+        toPx(z.h, db.height),
       ])
     })
   })

@@ -250,7 +250,7 @@
       "desc_field_dependencies": "Other fields referenced by calculated fields (dependencies).",
       "desc_worksheet": "(Sheets named after each worksheet) Mark type and encoding (color/size/label...) details.",
       "tip_id": "The \"ID\" column is shared across all sheets. Match the same ID across sheets to trace how a field is used.",
-      "tip_coords": "Coordinates X / Y / Width / Height are Tableau normalized values (whole dashboard = 100000 × 100000). e.g. X=50000 means 50% from the left edge.",
+      "tip_coords": "Coordinates X / Y / Width / Height are pixel values scaled to the dashboard's actual size (origin at top-left). e.g. a 1300×800 dashboard spans Width=1300, Height=800. If the dashboard has no fixed size, values fall back to Tableau normalized units (whole dashboard = 100000 × 100000).",
       "tip_filter": "The header row is frozen and filterable. Use the ▼ on each header to sort and filter.",
       "legend_unused": "Unused field (not referenced by any sheet or calculation)",
       "legend_measure": "Measure (numeric) / In use",

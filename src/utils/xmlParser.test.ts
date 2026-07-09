@@ -123,6 +123,29 @@ describe('xmlParser - parseTableauXml', () => {
     expect(image?.param).toBe('Image/Logo.png')
   })
 
+  it('<size> からダッシュボードの実サイズ(px)を取得すること（maxwidth/height 優先）', () => {
+    const sizedXml = `
+    <workbook>
+      <dashboards>
+        <dashboard name="Fixed Dash">
+          <size maxheight='800' maxwidth='1300' minheight='800' minwidth='1300' sizing-mode='fixed' />
+          <zones>
+            <zone h='100000' id='1' name='Sheet' w='100000' x='0' y='0' />
+          </zones>
+        </dashboard>
+      </dashboards>
+    </workbook>`
+    const result = parseTableauXml(sizedXml)
+    expect(result.dashboards[0].width).toBe(1300)
+    expect(result.dashboards[0].height).toBe(800)
+  })
+
+  it('<size> が無いダッシュボードは width/height を undefined にすること', () => {
+    const result = parseTableauXml(dummyXml)
+    expect(result.dashboards[0].width).toBeUndefined()
+    expect(result.dashboards[0].height).toBeUndefined()
+  })
+
   it('座標を持たない純レイアウトコンテナは zone レイアウトに含めず、子ゾーンだけ拾うこと', () => {
     const nestedXml = `
     <workbook>
