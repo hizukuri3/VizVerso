@@ -61,11 +61,36 @@ export interface TableauWorksheet {
   localFields?: TableauField[] // ワークシート固有のフィールド（計算フィールド等）
 }
 
+/**
+ * ダッシュボード上に配置された 1 オブジェクト（zone）のレイアウト情報。
+ * x/y/w/h は Tableau の正規化座標（ダッシュボード全体 = 100000 × 100000）。
+ */
+export interface DashboardZone {
+  id?: string
+  name?: string // worksheet zone の場合、参照するワークシート名
+  kind:
+    | 'worksheet'
+    | 'text'
+    | 'paramctrl'
+    | 'image'
+    | 'legend'
+    | 'filter'
+    | 'other'
+  rawType?: string // 元の type 属性（フォールバック/デバッグ用）
+  x: number
+  y: number
+  w: number
+  h: number
+  title?: string // 表示ラベル（text/paramctrl の run テキスト、なければ name）
+  param?: string // paramctrl / image の param 属性
+}
+
 export interface TableauDashboard {
   name: string
   caption?: string
   worksheets: string[] // 配置されているワークシート名のリスト
   usedFields?: string[] // パラメータコントロールや動的ゾーン表示が参照するフィールド
+  zones?: DashboardZone[] // レイアウトマップ描画用の配置情報
 }
 
 export interface TableauDocument {

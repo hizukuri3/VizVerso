@@ -12,6 +12,7 @@ import {
   Check,
 } from 'lucide-react'
 import type { TableauDocument, WorksheetPane } from '../types/tableau'
+import DashboardLayoutMap from './DashboardLayoutMap'
 import { Pill, SyntaxHighlightedFormula } from './ui/Pill'
 import { t, tMark } from '../utils/i18n'
 import { formatFormulaText } from '../utils/formulaFormatter'
@@ -19,6 +20,8 @@ import { classifyFormula, type CalcType } from '../utils/calcClassifier'
 import { useDependencyIndex } from '../hooks/useDependencyIndex'
 import { normalizeFieldId } from '../utils/xmlParser'
 import { analyzeFieldUsage } from '../utils/usageAnalyzer'
+import { getWorksheetMarkKind } from '../utils/markVisual'
+import MarkGlyph from './MarkGlyph'
 
 // ブラケット付きキャプション（[利益率] など）から表示用に括弧を除去する
 const stripBrackets = (label: string) =>
@@ -292,6 +295,21 @@ export default function DetailView({
         </section>
 
         <section>
+          <h3 className="text-sm font-bold text-slate-800 mb-2 flex items-center gap-3">
+            <Layout size={20} className="text-blue-500" />{' '}
+            {t('detail.layout_title')}
+          </h3>
+          <p className="text-xs text-slate-400 mb-6">
+            {t('detail.layout_hint')}
+          </p>
+          <DashboardLayoutMap
+            zones={db.zones ?? []}
+            doc={doc}
+            onNavigate={(type, id) => onNavigate?.(type, id)}
+          />
+        </section>
+
+        <section>
           <h3 className="text-sm font-bold text-slate-800 mb-6 flex items-center gap-3">
             <FileText size={20} className="text-emerald-500" />{' '}
             {t('detail.inner_worksheets')}
@@ -531,19 +549,26 @@ export default function DetailView({
       )
     }
 
+    const markKind = getWorksheetMarkKind(ws)
+
     return (
       <div className="flex-1 overflow-y-auto p-10 space-y-10 animate-in fade-in slide-in-from-right-4 duration-500">
         <header className="flex items-center gap-6">
+          {/* シートのマーク種別を大きく図示し、どんなチャートか一目で分かるようにする */}
           <div className="p-4 bg-emerald-100 text-emerald-600 rounded-2xl">
-            <FileText size={40} />
+            <MarkGlyph kind={markKind} size={40} />
           </div>
           <div>
             <h1 className="text-4xl font-black text-slate-800 tracking-tight">
               {ws.caption || ws.name}
             </h1>
-            <div className="flex items-center gap-3 mt-2">
+            <div className="flex flex-wrap items-center gap-3 mt-2">
               <span className="px-2 py-1 bg-slate-100 text-slate-500 text-[10px] font-bold rounded uppercase tracking-widest">
                 {t('nav.sheets')}
+              </span>
+              {/* チャート種別バッジ */}
+              <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-emerald-50 text-emerald-700 text-[11px] font-bold rounded">
+                <MarkGlyph kind={markKind} size={13} /> {tMark(markKind)}
               </span>
               <span className="text-slate-200">/</span>
               <span className="text-slate-500 text-sm flex items-center gap-1.5 font-medium">

@@ -371,7 +371,9 @@ export default function App() {
           {documentData && (
             <div className="flex items-center gap-2">
               <button
-                onClick={() => exportToExcel(documentData, uploadedFileName)}
+                onClick={() => {
+                  void exportToExcel(documentData, uploadedFileName)
+                }}
                 className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-100"
                 title={t('button.excel_export')}
               >

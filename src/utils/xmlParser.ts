@@ -7,6 +7,7 @@ import type {
   WorksheetShelf,
   WorksheetPane,
   ShelfField,
+  DashboardZone,
 } from '../types/tableau'
 
 function ensureArray<T>(obj: T | T[] | undefined | null): T[] {
@@ -179,6 +180,108 @@ function decodeXmlString(str: string | undefined): string {
     .replace(/&apos;/g, "'")
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
+}
+
+/**
+ * <formatted-text><run>...</run></formatted-text> から先頭の可読テキストを取り出す。
+ * run は文字列・オブジェクト（{'#text', '@_...'}）・配列いずれもあり得る。
+ */
+function extractZoneText(zone: Record<string, unknown>): string {
+  const ft = zone['formatted-text'] as Record<string, unknown> | undefined
+  if (!ft) return ''
+  const runs = ensureArray(ft.run)
+  for (const run of runs) {
+    if (typeof run === 'string') {
+      const t = decodeXmlString(run).trim()
+      if (t) return t
+    } else if (run && typeof run === 'object') {
+      const text = (run as Record<string, unknown>)['#text']
+      if (typeof text === 'string' || typeof text === 'number') {
+        const t = decodeXmlString(String(text)).trim()
+        if (t) return t
+      }
+    }
+  }
+  return ''
+}
+
+/**
+ * zone の type 属性と name の有無から表示種別（kind）を判定する。
+ * name があり type 属性が無い zone はワークシート参照。
+ */
+function classifyZone(
+  rawType: string | undefined,
+  hasName: boolean,
+): DashboardZone['kind'] {
+  if (!rawType) return hasName ? 'worksheet' : 'other'
+  switch (rawType) {
+    case 'worksheet':
+      return 'worksheet'
+    case 'text':
+      return 'text'
+    case 'paramctrl':
+      return 'paramctrl'
+    case 'bitmap':
+      return 'image'
+    case 'color':
+    case 'size':
+    case 'shape':
+    case 'legend':
+      return 'legend'
+    case 'filter':
+      return 'filter'
+    default:
+      return 'other'
+  }
+}
+
+/**
+ * ダッシュボードの <zones> を再帰的に走査し、座標を持つ leaf zone を
+ * DashboardZone[] として収集する。純粋なレイアウトコンテナ（子 zone を持つ
+ * 名前なしの入れ物）自体は描画対象にせず、子だけを拾う。
+ */
+function collectZoneLayout(zones: unknown, out: DashboardZone[]): void {
+  ensureArray(zones).forEach((zNode: unknown) => {
+    const z = zNode as Record<string, unknown>
+
+    // 子 zone を先に再帰（zone または zones ラッパー）
+    const childZone = z.zone
+    const childWrapper = (z.zones as Record<string, unknown>)?.zone
+    const hasChildren = childZone !== undefined || childWrapper !== undefined
+    if (childZone !== undefined) collectZoneLayout(childZone, out)
+    if (childWrapper !== undefined) collectZoneLayout(childWrapper, out)
+
+    const rawType = z['@_type'] as string | undefined
+    const name = z['@_name'] ? stripBrackets(z['@_name'] as string) : undefined
+
+    // 座標が無い、または子を持つ純コンテナ（type/name なし）は描画対象外
+    const hasCoords =
+      z['@_x'] !== undefined &&
+      z['@_y'] !== undefined &&
+      z['@_w'] !== undefined &&
+      z['@_h'] !== undefined
+    if (!hasCoords) return
+    if (hasChildren && !rawType && !name) return
+
+    const kind = classifyZone(rawType, Boolean(name))
+    const text = extractZoneText(z)
+    const param = z['@_param']
+      ? decodeXmlString(z['@_param'] as string)
+      : undefined
+
+    out.push({
+      id: z['@_id'] !== undefined ? String(z['@_id']) : undefined,
+      name,
+      kind,
+      rawType,
+      x: Number(z['@_x']),
+      y: Number(z['@_y']),
+      w: Number(z['@_w']),
+      h: Number(z['@_h']),
+      title: text || name || undefined,
+      param,
+    })
+  })
 }
 
 export function parseTableauXml(xmlText: string): TableauDocument {
@@ -573,6 +676,10 @@ export function parseTableauXml(xmlText: string): TableauDocument {
     }
     collect((db.zones as Record<string, unknown>)?.zone)
 
+    // レイアウトマップ描画用に、座標付きの zone を収集する
+    const zoneLayout: DashboardZone[] = []
+    collectZoneLayout((db.zones as Record<string, unknown>)?.zone, zoneLayout)
+
     // ダッシュボードが直接参照するフィールド（パラメータコントロール等）の収集
     const usedFieldsSet = new Set<string>()
     collectFieldRefs(db, usedFieldsSet)
@@ -581,6 +688,7 @@ export function parseTableauXml(xmlText: string): TableauDocument {
       name: stripBrackets(db['@_name'] as string),
       worksheets: Array.from(wsNames),
       usedFields: Array.from(usedFieldsSet),
+      zones: zoneLayout,
     }
   })
 
