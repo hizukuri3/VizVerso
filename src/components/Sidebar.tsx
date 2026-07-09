@@ -110,7 +110,9 @@ export default function Sidebar({
                         size={14}
                         className={`text-slate-300 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
                       />
-                      <span className="truncate font-semibold">{db.name}</span>
+                      <span className="truncate font-semibold" title={db.name}>
+                        {db.name}
+                      </span>
                     </button>
 
                     {/* Sheets within this Dashboard */}
@@ -141,7 +143,9 @@ export default function Sidebar({
                                     : 'text-slate-300'
                                 }
                               />
-                              <span className="truncate">{displayName}</span>
+                              <span className="truncate" title={displayName}>
+                                {displayName}
+                              </span>
                             </button>
                           )
                         })}
@@ -180,7 +184,10 @@ export default function Sidebar({
                         : 'text-slate-300'
                     }
                   />
-                  <span className="truncate font-semibold">
+                  <span
+                    className="truncate font-semibold"
+                    title={ws.caption || ws.name}
+                  >
                     {ws.caption || ws.name}
                   </span>
                 </button>
@@ -212,7 +219,10 @@ export default function Sidebar({
                     selectedId === ds.name ? 'text-blue-500' : 'text-slate-300'
                   }
                 />
-                <span className="truncate font-semibold">
+                <span
+                  className="truncate font-semibold"
+                  title={ds.caption || ds.name}
+                >
                   {ds.caption || ds.name}
                 </span>
               </button>

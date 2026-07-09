@@ -352,6 +352,80 @@ describe('xmlParser - ダッシュボードのフィールド使用', () => {
     expect(db.usedFields).toContain('isShowPage1 (コピー)_123')
   })
 
+  it('type-v2 のフィルター/凡例はワークシートではなく正しい種別に分類され、レイアウトコンテナは描画対象外・浮動が判定されること', () => {
+    // Tableau 実ファイルの構造: <zones> 直下の先頭がタイル配置のコンテナ、
+    // 以降の兄弟が浮動オブジェクト。フィルタ/凡例は name を持つが type-v2 で分類する。
+    const dbXml = `
+    <workbook>
+      <dashboards>
+        <dashboard name="Dashboard 1">
+          <zones>
+            <zone id="4" type-v2="layout-basic" x="0" y="0" w="100000" h="100000">
+              <zone id="32" name="Map" x="0" y="0" w="100000" h="100000" />
+            </zone>
+            <zone id="39" type-v2="text" x="1000" y="2000" w="45000" h="10000" />
+            <zone id="46" name="Map" type-v2="filter" param="[federated.abc].[Region]" x="83000" y="95000" w="15000" h="3000" />
+            <zone id="36" name="Map" type-v2="color" param="[federated.abc].[Sales]" x="44000" y="86000" w="17000" h="5000" />
+          </zones>
+        </dashboard>
+      </dashboards>
+    </workbook>`
+    const zones = parseTableauXml(dbXml).dashboards[0].zones!
+    const byId = (id: string) => zones.find((z) => z.id === id)!
+
+    // レイアウトコンテナ（id=4）自体は描画対象外
+    expect(byId('4')).toBeUndefined()
+
+    // タイル配置のワークシートは floating=false（基盤レイヤー）
+    expect(byId('32').kind).toBe('worksheet')
+    expect(byId('32').floating).toBe(false)
+
+    // フィルタ/凡例は name を持っていてもワークシートに誤分類しない
+    expect(byId('46').kind).toBe('filter')
+    expect(byId('36').kind).toBe('legend')
+
+    // コンテナ外の zone は浮動、ドキュメント順が zOrder に入る
+    expect(byId('39').floating).toBe(true)
+    expect(byId('46').floating).toBe(true)
+    expect(byId('32').zOrder).toBeLessThan(byId('46').zOrder!)
+  })
+
+  it('テキストオブジェクトの複数 run が全て連結され、Æ 改行マーカーが除去されること', () => {
+    // 実ファイルではテキストが複数 run に分割され、語間の空白は run 末尾に入る。
+    // 最初の run だけだと "The Golden" が "The" になり文言が欠ける。
+    const dbXml = `
+    <workbook>
+      <dashboards>
+        <dashboard name="Dashboard 1">
+          <zones>
+            <zone id="4" type-v2="layout-basic" x="0" y="0" w="100000" h="100000">
+              <zone id="1" name="Map" x="0" y="0" w="100000" h="100000" />
+            </zone>
+            <zone id="39" type-v2="text" x="1000" y="2000" w="45000" h="10000">
+              <formatted-text>
+                <run fontsize="10">The </run>
+                <run fontsize="10">Golden</run>
+              </formatted-text>
+            </zone>
+            <zone id="49" type-v2="text" x="1000" y="5000" w="20000" h="13000">
+              <formatted-text>
+                <run>Data:</run>
+                <run>Æ&#10;&#10;</run>
+                <run>Created by @user</run>
+              </formatted-text>
+            </zone>
+          </zones>
+        </dashboard>
+      </dashboards>
+    </workbook>`
+    const zones = parseTableauXml(dbXml).dashboards[0].zones!
+    const byId = (id: string) => zones.find((z) => z.id === id)!
+    // 全 run が語間空白を保って連結される
+    expect(byId('39').title).toBe('The Golden')
+    // Æ 改行マーカーは除去し、改行は 1 スペースにまとめる
+    expect(byId('49').title).toBe('Data: Created by @user')
+  })
+
   it('datagraph（動的ゾーン表示）のフィールド参照が document.usedFields に抽出されること', () => {
     const dgXml = `
     <workbook>

@@ -273,8 +273,11 @@ export default function DetailView({
           <div className="p-4 bg-blue-100 text-blue-600 rounded-2xl">
             <Layout size={40} />
           </div>
-          <div>
-            <h1 className="text-4xl font-black text-slate-800 tracking-tight">
+          <div className="min-w-0">
+            <h1
+              className="text-4xl font-black text-slate-800 tracking-tight truncate"
+              title={db.name}
+            >
               {db.name}
             </h1>
             <p className="text-slate-500 font-medium text-lg mt-1">
@@ -325,7 +328,10 @@ export default function DetailView({
                   onClick={() => onNavigate?.('worksheet', wsName)}
                   className="w-full text-left bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:border-blue-400 hover:shadow-md transition-all cursor-pointer group active:scale-[0.98]"
                 >
-                  <p className="font-bold text-slate-700 group-hover:text-blue-600 transition-colors">
+                  <p
+                    className="font-bold text-slate-700 group-hover:text-blue-600 transition-colors truncate"
+                    title={displayName}
+                  >
                     {displayName}
                   </p>
                   <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-wider font-bold">
@@ -558,8 +564,11 @@ export default function DetailView({
           <div className="p-4 bg-emerald-100 text-emerald-600 rounded-2xl">
             <MarkGlyph kind={markKind} size={40} />
           </div>
-          <div>
-            <h1 className="text-4xl font-black text-slate-800 tracking-tight">
+          <div className="min-w-0">
+            <h1
+              className="text-4xl font-black text-slate-800 tracking-tight truncate"
+              title={ws.caption || ws.name}
+            >
               {ws.caption || ws.name}
             </h1>
             <div className="flex flex-wrap items-center gap-3 mt-2">
@@ -752,8 +761,11 @@ export default function DetailView({
           <div className="p-4 bg-amber-100 text-amber-600 rounded-2xl">
             <Database size={40} />
           </div>
-          <div className="flex-1">
-            <h1 className="text-4xl font-black text-slate-800 tracking-tight">
+          <div className="flex-1 min-w-0">
+            <h1
+              className="text-4xl font-black text-slate-800 tracking-tight truncate"
+              title={ds.caption || ds.name}
+            >
               {ds.caption || ds.name}
             </h1>
             <p className="text-slate-500 font-medium text-lg mt-1">

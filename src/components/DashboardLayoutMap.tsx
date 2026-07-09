@@ -260,10 +260,42 @@ export default function DashboardLayoutMap({
     )
   }
 
-  // 背景（テキスト等）を先に、コンテンツを後に描画するため z 昇順で並べる
-  const ordered = [...zones].sort(
-    (a, b) => KIND_STYLE[a.kind].z - KIND_STYLE[b.kind].z,
-  )
+  // 浮動情報（Z軸の奥行き）を持つかどうか。持たない旧データは従来の
+  // 種別ベースの重ね順にフォールバックする。
+  const hasDepth = zones.some((z) => z.floating !== undefined)
+
+  // 浮動 zone をドキュメント順（zOrder 昇順）で並べ、重なりランクを付ける。
+  // ランクが大きいほど手前（Z軸で上）で、影を強めて浮き上がりを表現する。
+  const floatOrders = zones
+    .filter((z) => z.floating)
+    .map((z) => z.zOrder ?? 0)
+    .sort((a, b) => a - b)
+  const floatRankByOrder = new Map(floatOrders.map((o, i) => [o, i]))
+  const floatCount = floatOrders.length
+
+  // zone の重ね順（zIndex）。tiled は下層、floating はランク順に上へ積む。
+  const zIndexOf = (zone: DashboardZone): number => {
+    if (!hasDepth) return KIND_STYLE[zone.kind].z
+    if (zone.floating) {
+      const rank = floatRankByOrder.get(zone.zOrder ?? 0) ?? 0
+      return 30 + rank
+    }
+    // tiled（レイアウト内）は種別の背景/前景関係のみ保つ
+    return KIND_STYLE[zone.kind].z <= 10 ? 1 : 5
+  }
+
+  // 浮動オブジェクトの奥行き感を影で表現する（手前ほど強い影）。
+  const depthShadow = (zone: DashboardZone): string => {
+    if (!hasDepth || !zone.floating) return ''
+    const rank = floatRankByOrder.get(zone.zOrder ?? 0) ?? 0
+    const ratio = floatCount > 1 ? rank / (floatCount - 1) : 1
+    if (ratio >= 0.66) return 'shadow-lg ring-1 ring-black/5'
+    if (ratio >= 0.33) return 'shadow-md ring-1 ring-black/5'
+    return 'shadow-sm ring-1 ring-black/5'
+  }
+
+  // 背景（tiled・テキスト等）を先に、浮動を後に描画するため z 昇順で並べる
+  const ordered = [...zones].sort((a, b) => zIndexOf(a) - zIndexOf(b))
 
   // 描画対象に含まれる種別だけ凡例に出す
   const presentKinds = Array.from(new Set(zones.map((z) => z.kind)))
@@ -307,13 +339,16 @@ export default function DashboardLayoutMap({
               const showLabel =
                 !isBackgroundBand && zone.w >= 5200 && zone.h >= 2800
 
-              const commonClass = `absolute overflow-hidden rounded-md border ${style.box} transition-all`
+              // 浮動オブジェクトは影＋リングで「浮き上がり」を、tiled は影なしで
+              // 基盤レイヤーであることを表現する（Z軸の奥行き表現）。
+              const floatClass = zone.floating ? depthShadow(zone) : ''
+              const commonClass = `absolute overflow-hidden rounded-md border ${style.box} ${floatClass} transition-all`
               const positionStyle: React.CSSProperties = {
                 left: pct(zone.x),
                 top: pct(zone.y),
                 width: pct(zone.w),
                 height: pct(zone.h),
-                zIndex: style.z,
+                zIndex: zIndexOf(zone),
               }
 
               const inner = showLabel ? (
