@@ -56,6 +56,14 @@ export function TrySampleButton({ onFileDrop, onError }: TrySampleButtonProps) {
       <p className="text-xs text-slate-400 font-medium">
         {t('dropzone.try_sample_hint')}
       </p>
+      <a
+        href="https://www.tableau.com/data-insights/dashboard-showcase/superstore"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-[11px] text-slate-400 hover:text-slate-600 underline underline-offset-2 transition-colors"
+      >
+        {t('dropzone.try_sample_source')}
+      </a>
     </div>
   )
 }

@@ -182,32 +182,48 @@ function decodeXmlString(str: string | undefined): string {
     .replace(/&gt;/g, '>')
 }
 
-/**
- * <formatted-text><run>...</run></formatted-text> から先頭の可読テキストを取り出す。
- * run は文字列・オブジェクト（{'#text', '@_...'}）・配列いずれもあり得る。
- */
-function extractZoneText(zone: Record<string, unknown>): string {
-  const ft = zone['formatted-text'] as Record<string, unknown> | undefined
-  if (!ft) return ''
-  const runs = ensureArray(ft.run)
-  for (const run of runs) {
-    if (typeof run === 'string') {
-      const t = decodeXmlString(run).trim()
-      if (t) return t
-    } else if (run && typeof run === 'object') {
-      const text = (run as Record<string, unknown>)['#text']
-      if (typeof text === 'string' || typeof text === 'number') {
-        const t = decodeXmlString(String(text)).trim()
-        if (t) return t
-      }
-    }
+// 1つの <run> ノードから生テキストを取り出す（文字列・{'#text'} オブジェクト対応）
+function runText(run: unknown): string {
+  if (typeof run === 'string') return run
+  if (run && typeof run === 'object') {
+    const text = (run as Record<string, unknown>)['#text']
+    if (typeof text === 'string' || typeof text === 'number')
+      return String(text)
   }
   return ''
 }
 
 /**
+ * <formatted-text><run>...</run></formatted-text> から可読テキストを取り出す。
+ * テキストオブジェクトは複数の <run> に分割されるため、全 run を順に連結する
+ * （最初の run だけだと "The Golden" が "The" になる等、文言が欠ける）。
+ * run は文字列・オブジェクト（{'#text', '@_...'}）・配列いずれもあり得る。
+ */
+function extractZoneText(zone: Record<string, unknown>): string {
+  const ft = zone['formatted-text'] as Record<string, unknown> | undefined
+  if (!ft) return ''
+  const joined = ensureArray(ft.run).map(runText).join('')
+  return normalizeZoneText(decodeXmlString(joined))
+}
+
+/**
+ * 連結後のゾーンテキストを表示用に整える。
+ * - Tableau が改行の直前に挿入する内部マーカー "Æ"(U+00C6) を除去する。
+ * - 改行・連続空白を単一スペースにまとめ、1行ラベルとして読みやすくする。
+ */
+function normalizeZoneText(str: string): string {
+  return str
+    .replace(/Æ(?=\s|$)/g, '') // 改行マーカー Æ（改行/末尾の直前のみ）を除去
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+/**
  * zone の type 属性と name の有無から表示種別（kind）を判定する。
  * name があり type 属性が無い zone はワークシート参照。
+ *
+ * 注意: Tableau の新しい書式では種別は `type` ではなく `type-v2` 属性に入る。
+ * この関数には正規化済みの type 文字列を渡すこと（呼び出し側で解決）。
  */
 function classifyZone(
   rawType: string | undefined,
@@ -231,28 +247,63 @@ function classifyZone(
     case 'filter':
       return 'filter'
     default:
+      // レイアウトコンテナ（layout-basic / layout-flow）などは呼び出し側で
+      // 描画対象から除外済み。ここに来る未知種別は other 扱い。
       return 'other'
   }
 }
 
+// zone の種別文字列を取得する（新形式 type-v2 を優先し、旧 type にフォールバック）
+function zoneType(z: Record<string, unknown>): string | undefined {
+  const v2 = z['@_type-v2']
+  const v1 = z['@_type']
+  const raw = (v2 ?? v1) as string | undefined
+  return raw || undefined
+}
+
+// レイアウトコンテナ（tiled レイアウトの入れ物）かどうか。
+// これ自体は描画対象にせず、子だけを拾う（子は tiled 扱い）。
+function isLayoutContainer(rawType: string | undefined): boolean {
+  return !!rawType && rawType.startsWith('layout')
+}
+
 /**
  * ダッシュボードの <zones> を再帰的に走査し、座標を持つ leaf zone を
- * DashboardZone[] として収集する。純粋なレイアウトコンテナ（子 zone を持つ
- * 名前なしの入れ物）自体は描画対象にせず、子だけを拾う。
+ * DashboardZone[] として収集する。
+ *
+ * - レイアウトコンテナ（layout-basic / layout-flow など）自体は描画対象にせず、
+ *   子だけを拾う。コンテナ内の zone は「タイル（tiled）」扱い。
+ * - コンテナの外（<zones> 直下の非コンテナ）に置かれた zone は「浮動（floating）」
+ *   扱いとし、Z軸で tiled より手前に重ねる。
+ * - ドキュメント順を zOrder として保持し、重なり順の再現に用いる。
+ *
+ * @param insideContainer この階層の zone がレイアウトコンテナ内にあるか
+ *                        （= tiled かどうか）
  */
-function collectZoneLayout(zones: unknown, out: DashboardZone[]): void {
+function collectZoneLayout(
+  zones: unknown,
+  out: DashboardZone[],
+  insideContainer = false,
+): void {
   ensureArray(zones).forEach((zNode: unknown) => {
     const z = zNode as Record<string, unknown>
 
-    // 子 zone を先に再帰（zone または zones ラッパー）
+    const rawType = zoneType(z)
+    const container = isLayoutContainer(rawType)
+    const name = z['@_name'] ? stripBrackets(z['@_name'] as string) : undefined
+
+    // 子 zone を先に再帰（zone または zones ラッパー）。
+    // コンテナの子は tiled（insideContainer = true）として辿る。
+    const childInside = insideContainer || container
     const childZone = z.zone
     const childWrapper = (z.zones as Record<string, unknown>)?.zone
     const hasChildren = childZone !== undefined || childWrapper !== undefined
-    if (childZone !== undefined) collectZoneLayout(childZone, out)
-    if (childWrapper !== undefined) collectZoneLayout(childWrapper, out)
+    if (childZone !== undefined) collectZoneLayout(childZone, out, childInside)
+    if (childWrapper !== undefined)
+      collectZoneLayout(childWrapper, out, childInside)
 
-    const rawType = z['@_type'] as string | undefined
-    const name = z['@_name'] ? stripBrackets(z['@_name'] as string) : undefined
+    // レイアウトコンテナ自体は描画しない（子だけ拾う）
+    if (container) return
 
     // 座標が無い、または子を持つ純コンテナ（type/name なし）は描画対象外
     const hasCoords =
@@ -280,6 +331,9 @@ function collectZoneLayout(zones: unknown, out: DashboardZone[]): void {
       h: Number(z['@_h']),
       title: text || name || undefined,
       param,
+      // コンテナ外の zone は浮動。ドキュメント順を重ね順として保持する。
+      floating: !insideContainer,
+      zOrder: out.length,
     })
   })
 }
@@ -294,6 +348,9 @@ export function parseTableauXml(xmlText: string): TableauDocument {
     attributeNamePrefix: '@_',
     processEntities: false,
     ignoreDeclaration: true,
+    // テキストオブジェクトは複数 run に分割され、語間の空白が run 末尾に入る。
+    // トリムすると "The " + "Golden" が "TheGolden" と繋がってしまうため無効化。
+    trimValues: false,
   })
   const workbook = parser.parse(sanitizedXml).workbook as Record<
     string,

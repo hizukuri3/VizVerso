@@ -83,6 +83,8 @@ export interface DashboardZone {
   h: number
   title?: string // 表示ラベル（text/paramctrl の run テキスト、なければ name）
   param?: string // paramctrl / image の param 属性
+  floating?: boolean // 浮動オブジェクト（レイアウトコンテナ外に配置）かどうか
+  zOrder?: number // 重ね順（ドキュメント順。大きいほど手前＝Z軸で上）
 }
 
 export interface TableauDashboard {

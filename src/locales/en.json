@@ -141,7 +141,8 @@
     "hint": "or click to select a file (.twbx, .twb)",
     "aria_label": "Upload",
     "try_sample": "Try with a sample",
-    "try_sample_hint": "See a demo without uploading"
+    "try_sample_hint": "See a demo without uploading",
+    "try_sample_source": "Sample data source: Tableau official Superstore dashboard"
   },
   "usecases": {
     "title": "Use Cases",
@@ -165,7 +166,7 @@
     "title": "FAQ",
     "q1": {
       "q": "Is the data in my uploaded workbook safe?",
-      "a": "All analysis runs entirely in your browser, and the contents of your workbook are never sent to any server. The source code is open on GitHub."
+      "a": "All analysis runs entirely in your browser, and the contents of your workbook are never sent to any server."
     },
     "q2": {
       "q": "Which file formats are supported?",

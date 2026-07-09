@@ -99,7 +99,10 @@ function DependencyTreeItem({
             {badge.label}
           </span>
         )}
-        <span className="text-sm font-bold text-slate-700 truncate">
+        <span
+          className="text-sm font-bold text-slate-700 truncate"
+          title={label}
+        >
           {label}
         </span>
         {node.isCircular && (
@@ -293,7 +296,10 @@ export function SideDrawer({
                     : t('detail.standard_fields')}
                 </span>
                 {fieldInfo?.parentCaption && (
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate min-w-0">
+                  <span
+                    className="text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate min-w-0"
+                    title={fieldInfo.parentCaption}
+                  >
                     {fieldInfo.parentCaption}
                   </span>
                 )}

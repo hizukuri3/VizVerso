@@ -101,7 +101,10 @@ export function SearchResultsList({
 
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
-                <span className="font-bold text-slate-700 truncate">
+                <span
+                  className="font-bold text-slate-700 truncate min-w-0"
+                  title={res.caption || res.name}
+                >
                   {res.caption || res.name}
                 </span>
                 {getReasonBadge(res)}
