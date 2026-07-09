@@ -5,7 +5,11 @@ import { buildExcelWorkbook } from './excelExporter'
 import { extractTwbFromTwbx } from './twbxParser'
 import { parseTableauXml } from './xmlParser'
 import { t } from './i18n'
-import type { TableauDocument, TableauDashboard } from '../types/tableau'
+import type {
+  TableauDocument,
+  TableauDashboard,
+  TableauField,
+} from '../types/tableau'
 
 // zone 座標(0-100000 正規化値)を実ピクセルに換算して出力することを検証する。
 function makeDoc(dashboard: Partial<TableauDashboard>): TableauDocument {
