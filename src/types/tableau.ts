@@ -93,6 +93,8 @@ export interface TableauDashboard {
   worksheets: string[] // 配置されているワークシート名のリスト
   usedFields?: string[] // パラメータコントロールや動的ゾーン表示が参照するフィールド
   zones?: DashboardZone[] // レイアウトマップ描画用の配置情報
+  width?: number // ダッシュボード実サイズ (px)。<size> の maxwidth。zone 座標の px 換算に使用
+  height?: number // ダッシュボード実サイズ (px)。<size> の maxheight
 }
 
 export interface TableauDocument {

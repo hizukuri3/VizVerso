@@ -741,11 +741,29 @@ export function parseTableauXml(xmlText: string): TableauDocument {
     const usedFieldsSet = new Set<string>()
     collectFieldRefs(db, usedFieldsSet)
 
+    // ダッシュボードの実サイズ (px)。zone 座標は 0-100000 の正規化値なので、
+    // これを使って実ピクセルへ換算する（Excel 出力）。maxwidth/height を優先。
+    const size = db.size as Record<string, unknown> | undefined
+    const sizePx = (...keys: string[]): number | undefined => {
+      for (const k of keys) {
+        const v = size?.[k]
+        if (v !== undefined && v !== null && v !== '') {
+          const n = Number(v)
+          if (Number.isFinite(n) && n > 0) return n
+        }
+      }
+      return undefined
+    }
+    const width = sizePx('@_maxwidth', '@_minwidth')
+    const height = sizePx('@_maxheight', '@_minheight')
+
     return {
       name: stripBrackets(db['@_name'] as string),
       worksheets: Array.from(wsNames),
       usedFields: Array.from(usedFieldsSet),
       zones: zoneLayout,
+      width,
+      height,
     }
   })
 
