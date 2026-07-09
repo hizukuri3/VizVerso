@@ -1,6 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { t } from '../../utils/i18n'
+import { classifyFormula, type CalcType } from '../../utils/calcClassifier'
+
+// 計算種別 → i18n キーの対応
+const CALC_TYPE_KEY: Record<
+  CalcType,
+  'calctype.lod' | 'calctype.table_calc' | 'calctype.regular'
+> = {
+  lod: 'calctype.lod',
+  tableCalc: 'calctype.table_calc',
+  regular: 'calctype.regular',
+}
 
 // ────────────────────────────
 // 計算式のシンタックスハイライト
@@ -88,6 +99,10 @@ interface PortalTooltipProps {
   title: string
   formula?: string
   physicalName: string
+  isCalc?: boolean
+  isContinuous?: boolean
+  dataType?: string
+  isUnused?: boolean
 }
 
 function PortalTooltip({
@@ -95,6 +110,10 @@ function PortalTooltip({
   title,
   formula,
   physicalName,
+  isCalc,
+  isContinuous,
+  dataType,
+  isUnused,
 }: PortalTooltipProps) {
   const tooltipRef = useRef<HTMLDivElement>(null)
   const [position, setPosition] = useState({ top: 0, left: 0, isBelow: false })
@@ -147,6 +166,32 @@ function PortalTooltip({
         <p className="text-[10px] font-bold text-slate-400 mb-2 border-b border-slate-100 pb-1 uppercase tracking-wider">
           {title}
         </p>
+
+        {/* メタ情報（型・連続/不連続・計算種別） */}
+        <div className="flex flex-wrap items-center gap-1.5 mb-2 text-[10px]">
+          <span
+            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded font-semibold text-white"
+            style={{ backgroundColor: isContinuous ? '#10b981' : '#0284c7' }}
+          >
+            {isContinuous ? t('detail.continuous') : t('detail.discrete')}
+          </span>
+          {dataType && (
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-semibold uppercase tracking-wide">
+              {dataType}
+            </span>
+          )}
+          {isCalc && formula && (
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-purple-50 text-purple-600 font-semibold">
+              {t(CALC_TYPE_KEY[classifyFormula(formula) ?? 'regular'])}
+            </span>
+          )}
+          {isUnused && (
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-semibold">
+              {t('usage.unused_badge')}
+            </span>
+          )}
+        </div>
+
         {formula ? (
           <SyntaxHighlightedFormula formula={formula} />
         ) : (
@@ -283,6 +328,10 @@ export function Pill({
           title={caption || name}
           formula={formula}
           physicalName={name}
+          isCalc={isCalc}
+          isContinuous={isContinuous}
+          dataType={dataType}
+          isUnused={isUnused}
         />
       )}
     </div>

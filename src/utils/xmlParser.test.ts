@@ -80,6 +80,76 @@ describe('xmlParser - parseTableauXml', () => {
     expect(result.dashboards[0].worksheets).toContain('Sheet In Nest')
   })
 
+  it('ダッシュボードの zone レイアウト（座標・種別・ラベル）を抽出できること', () => {
+    const layoutXml = `
+    <workbook>
+      <worksheets>
+        <worksheet name="Sales Map" />
+      </worksheets>
+      <dashboards>
+        <dashboard name="Layout Dash">
+          <zones>
+            <zone h='6510' id='1' type='text' w='100000' x='0' y='0'>
+              <formatted-text>
+                <run fontsize='15'>Dashboard Title</run>
+              </formatted-text>
+            </zone>
+            <zone h='19531' id='11' name='Sales Map' w='20020' x='0' y='22786' />
+            <zone custom-title='true' h='6510' id='14' mode='compact' param='[Parameters].[Region]' type='paramctrl' w='17090' x='41504' y='9766'>
+              <formatted-text>
+                <run fontsize='10'>SELECT REGION</run>
+              </formatted-text>
+            </zone>
+            <zone h='4557' id='17' param='Image/Logo.png' type='bitmap' w='5762' x='93750' y='94401' />
+          </zones>
+        </dashboard>
+      </dashboards>
+    </workbook>`
+    const result = parseTableauXml(layoutXml)
+    const zones = result.dashboards[0].zones
+    expect(zones).toHaveLength(4)
+
+    const ws = zones?.find((z) => z.kind === 'worksheet')
+    expect(ws?.name).toBe('Sales Map')
+    expect(ws).toMatchObject({ x: 0, y: 22786, w: 20020, h: 19531 })
+
+    const text = zones?.find((z) => z.kind === 'text')
+    expect(text?.title).toBe('Dashboard Title')
+
+    const param = zones?.find((z) => z.kind === 'paramctrl')
+    expect(param?.title).toBe('SELECT REGION')
+
+    const image = zones?.find((z) => z.kind === 'image')
+    expect(image?.param).toBe('Image/Logo.png')
+  })
+
+  it('座標を持たない純レイアウトコンテナは zone レイアウトに含めず、子ゾーンだけ拾うこと', () => {
+    const nestedXml = `
+    <workbook>
+      <worksheets>
+        <worksheet name="Inner Sheet" />
+      </worksheets>
+      <dashboards>
+        <dashboard name="Nested Layout">
+          <zones>
+            <zone type="layout-basic">
+              <zones>
+                <zone h='50000' id='9' name='Inner Sheet' w='50000' x='0' y='0' />
+              </zones>
+            </zone>
+          </zones>
+        </dashboard>
+      </dashboards>
+    </workbook>`
+    const result = parseTableauXml(nestedXml)
+    const zones = result.dashboards[0].zones
+    expect(zones).toHaveLength(1)
+    expect(zones?.[0]).toMatchObject({
+      kind: 'worksheet',
+      name: 'Inner Sheet',
+    })
+  })
+
   it('空のワークブックをパースしてもクラッシュせず空のデータを返すこと', () => {
     const emptyXml = `<workbook></workbook>`
     const result = parseTableauXml(emptyXml)
