@@ -2,7 +2,13 @@
  * @vitest-environment jsdom
  */
 import { useState } from 'react'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  within,
+} from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { SideDrawer } from './SideDrawer'
 import type { TableauDocument } from '../types/tableau'
@@ -173,14 +179,18 @@ describe('SideDrawer - パラメータ設定の表示', () => {
         onNavigateField={() => {}}
       />,
     )
-    expect(screen.getByText('パラメータ設定')).toBeInTheDocument()
-    expect(screen.getByText('最小値')).toBeInTheDocument()
-    expect(screen.getByText('最大値')).toBeInTheDocument()
-    expect(screen.getByText('ステップ')).toBeInTheDocument()
-    expect(screen.getByText('0')).toBeInTheDocument()
-    expect(screen.getByText('10')).toBeInTheDocument()
+    // 影響分析タイルの件数（0 等）と衝突しないよう、パラメータ設定セクション内に限定して検証
+    const paramSection = screen
+      .getByText('パラメータ設定')
+      .closest('section') as HTMLElement
+    expect(paramSection).toBeInTheDocument()
+    expect(within(paramSection).getByText('最小値')).toBeInTheDocument()
+    expect(within(paramSection).getByText('最大値')).toBeInTheDocument()
+    expect(within(paramSection).getByText('ステップ')).toBeInTheDocument()
+    expect(within(paramSection).getByText('0')).toBeInTheDocument()
+    expect(within(paramSection).getByText('10')).toBeInTheDocument()
     // 現在の値 5
-    expect(screen.getByText('5')).toBeInTheDocument()
+    expect(within(paramSection).getByText('5')).toBeInTheDocument()
   })
 })
 

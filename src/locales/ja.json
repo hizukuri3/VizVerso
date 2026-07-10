@@ -293,7 +293,14 @@
     "copied": "コピーしました",
     "dependency_tree": "依存ツリー",
     "circular_ref": "循環参照",
-    "tree_depth_note": "最大{{depth}}階層まで表示"
+    "tree_depth_note": "最大{{depth}}階層まで表示",
+    "impact_title": "影響分析",
+    "impact_hint": "この項目を変更・削除した場合に影響が及ぶ範囲",
+    "impact_fields": "計算フィールド",
+    "impact_sheets": "シート",
+    "impact_dashboards": "ダッシュボード",
+    "impact_none": "この項目を参照している要素はありません",
+    "view_graph": "依存グラフを表示"
   },
   "legal": {
     "title": "特定商取引法に基づく表記",
@@ -350,5 +357,24 @@
   "view": {
     "pills": "ピル表示",
     "list": "リスト表示"
+  },
+  "graph": {
+    "title": "依存グラフ",
+    "fields": "フィールド",
+    "upstream": "参照元",
+    "root": "中心",
+    "downstream": "影響先",
+    "sheets": "シート",
+    "dashboards": "ダッシュボード",
+    "hint": "ノードをクリックすると、そのオブジェクトを中心に再描画します",
+    "open_detail": "詳細を開く",
+    "truncated": "ノード数が多いため一部を省略しています",
+    "parameter": "パラメータ",
+    "group_label": "{{count}} 件のフィールド",
+    "group_expand": "クリックで展開",
+    "group_more": "他 {{count}} 件",
+    "expand_node": "この先を表示",
+    "collapse_node": "折りたたむ",
+    "close": "閉じる"
   }
 }

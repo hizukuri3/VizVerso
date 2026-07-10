@@ -292,7 +292,14 @@
     "copied": "Copied",
     "dependency_tree": "Dependency Tree",
     "circular_ref": "Circular reference",
-    "tree_depth_note": "Showing up to {{depth}} levels"
+    "tree_depth_note": "Showing up to {{depth}} levels",
+    "impact_title": "Impact Analysis",
+    "impact_hint": "What is affected if this field is changed or removed",
+    "impact_fields": "Calculations",
+    "impact_sheets": "Sheets",
+    "impact_dashboards": "Dashboards",
+    "impact_none": "Nothing references this field",
+    "view_graph": "View Dependency Graph"
   },
   "legal": {
     "title": "Specified Commercial Transactions Act",
@@ -349,5 +356,24 @@
   "view": {
     "pills": "Pills",
     "list": "List"
+  },
+  "graph": {
+    "title": "Dependency Graph",
+    "fields": "Fields",
+    "upstream": "Upstream",
+    "root": "Center",
+    "downstream": "Impacted",
+    "sheets": "Sheets",
+    "dashboards": "Dashboards",
+    "hint": "Click any node to re-center the graph on it",
+    "open_detail": "Open details",
+    "truncated": "Some nodes are omitted due to graph size",
+    "parameter": "Parameter",
+    "group_label": "{{count}} fields",
+    "group_expand": "Click to expand",
+    "group_more": "+{{count}} more",
+    "expand_node": "Show more",
+    "collapse_node": "Collapse",
+    "close": "Close"
   }
 }

@@ -1,15 +1,48 @@
 import React, { useState, useEffect } from 'react'
-import { Layout, FileText, ChevronRight, Database } from 'lucide-react'
+import {
+  Layout,
+  FileText,
+  ChevronRight,
+  Database,
+  GitBranch,
+} from 'lucide-react'
 import { t } from '../utils/i18n'
 import type { TableauDocument } from '../types/tableau'
+import type { GraphRootRef } from '../utils/impactAnalyzer'
 
 interface SidebarProps {
   doc: TableauDocument
   fileName?: string
   selectedId: string | null
   onSelect: (type: 'dashboard' | 'worksheet' | 'datasource', id: string) => void
+  /** 項目の依存グラフを開く（ホバーで表示されるアイコンから） */
+  onOpenGraph?: (ref: GraphRootRef) => void
   onOpenLegal?: () => void
   onOpenPrivacy?: () => void
+}
+
+/** サイドバー項目のホバーで表示される依存グラフ起動ボタン */
+function GraphIconButton({
+  graphRef,
+  onOpenGraph,
+}: {
+  graphRef: GraphRootRef
+  onOpenGraph?: (ref: GraphRootRef) => void
+}) {
+  if (!onOpenGraph) return null
+  return (
+    <button
+      onClick={(e) => {
+        e.stopPropagation()
+        onOpenGraph(graphRef)
+      }}
+      title={t('graph.title')}
+      data-testid={`sidebar-graph-${graphRef.kind}-${graphRef.name}`}
+      className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1.5 rounded-lg border border-transparent text-slate-300 transition-all group-hover:bg-white group-hover:border-slate-200 group-hover:text-indigo-500 group-hover:shadow-sm hover:ring-2 hover:ring-indigo-200 hover:text-indigo-600 active:scale-95"
+    >
+      <GitBranch size={13} />
+    </button>
+  )
 }
 
 export default function Sidebar({
@@ -17,6 +50,7 @@ export default function Sidebar({
   fileName,
   selectedId,
   onSelect,
+  onOpenGraph,
   onOpenLegal,
   onOpenPrivacy,
 }: SidebarProps) {
@@ -98,22 +132,31 @@ export default function Sidebar({
 
                 return (
                   <div key={db.name}>
-                    <button
-                      onClick={(e) => toggleDashboard(e, db.name)}
-                      className={`w-full text-left px-3 py-2 rounded-xl text-sm transition-all duration-200 flex items-center gap-2 group ${
-                        isActive
-                          ? 'sidebar-item-active shadow-sm'
-                          : 'hover:bg-slate-50 text-slate-600'
-                      }`}
-                    >
-                      <ChevronRight
-                        size={14}
-                        className={`text-slate-300 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                    <div className="relative group">
+                      <button
+                        onClick={(e) => toggleDashboard(e, db.name)}
+                        className={`w-full text-left px-3 py-2 pr-9 rounded-xl text-sm transition-all duration-200 flex items-center gap-2 ${
+                          isActive
+                            ? 'sidebar-item-active shadow-sm'
+                            : 'hover:bg-slate-50 text-slate-600'
+                        }`}
+                      >
+                        <ChevronRight
+                          size={14}
+                          className={`text-slate-300 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                        />
+                        <span
+                          className="truncate font-semibold"
+                          title={db.name}
+                        >
+                          {db.name}
+                        </span>
+                      </button>
+                      <GraphIconButton
+                        graphRef={{ kind: 'dashboard', name: db.name }}
+                        onOpenGraph={onOpenGraph}
                       />
-                      <span className="truncate font-semibold" title={db.name}>
-                        {db.name}
-                      </span>
-                    </button>
+                    </div>
 
                     {/* Sheets within this Dashboard */}
                     {isExpanded && (
@@ -124,29 +167,34 @@ export default function Sidebar({
                           )
                           const displayName = wsObj?.caption || wsName
                           return (
-                            <button
-                              key={wsName}
-                              onClick={(e) =>
-                                handleItemClick(e, 'worksheet', wsName)
-                              }
-                              className={`w-full text-left px-3 py-1.5 rounded-lg text-xs transition-colors flex items-center gap-2 ${
-                                selectedId === wsName
-                                  ? 'bg-blue-50 text-blue-700 font-bold'
-                                  : 'text-slate-500 hover:bg-slate-50 hover:text-blue-600'
-                              }`}
-                            >
-                              <FileText
-                                size={12}
-                                className={
-                                  selectedId === wsName
-                                    ? 'text-blue-500'
-                                    : 'text-slate-300'
+                            <div key={wsName} className="relative group">
+                              <button
+                                onClick={(e) =>
+                                  handleItemClick(e, 'worksheet', wsName)
                                 }
+                                className={`w-full text-left px-3 py-1.5 pr-9 rounded-lg text-xs transition-colors flex items-center gap-2 ${
+                                  selectedId === wsName
+                                    ? 'bg-blue-50 text-blue-700 font-bold'
+                                    : 'text-slate-500 hover:bg-slate-50 hover:text-blue-600'
+                                }`}
+                              >
+                                <FileText
+                                  size={12}
+                                  className={
+                                    selectedId === wsName
+                                      ? 'text-blue-500'
+                                      : 'text-slate-300'
+                                  }
+                                />
+                                <span className="truncate" title={displayName}>
+                                  {displayName}
+                                </span>
+                              </button>
+                              <GraphIconButton
+                                graphRef={{ kind: 'sheet', name: wsName }}
+                                onOpenGraph={onOpenGraph}
                               />
-                              <span className="truncate" title={displayName}>
-                                {displayName}
-                              </span>
-                            </button>
+                            </div>
                           )
                         })}
                       </div>
@@ -167,30 +215,35 @@ export default function Sidebar({
             </h3>
             <div className="space-y-1">
               {floatingSheets.map((ws) => (
-                <button
-                  key={ws.name}
-                  onClick={(e) => handleItemClick(e, 'worksheet', ws.name)}
-                  className={`w-full text-left px-3 py-2 rounded-xl text-sm transition-all duration-200 flex items-center gap-2 group ${
-                    selectedId === ws.name
-                      ? 'sidebar-item-active shadow-sm'
-                      : 'hover:bg-slate-50 text-slate-600'
-                  }`}
-                >
-                  <FileText
-                    size={14}
-                    className={
+                <div key={ws.name} className="relative group">
+                  <button
+                    onClick={(e) => handleItemClick(e, 'worksheet', ws.name)}
+                    className={`w-full text-left px-3 py-2 pr-9 rounded-xl text-sm transition-all duration-200 flex items-center gap-2 ${
                       selectedId === ws.name
-                        ? 'text-blue-500'
-                        : 'text-slate-300'
-                    }
-                  />
-                  <span
-                    className="truncate font-semibold"
-                    title={ws.caption || ws.name}
+                        ? 'sidebar-item-active shadow-sm'
+                        : 'hover:bg-slate-50 text-slate-600'
+                    }`}
                   >
-                    {ws.caption || ws.name}
-                  </span>
-                </button>
+                    <FileText
+                      size={14}
+                      className={
+                        selectedId === ws.name
+                          ? 'text-blue-500'
+                          : 'text-slate-300'
+                      }
+                    />
+                    <span
+                      className="truncate font-semibold"
+                      title={ws.caption || ws.name}
+                    >
+                      {ws.caption || ws.name}
+                    </span>
+                  </button>
+                  <GraphIconButton
+                    graphRef={{ kind: 'sheet', name: ws.name }}
+                    onOpenGraph={onOpenGraph}
+                  />
+                </div>
               ))}
             </div>
           </div>

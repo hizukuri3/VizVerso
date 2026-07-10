@@ -28,7 +28,7 @@ const FIELD_REF_RE = /\[[^\]]+\](?:\.\[[^\]]+\])*/g
  * useDependencyIndex と同じくデータソースを優先し、
  * ワークシートのローカルフィールドは未登録の場合のみ補完する。
  */
-function buildFieldMap(doc: TableauDocument): Map<string, TableauField> {
+export function buildFieldMap(doc: TableauDocument): Map<string, TableauField> {
   const map = new Map<string, TableauField>()
   doc.datasources.forEach((ds) => {
     ds.fields.forEach((f) => {
@@ -49,7 +49,7 @@ function buildFieldMap(doc: TableauDocument): Map<string, TableauField> {
  * 計算式から参照フィールドID（正規化済み）を重複なく抽出する。
  * 自己参照は除外する（呼び出し側で循環として扱われるため）。
  */
-function extractRefs(formula: string, selfId: string): string[] {
+export function extractFieldRefs(formula: string, selfId: string): string[] {
   const matches = formula.match(FIELD_REF_RE) || []
   const seen = new Set<string>()
   const refs: string[] = []
@@ -107,7 +107,7 @@ export function buildUpstreamTree(
 
     const nextAncestors = new Set(ancestors)
     nextAncestors.add(fieldId)
-    const refs = extractRefs(field!.formula!, fieldId)
+    const refs = extractFieldRefs(field!.formula!, fieldId)
     node.children = refs.map((ref) => build(ref, nextAncestors, depth + 1))
     return node
   }
