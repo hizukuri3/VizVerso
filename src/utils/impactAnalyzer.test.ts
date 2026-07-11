@@ -380,6 +380,38 @@ const twoSigDoc: TableauDocument = {
   ],
 }
 
+describe('buildImpactGraph (1件グループの抑止)', () => {
+  it('メンバー1件のシグネチャは group にせず個別表示のまま残すこと', () => {
+    // Main が F0..F7（シグネチャ=Main）、Sub が Z（シグネチャ=Sub）を使う。
+    // 層 -2 は9フィールドで、あふれ2件（label 昇順の末尾 F7 と Z）は
+    // それぞれ別シグネチャの1件ずつ → どちらも group 化されず個別に残るべき
+    const names = Array.from({ length: 8 }, (_, i) => `F${i}`)
+    const doc1: TableauDocument = {
+      datasources: [
+        {
+          name: 'ds1',
+          fields: [...names, 'Z'].map((name) => ({
+            column: name,
+            isCalc: false,
+            dataType: 'real',
+          })),
+        },
+      ],
+      worksheets: [
+        { name: 'Main', dependencies: names.map((n) => `[${n}]`) },
+        { name: 'Sub', dependencies: ['[Z]'] },
+      ],
+      dashboards: [{ name: 'DB', worksheets: ['Main', 'Sub'], usedFields: [] }],
+    }
+    const graph = buildImpactGraph(doc1, { kind: 'dashboard', name: 'DB' })!
+    const groups = graph.nodes.filter((n) => n.kind === 'group')
+    expect(groups.length).toBe(0)
+    // あふれ対象だった F7 / Z も個別フィールドノードとして表示される
+    expect(graph.nodes.some((n) => n.id === 'f:F7')).toBe(true)
+    expect(graph.nodes.some((n) => n.id === 'f:Z')).toBe(true)
+  })
+})
+
 describe('buildImpactGraph (接続シグネチャによる複数グループ化)', () => {
   it('(a) 互いに素なシートごとに別 group ができ、エッジが自分のシートにだけ向くこと', () => {
     const graph = buildImpactGraph(twoSigDoc, {

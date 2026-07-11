@@ -212,6 +212,8 @@ const GROUP_LAYER_THRESHOLD = 8
 const GROUP_INDIVIDUAL_SLOTS = 7
 /** 独立 group にするシグネチャの最大数（超過分は rest にまとめる） */
 const GROUP_MAX_SIGNATURES = 3
+/** group を作る最小メンバー数。1件では畳む意味がない（節約ゼロで1クリック増えるだけ） */
+const GROUP_MIN_MEMBERS = 2
 
 /** 依存グラフのルート参照。name はフィールド名またはシート/ダッシュボード名 */
 export interface GraphRootRef {
@@ -759,16 +761,20 @@ function aggregateLayers(
       return a[0].localeCompare(b[0])
     })
 
-    // 上位 3 シグネチャは独立 group、4 番目以降は rest に集約
+    // 上位 3 シグネチャは独立 group、4 番目以降は rest に集約。
+    // メンバー数が GROUP_MIN_MEMBERS 未満のものは group にせず個別表示のまま残す
+    // （idx はスキップしても採番を維持し、他 group の id 安定性を保つ）
     const restMembers: ImpactGraphNode[] = []
     sigOrder.forEach(([, members], idx) => {
       if (idx < GROUP_MAX_SIGNATURES) {
-        groupDefs.push({ id: `g:${column}:${idx}`, column, members })
+        if (members.length >= GROUP_MIN_MEMBERS) {
+          groupDefs.push({ id: `g:${column}:${idx}`, column, members })
+        }
       } else {
         restMembers.push(...members)
       }
     })
-    if (restMembers.length > 0) {
+    if (restMembers.length >= GROUP_MIN_MEMBERS) {
       groupDefs.push({ id: `g:${column}:rest`, column, members: restMembers })
     }
   })
