@@ -78,6 +78,7 @@ type ImpactFlowNode = Node<
   {
     graphNode: ImpactGraphNode
     onToggleExpand: (nodeId: string) => void
+    onRecenter: (gn: ImpactGraphNode) => void
   },
   'impactCard'
 >
@@ -172,23 +173,24 @@ function ImpactCardNode({ data }: NodeProps<ImpactFlowNode>) {
   const { card, icon, Icon } = nodeAppearance(gn)
   const badge = gn.isCalc ? calcTypeBadge(gn.calcType) : null
   const label = stripBracket(gn.label)
-  const clickable = !gn.isRoot && !gn.isUnresolved
-  // その場展開ボタン: field/sheet の非ルートで、隠れた外側隣接があるか展開済みのとき表示
+  // クリック = 開く/閉じる。開ける先も展開もないノードはクリック不能表示
   // （group ノードは早期 return 済みなので gn.kind は field/sheet/dashboard）
-  const showExpand =
+  const expandable =
     !gn.isRoot &&
     gn.kind !== 'dashboard' &&
     ((gn.expandableCount ?? 0) > 0 || gn.isExpanded)
+  // ◎（中心に表示）はルート以外の解決済みノードすべてに出す
+  const showRecenter = !gn.isRoot && !gn.isUnresolved
 
   return (
     <div
       style={{ width: NODE_WIDTH, height: NODE_HEIGHT }}
-      className={`relative flex items-center gap-2 px-3 py-2.5 rounded-xl border shadow-sm transition-all ${card} ${
-        clickable ? 'cursor-pointer hover:shadow-md' : 'cursor-default'
+      className={`group/card relative flex items-center gap-2 px-3 py-2.5 rounded-xl border shadow-sm transition-all ${card} ${
+        expandable ? 'cursor-pointer hover:shadow-md' : 'cursor-default'
       } ${gn.isUnresolved ? 'opacity-50' : ''}`}
       title={label}
     >
-      {showExpand && (
+      {expandable && (
         <button
           data-testid={`node-expand-${gn.id}`}
           onClick={(e) => {
@@ -202,6 +204,19 @@ function ImpactCardNode({ data }: NodeProps<ImpactFlowNode>) {
           style={{ [gn.column < 0 ? 'left' : 'right']: -12 }}
         >
           {gn.isExpanded ? '−' : `+${gn.expandableCount}`}
+        </button>
+      )}
+      {showRecenter && (
+        <button
+          data-testid={`node-center-${gn.id}`}
+          onClick={(e) => {
+            e.stopPropagation()
+            data.onRecenter(gn)
+          }}
+          title={t('graph.recenter')}
+          className="absolute -top-2 -right-2 z-10 w-5 h-5 rounded-full bg-white border border-slate-300 shadow-sm text-slate-400 hover:text-blue-600 hover:border-blue-400 opacity-0 group-hover/card:opacity-100 focus-visible:opacity-100 transition-all flex items-center justify-center"
+        >
+          <Crosshair size={11} />
         </button>
       )}
       <Handle
@@ -483,6 +498,16 @@ function ImpactGraphModalInner({
     setExpandedNodes(new Set())
   }, [])
 
+  // ノード上の ◎ ボタン: このオブジェクトを中心にグラフを再構成する
+  const handleRecenterNode = useCallback(
+    (gn: ImpactGraphNode) => {
+      setHover(null)
+      const ref = nodeToRootRef(gn)
+      if (ref) recenter(ref)
+    },
+    [recenter],
+  )
+
   const { flowNodes, flowEdges } = useMemo(() => {
     if (!graph) return { flowNodes: [], flowEdges: [] }
     const positions = layoutNodes(graph.nodes, graph.edges)
@@ -492,7 +517,11 @@ function ImpactGraphModalInner({
       id: gn.id,
       type: 'impactCard',
       position: positions.get(gn.id) || { x: 0, y: 0 },
-      data: { graphNode: gn, onToggleExpand: toggleNodeExpand },
+      data: {
+        graphNode: gn,
+        onToggleExpand: toggleNodeExpand,
+        onRecenter: handleRecenterNode,
+      },
       width: NODE_WIDTH,
       height: NODE_HEIGHT,
       draggable: true,
@@ -516,7 +545,7 @@ function ImpactGraphModalInner({
       }
     })
     return { flowNodes, flowEdges }
-  }, [graph, toggleNodeExpand])
+  }, [graph, toggleNodeExpand, handleRecenterNode])
 
   const { setNodes, setEdges, fitView, setCenter, getNodes } = useReactFlow()
   const containerRef = useRef<HTMLDivElement>(null)
@@ -612,21 +641,24 @@ function ImpactGraphModalInner({
     }
   }, [root, flowNodes, flowEdges, setNodes, setEdges, getNodes, focusCamera])
 
-  // どのノードをクリックしても、そのオブジェクトを中心に再描画する
+  // クリック = その場で開く/閉じる（探索の基本操作）。
+  // 中心の切り替えはノード上の ◎ ボタン（onRecenter）だけが行う。
   const handleNodeClick = useCallback(
     (_e: React.MouseEvent, node: Node) => {
       setHover(null)
       const gn = (node.data as { graphNode: ImpactGraphNode }).graphNode
-      // 集約ノードは再センタリングせず、その層を展開する（モーフィング effect が発火）
+      // 集約ノードはその層を展開する（モーフィング effect が発火）
       if (gn.kind === 'group') {
         setExpandedGroups((prev) => new Set(prev).add(node.id))
         return
       }
       if (gn.isRoot || gn.isUnresolved) return
-      const ref = nodeToRootRef(gn)
-      if (ref) recenter(ref)
+      // 開ける先がある、または展開済みならトグル。何もなければ何もしない
+      if ((gn.expandableCount ?? 0) > 0 || gn.isExpanded) {
+        toggleNodeExpand(gn.id)
+      }
     },
-    [recenter],
+    [toggleNodeExpand],
   )
 
   // Escape で閉じる
