@@ -100,3 +100,14 @@ body {
 
 /* Buy Me a Coffee widget visibility control */
 /* 吹き出しなしのスクリプトを使用しているため、特別な非表示制御は不要になりました */
+
+/* 依存グラフ: 中心切り替え時にノードの移動をアニメーションさせる */
+.impact-modal .react-flow__node {
+  transition:
+    transform 500ms cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 300ms ease;
+}
+/* ドラッグ中はトランジションを切って追従遅延を防ぐ */
+.impact-modal .react-flow__node.dragging {
+  transition: none;
+}

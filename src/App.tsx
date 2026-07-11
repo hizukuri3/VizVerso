@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import DragDropZone from './components/DragDropZone'
 import Sidebar from './components/Sidebar'
 import DetailView from './components/DetailView'
 import Breadcrumbs from './components/Breadcrumbs'
 import { parseWorkbookAsync } from './utils/workerManager'
 import type { TableauDocument } from './types/tableau'
+import type { GraphRootRef } from './utils/impactAnalyzer'
 import {
   FileUp,
   Search,
@@ -14,6 +15,13 @@ import {
   X,
   Menu,
 } from 'lucide-react'
+
+// React Flow を含む依存グラフモーダルは重いので遅延ロードする
+const ImpactGraphModal = lazy(() =>
+  import('./components/ImpactGraphModal').then((m) => ({
+    default: m.ImpactGraphModal,
+  })),
+)
 import { exportToExcel } from './utils/excelExporter'
 import { AboutModal } from './components/AboutModal'
 import { t, setLanguage, getLanguage, type Language } from './utils/i18n'
@@ -123,6 +131,24 @@ export default function App() {
   // ── サイドドロワーの状態 ──
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [targetFieldName, setTargetFieldName] = useState<string | null>(null)
+
+  // ── 依存グラフモーダルの状態（任意のオブジェクトを中心にできる） ──
+  const [graphRoot, setGraphRoot] = useState<GraphRootRef | null>(null)
+
+  // グラフの「詳細を開く」: 該当オブジェクトのビューへ遷移してグラフを閉じる
+  const handleOpenObjectFromGraph = (ref: GraphRootRef) => {
+    setGraphRoot(null)
+    if (ref.kind === 'sheet') {
+      handleSelect('worksheet', ref.name)
+      setIsDrawerOpen(false)
+    } else if (ref.kind === 'dashboard') {
+      handleSelect('dashboard', ref.name)
+      setIsDrawerOpen(false)
+    } else {
+      handleNavigateFieldInDrawer(ref.name)
+      setIsDrawerOpen(true)
+    }
+  }
 
   // URL パラメータの監視
   useEffect(() => {
@@ -236,9 +262,10 @@ export default function App() {
         const isPill = target.closest('.pill-container')
         const isDrawer = target.closest('.side-drawer')
         const isBackdrop = target.closest('.drawer-backdrop')
+        const isImpactModal = target.closest('.impact-modal')
 
         // Pillの外、ドロワーの外、バックドロップの外をクリックした場合は解除
-        if (!isPill && !isDrawer && !isBackdrop) {
+        if (!isPill && !isDrawer && !isBackdrop && !isImpactModal) {
           setIsDrawerOpen(false)
           setTargetFieldName(null)
           // URLパラメータを更新
@@ -517,6 +544,7 @@ export default function App() {
                 doc={documentData}
                 fileName={uploadedFileName}
                 selectedId={selectedId}
+                onOpenGraph={setGraphRoot}
                 onOpenLegal={() => setIsLegalOpen(true)}
                 onOpenPrivacy={() => setIsPrivacyOpen(true)}
                 onSelect={(type, id) => {
@@ -593,7 +621,22 @@ export default function App() {
             handleSelect('worksheet', sheetName)
             setIsDrawerOpen(false)
           }}
+          onOpenGraph={(fieldName) =>
+            setGraphRoot({ kind: 'field', name: fieldName })
+          }
         />
+      )}
+
+      {/* 依存グラフモーダル（任意のオブジェクトを中心にインタラクティブ探索） */}
+      {documentData && graphRoot && (
+        <Suspense fallback={null}>
+          <ImpactGraphModal
+            doc={documentData}
+            root={graphRoot}
+            onClose={() => setGraphRoot(null)}
+            onOpenObject={handleOpenObjectFromGraph}
+          />
+        </Suspense>
       )}
 
       {/* フッター */}

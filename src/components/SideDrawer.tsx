@@ -1,5 +1,13 @@
 import { useEffect, useRef, useMemo, useState } from 'react'
-import { X, ArrowLeft, Hash, ChevronRight, Copy, Check } from 'lucide-react'
+import {
+  X,
+  ArrowLeft,
+  Hash,
+  ChevronRight,
+  Copy,
+  Check,
+  GitBranch,
+} from 'lucide-react'
 import { t } from '../utils/i18n'
 import type { TableauDocument } from '../types/tableau'
 import type { CalcType } from '../utils/calcClassifier'
@@ -7,6 +15,7 @@ import { FormulaHighlighter } from './FormulaHighlighter'
 import { useDependencyIndex } from '../hooks/useDependencyIndex'
 import { normalizeFieldId } from '../utils/xmlParser'
 import { analyzeFieldUsage } from '../utils/usageAnalyzer'
+import { analyzeImpact } from '../utils/impactAnalyzer'
 import {
   buildUpstreamTree,
   type DependencyTreeNode,
@@ -141,6 +150,8 @@ interface SideDrawerProps {
   searchQuery?: string
   onNavigateField: (fieldName: string) => void
   onNavigateToSheet?: (sheetName: string) => void
+  /** 依存グラフを開く（モーダルは App が所有する） */
+  onOpenGraph?: (fieldName: string) => void
 }
 
 export function SideDrawer({
@@ -151,6 +162,7 @@ export function SideDrawer({
   searchQuery,
   onNavigateField,
   onNavigateToSheet,
+  onOpenGraph,
 }: SideDrawerProps) {
   const index = useDependencyIndex(doc)
   const drawerRef = useRef<HTMLDivElement>(null)
@@ -200,6 +212,20 @@ export function SideDrawer({
     () => buildUpstreamTree(doc, targetFieldName || '', TREE_MAX_DEPTH),
     [doc, targetFieldName],
   )
+
+  // 影響分析（下流の計算フィールド・シート・ダッシュボードの推移的な波及範囲）
+  const impact = useMemo(
+    () => analyzeImpact(doc, targetFieldName || ''),
+    [doc, targetFieldName],
+  )
+
+  // 依存グラフを開けるか（波及先か上流依存のどちらかが存在する場合）
+  const graphAvailable =
+    !!impact &&
+    (impact.downstreamFields.length > 0 ||
+      impact.affectedSheets.length > 0 ||
+      impact.affectedDashboards.length > 0 ||
+      (dependencyTree?.children.length ?? 0) > 0)
 
   // このフィールドを使用しているシート
   const sheetNames = useMemo(() => {
@@ -329,12 +355,23 @@ export function SideDrawer({
               </h2>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-red-50 hover:text-red-500 rounded-xl transition-all text-slate-400 shrink-0"
-          >
-            <X size={24} />
-          </button>
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              onClick={() => targetFieldName && onOpenGraph?.(targetFieldName)}
+              disabled={!graphAvailable}
+              data-testid="drawer-graph-button"
+              title={t('drawer.view_graph')}
+              className="p-2 hover:bg-slate-100 hover:text-slate-600 rounded-xl transition-all text-slate-400 disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              <GitBranch size={20} />
+            </button>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-red-50 hover:text-red-500 rounded-xl transition-all text-slate-400"
+            >
+              <X size={24} />
+            </button>
+          </div>
         </header>
 
         <div className="flex-1 overflow-y-auto p-8 space-y-10">
@@ -447,6 +484,64 @@ export function SideDrawer({
                     </div>
                   </div>
                 )}
+              </div>
+            </section>
+          )}
+
+          {/* 影響分析: 下流波及のサマリと依存グラフ起動 */}
+          {impact && (
+            <section className="space-y-4">
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                <span className="w-1.5 h-4 bg-rose-500 rounded-full" />
+                {t('drawer.impact_title')}
+                <span className="ml-auto normal-case tracking-normal text-[10px] font-medium text-slate-300">
+                  {t('drawer.impact_hint')}
+                </span>
+              </h3>
+              <div className="bg-slate-50/50 border border-slate-100 rounded-2xl p-4 space-y-3">
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    {
+                      count: impact.downstreamFields.length,
+                      label: t('drawer.impact_fields'),
+                      className: 'bg-emerald-50 text-emerald-700',
+                    },
+                    {
+                      count: impact.affectedSheets.length,
+                      label: t('drawer.impact_sheets'),
+                      className: 'bg-blue-50 text-blue-700',
+                    },
+                    {
+                      count: impact.affectedDashboards.length,
+                      label: t('drawer.impact_dashboards'),
+                      className: 'bg-rose-50 text-rose-700',
+                    },
+                  ].map((s) => (
+                    <div
+                      key={s.label}
+                      className={`rounded-xl p-3 text-center ${s.className}`}
+                    >
+                      <p className="text-xl font-black leading-none">
+                        {s.count}
+                      </p>
+                      <p className="text-[9px] font-bold uppercase tracking-wider mt-1 opacity-70">
+                        {s.label}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  data-testid="view-impact-graph-button"
+                  onClick={() =>
+                    targetFieldName && onOpenGraph?.(targetFieldName)
+                  }
+                  disabled={!graphAvailable}
+                  className="w-full flex items-center justify-center gap-2 py-3 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-200 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold transition-all active:scale-[0.98] shadow-md shadow-slate-200"
+                >
+                  <GitBranch size={14} />
+                  {t('drawer.view_graph')}
+                </button>
               </div>
             </section>
           )}
