@@ -23,6 +23,7 @@ import {
   ArrowLeft,
   ArrowUpRight,
   Layers,
+  SlidersHorizontal,
 } from 'lucide-react'
 import { t } from '../utils/i18n'
 import type { TableauDocument } from '../types/tableau'
@@ -117,6 +118,14 @@ function nodeAppearance(gn: ImpactGraphNode): {
       card: 'bg-white border-rose-200 hover:border-rose-400',
       icon: 'bg-rose-50 text-rose-600',
       Icon: LayoutDashboard,
+    }
+  }
+  // パラメータは上部レーンに置かれる入力値。淡い紫地で計算フィールドと区別する
+  if (gn.isParameter) {
+    return {
+      card: 'bg-violet-50 border-violet-300 hover:border-violet-500',
+      icon: 'bg-violet-100 text-violet-700',
+      Icon: SlidersHorizontal,
     }
   }
   if (gn.column < 0) {
@@ -237,7 +246,7 @@ function ImpactCardNode({ data }: NodeProps<ImpactFlowNode>) {
           <span
             className={`inline-block mt-0.5 text-[8px] font-bold uppercase tracking-widest px-1 py-px rounded ${
               gn.isParameter
-                ? 'bg-violet-50 text-violet-600 border border-violet-200'
+                ? 'bg-white/70 text-violet-700 border border-violet-300'
                 : badge!.className
             }`}
           >
@@ -271,23 +280,33 @@ const FAN_MAX_ROWS = 16
 const SUB_COL_PITCH = NODE_WIDTH + 48
 /** 層と層の間の余白（エッジ描画用） */
 const LAYER_GAP = 140
+/** 扇形の上端からパラメータレーンまでの余白 */
+const PARAM_LANE_GAP = 128
 
 /**
  * column（依存の深さ）ごとに配置する「扇形」レイヤードレイアウト。
  * - X軸 = 依存の深さ、というエンコーディングは維持する
  * - ルート側のサブ列を内側（細く）、外側ほど太く（行数を増やす）扇状に広げる
- * - 各サブ列内はセンターラインから交互に外へ充填し、常に水平中心に集める
- * - ルート層から外側へ、隣接ノードの平均 y（バリセンタ）で並べ替えて交差を減らす
- * - group ノードは各層の最も外側のサブ列に寄せる
+ * - 層内はバリセンタ（隣接の平均 y）順を y に単調対応させ、エッジの交差を減らす
+ * - サブ列は「同心バンド」割当: バリセンタ順の中央付近を内側サブ列、
+ *   上下の端を外側サブ列へ置き、エッジが放射状に広がる扇形を保つ
+ * - ルート層から外側への掃引後、両隣接層を使って並べ替えを反復し交差をさらに減らす
+ * - group ノードは各層の最も外側のバンド（サブ列）に寄せる
+ * - パラメータ（ルート以外）は扇形に混ぜず、扇形上端の専用レーンに列ごとに積む
  */
 function layoutNodes(
   graphNodes: ImpactGraphNode[],
   edges: { source: string; target: string }[],
 ): Map<string, { x: number; y: number }> {
   const byColumn = new Map<number, ImpactGraphNode[]>()
+  const paramsByColumn = new Map<number, ImpactGraphNode[]>()
   graphNodes.forEach((n) => {
-    if (!byColumn.has(n.column)) byColumn.set(n.column, [])
-    byColumn.get(n.column)!.push(n)
+    const bucket =
+      n.kind === 'field' && n.isParameter && !n.isRoot
+        ? paramsByColumn
+        : byColumn
+    if (!bucket.has(n.column)) bucket.set(n.column, [])
+    bucket.get(n.column)!.push(n)
   })
 
   // 隣接リスト（無向）
@@ -299,7 +318,7 @@ function layoutNodes(
     neighbors.get(e.target)!.push(e.source)
   })
 
-  // パス1: ルートに近い層から順に並べ替え、層内グリッドの位置（y とローカル x）を確定
+  // ルートに近い層から順に処理する（バリセンタの種になる y が先に決まる）
   const processOrder = Array.from(byColumn.keys()).sort(
     (a, b) => Math.abs(a) - Math.abs(b) || b - a,
   )
@@ -307,10 +326,16 @@ function layoutNodes(
   const yOf = new Map<string, number>()
   const layerWidth = new Map<number, number>()
 
-  processOrder.forEach((col) => {
+  // サブ列ごとの行数上限: ルート側 FAN_BASE_ROWS 行から外へ +FAN_STEP_ROWS 行ずつ、
+  // FAN_MAX_ROWS で頭打ち（仕様C）
+  const capOf = (subCol: number) =>
+    Math.min(FAN_BASE_ROWS + FAN_STEP_ROWS * subCol, FAN_MAX_ROWS)
+
+  /** 1層分の並べ替えと配置。yOf を更新するので反復呼び出しで精緻化できる */
+  const placeLayer = (col: number) => {
     const list = byColumn.get(col)!
     // 非 group ノードのみバリセンタ（隣接の平均 y）で並べ替える。
-    // group は既存順のまま非 group の後ろへ回し、必ず外側のサブ列へ落とす（仕様D）。
+    // group は既存順のまま非 group の後ろへ回し、必ず外側のバンドへ落とす（仕様D）。
     const nonGroup = list.filter((n) => n.kind !== 'group')
     const groups = list.filter((n) => n.kind === 'group')
     if (yOf.size > 0) {
@@ -327,63 +352,103 @@ function layoutNodes(
       nonGroup.sort((a, b) => score.get(a.id)! - score.get(b.id)!)
     }
     const ordered = [...nonGroup, ...groups]
+    const count = ordered.length
 
-    // 扇形の充填: ルート側のサブ列0から順に、サブ列ごとの行数上限まで詰める。
-    // 上限はルート側 FAN_BASE_ROWS 行から外へ +FAN_STEP_ROWS 行ずつ、FAN_MAX_ROWS で頭打ち（仕様C）。
-    const capOf = (subCol: number) =>
-      Math.min(FAN_BASE_ROWS + FAN_STEP_ROWS * subCol, FAN_MAX_ROWS)
-    const placed: {
-      n: ImpactGraphNode
-      subCol: number
-      idxInSub: number
-    }[] = []
-    let subCol = 0
-    let idxInSub = 0
-    ordered.forEach((n) => {
-      // 現サブ列が上限に達したら次の（より外側の）サブ列へ折り返す
-      if (idxInSub >= capOf(subCol)) {
-        subCol += 1
-        idxInSub = 0
-      }
-      placed.push({ n, subCol, idxInSub })
-      idxInSub += 1
-    })
-    // subCol は単調増加なので、ループ終了時の値 +1 が使用サブ列数
-    const subColCount = subCol + 1
-    layerWidth.set(col, (subColCount - 1) * SUB_COL_PITCH + NODE_WIDTH)
+    // バンド（サブ列）ごとの収容数を内側から確定する
+    const bandSizes: number[] = []
+    let remaining = count
+    while (remaining > 0) {
+      const c = Math.min(capOf(bandSizes.length), remaining)
+      bandSizes.push(c)
+      remaining -= c
+    }
+    const bandCount = bandSizes.length
+    layerWidth.set(col, (bandCount - 1) * SUB_COL_PITCH + NODE_WIDTH)
 
-    placed.forEach(({ n, subCol: sc, idxInSub: j }) => {
-      // 垂直: サブ列内はセンターライン(y=0)から交互に外へ充填する（中央→上→下…）。
-      // j=0:0, j=1:-1, j=2:+1, j=3:-2, j=4:+2 ... （単位は ROW_GAP）
-      const step = Math.ceil(j / 2)
-      const centerY = (j % 2 === 1 ? -step : step) * ROW_GAP
-      // ブリック配置: 奇数サブ列を半行下げ、水平エッジがノードの隙間を通るようにする
-      const y = centerY + (sc % 2 === 1 ? ROW_GAP / 2 : 0)
-      // サブ列の向き: ルート側(サブ列0)を層の内側に置く。
-      // 上流層(col<0)はサブ列0を層の右端に置き外へ向かって左へ、
-      // 下流層(col>0)は左端に置き右へ伸ばす（鏡像）。
-      const lx =
-        col < 0 ? (subColCount - 1 - sc) * SUB_COL_PITCH : sc * SUB_COL_PITCH
-      local.set(n.id, { col, lx, y })
-      yOf.set(n.id, y)
+    // 同心バンド割当: バンド 0..s のノードがバリセンタ順位の中央の連続ブロックを
+    // 占めるように広げていく。バンド s の担当はブロックの差分（上端と下端の2セグメント）。
+    // これでバリセンタ極端なノードほど外側サブ列に置かれ、y はバンド内で単調になる。
+    let cumulative = 0
+    let prevStart = Math.floor(count / 2)
+    let prevEnd = prevStart
+    bandSizes.forEach((size, band) => {
+      cumulative += size
+      const start = Math.floor((count - cumulative) / 2)
+      const end = start + cumulative
+      const ranks: number[] = []
+      for (let r = start; r < prevStart; r++) ranks.push(r)
+      for (let r = prevEnd; r < end; r++) ranks.push(r)
+      ranks.forEach((r, k) => {
+        // eslint-disable-next-line security/detect-object-injection
+        const n = ordered[r]
+        // 垂直: バンド内はバリセンタ順に上から下へ単調に並べ、センターラインに揃える。
+        // ブリック配置: 奇数バンドを半行下げ、水平エッジがノードの隙間を通るようにする
+        const y =
+          (k - (size - 1) / 2) * ROW_GAP + (band % 2 === 1 ? ROW_GAP / 2 : 0)
+        // サブ列の向き: ルート側(バンド0)を層の内側に置く。
+        // 上流層(col<0)はバンド0を層の右端に置き外へ向かって左へ、
+        // 下流層(col>0)は左端に置き右へ伸ばす（鏡像）。
+        const lx =
+          col < 0
+            ? (bandCount - 1 - band) * SUB_COL_PITCH
+            : band * SUB_COL_PITCH
+        local.set(n.id, { col, lx, y })
+        yOf.set(n.id, y)
+      })
+      prevStart = start
+      prevEnd = end
     })
-  })
+  }
+
+  // パス1: ルート層から外側へ初期配置（内側の y をバリセンタの種にする）
+  processOrder.forEach(placeLayer)
+  // パス2: 全ノードの y が出揃った状態で両隣接層を考慮して並べ替えを反復し、交差を減らす
+  for (let sweep = 0; sweep < 2; sweep++) {
+    processOrder.forEach(placeLayer)
+  }
 
   // パス2: 層の幅を考慮して左から順に x を割り当てる。
   // ルート層の左端を x=0 に固定（アンカー）する。左側の層が展開/折りたたみで
   // 増減しても既存ノードの座標が変わらず、画面中央が流れない。
-  const ascending = Array.from(byColumn.keys()).sort((a, b) => a - b)
+  // パラメータしか居ない列にも x を割り当てる（幅はノード1枚分）
+  const allColumns = new Set([...byColumn.keys(), ...paramsByColumn.keys()])
+  const ascending = Array.from(allColumns).sort((a, b) => a - b)
   const layerX = new Map<number, number>()
   let cursor = 0
   ascending.forEach((col) => {
     layerX.set(col, cursor)
-    cursor += layerWidth.get(col)! + LAYER_GAP
+    cursor += (layerWidth.get(col) ?? NODE_WIDTH) + LAYER_GAP
   })
   const rootAnchor = layerX.get(0) ?? 0
 
   const pos = new Map<string, { x: number; y: number }>()
   local.forEach((v, id) => {
     pos.set(id, { x: layerX.get(v.col)! + v.lx - rootAnchor, y: v.y })
+  })
+
+  // パラメータレーン: 扇形全体の上端からさらに PARAM_LANE_GAP 離した専用領域。
+  // x = 依存の深さ（列）は維持したまま、列ごとに下詰みで積み上げる
+  let fanTop = 0
+  local.forEach((v) => {
+    fanTop = Math.min(fanTop, v.y)
+  })
+  const barycenter = (n: ImpactGraphNode): number => {
+    const ys = (neighbors.get(n.id) || [])
+      .map((id) => yOf.get(id))
+      .filter((y): y is number => y !== undefined)
+    return ys.length > 0 ? ys.reduce((a, b) => a + b, 0) / ys.length : 0
+  }
+  paramsByColumn.forEach((list, col) => {
+    const sorted = [...list].sort(
+      (a, b) => barycenter(a) - barycenter(b) || a.label.localeCompare(b.label),
+    )
+    const lx = ((layerWidth.get(col) ?? NODE_WIDTH) - NODE_WIDTH) / 2
+    sorted.forEach((n, i) => {
+      pos.set(n.id, {
+        x: layerX.get(col)! + lx - rootAnchor,
+        y: fanTop - PARAM_LANE_GAP - (sorted.length - 1 - i) * ROW_GAP,
+      })
+    })
   })
   return pos
 }
@@ -713,6 +778,7 @@ function ImpactGraphModalInner({
   const rootLabel = stripBracket(rootNode?.label || root.name)
 
   const legend = [
+    { color: 'bg-violet-400', label: t('graph.parameter') },
     { color: 'bg-purple-400', label: t('graph.upstream') },
     { color: 'bg-slate-900', label: t('graph.root') },
     { color: 'bg-emerald-400', label: t('graph.downstream') },
@@ -728,15 +794,19 @@ function ImpactGraphModalInner({
         ? Sheet
         : gn.kind === 'dashboard'
           ? LayoutDashboard
-          : Hash
+          : gn.isParameter
+            ? SlidersHorizontal
+            : Hash
     const iconColor =
       gn.kind === 'sheet'
         ? 'text-blue-500'
         : gn.kind === 'dashboard'
           ? 'text-rose-500'
-          : gn.column < 0
-            ? 'text-purple-500'
-            : 'text-emerald-500'
+          : gn.isParameter
+            ? 'text-violet-500'
+            : gn.column < 0
+              ? 'text-purple-500'
+              : 'text-emerald-500'
     return (
       <button
         key={gn.id}
@@ -884,6 +954,7 @@ function ImpactGraphModalInner({
                   if (gn.isRoot) return '#0f172a'
                   if (gn.kind === 'sheet') return '#93c5fd'
                   if (gn.kind === 'dashboard') return '#fda4af'
+                  if (gn.isParameter) return '#a78bfa'
                   return gn.column < 0 ? '#d8b4fe' : '#6ee7b7'
                 }}
                 style={{ borderRadius: '12px' }}

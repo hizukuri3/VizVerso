@@ -511,8 +511,32 @@ export function buildImpactGraph(
     })
   }
 
+  /**
+   * 表示中のフィールドノード同士の依存参照をエッジとして補完する。
+   * sheet / dashboard ルートは「フィールド → 実体」の星形エッジしか張らないため、
+   * 棚上の計算フィールドが同じく表示中のフィールドを参照していてもエッジが無い。
+   * 集約前に張ることで、group に畳まれたメンバーへの参照も group 宛てに付替えられる。
+   */
+  const connectVisibleFieldEdges = (): void => {
+    nodes.forEach((n) => {
+      if (n.kind !== 'field' || !n.fieldId) return
+      const field = fieldMap.get(n.fieldId)
+      if (!field?.formula) return
+      for (const ref of extractFieldRefs(field.formula, n.fieldId)) {
+        const key = fieldNodeId(ref)
+        if (nodes.has(key)) addEdge(key, n.id)
+      }
+    })
+  }
+
   const result = () => {
     applyExpansions()
+    // 再層化は BFS が張った依存エッジのみを対象にする。
+    // connectVisibleFieldEdges は sheet/dashboard ルートで棚上フィールド同士の
+    // 同一列エッジを意図的に張る（集約で密度を処理する）設計なので、その前に走らせて
+    // 意図的な同一列エッジを押し出さないようにする。
+    enforceLayering(nodes, edges)
+    connectVisibleFieldEdges()
     aggregateLayers(nodes, edges, expandedGroups)
     computeExpandableCounts()
     return {
@@ -677,6 +701,66 @@ export function buildImpactGraph(
   return result()
 }
 
+/**
+ * 列割当の再層化（最長路ベース）。
+ * BFS は「最初に到達した深さ」で column を確定するため、別経路で先に
+ * 浅い列へ置かれたノードが自分の参照先と同列（またはより右）になることがある
+ * （例: パラメータが深さの異なる複数の計算式から参照される場合）。
+ * エッジは常に 参照元 → 参照先（左 → 右）なので、違反エッジを
+ * - 上流側: source を target の1つ左へ押し出す
+ * - 下流側: target を source の1つ右へ押し出す
+ * ことで解消する。ルートと、側をまたぐエッジ（循環由来）は動かさない。
+ * 下流フィールドが右へ押し出されるとシート列と重なりうるため、
+ * 最後にシート・ダッシュボード列を最深フィールド列の右へ揃え直す。
+ */
+function enforceLayering(
+  nodes: Map<string, ImpactGraphNode>,
+  edges: Map<string, ImpactGraphEdge>,
+): void {
+  // Bellman-Ford と同様、ノード数が反復回数の上限（循環時の無限ループ防止）
+  const maxPasses = nodes.size
+  for (let pass = 0; pass < maxPasses; pass++) {
+    let changed = false
+    edges.forEach((e) => {
+      const s = nodes.get(e.source)
+      const t = nodes.get(e.target)
+      if (!s || !t || s.column < t.column) return
+      if (s.column <= 0 && t.column <= 0 && !s.isRoot && s.kind === 'field') {
+        s.column = t.column - 1
+        changed = true
+      } else if (
+        s.column >= 0 &&
+        t.column >= 0 &&
+        !t.isRoot &&
+        t.kind === 'field'
+      ) {
+        t.column = s.column + 1
+        changed = true
+      }
+    })
+    if (!changed) break
+  }
+
+  // 下流側のシート層・ダッシュボード層を一枚岩のまま右へずらす
+  let maxDownField = 0
+  let hasDownSheet = false
+  let hasDownDash = false
+  nodes.forEach((n) => {
+    if (n.column <= 0) return
+    if (n.kind === 'field') maxDownField = Math.max(maxDownField, n.column)
+    else if (n.kind === 'sheet') hasDownSheet = true
+    else if (n.kind === 'dashboard') hasDownDash = true
+  })
+  if (!hasDownSheet && !hasDownDash) return
+  const sheetColumn = maxDownField + 1
+  const dashColumn = hasDownSheet ? sheetColumn + 1 : sheetColumn
+  nodes.forEach((n) => {
+    if (n.column <= 0) return
+    if (n.kind === 'sheet') n.column = sheetColumn
+    else if (n.kind === 'dashboard') n.column = dashColumn
+  })
+}
+
 /** 集約グループの定義（expandedGroups 適用前に確定する） */
 interface GroupDef {
   id: string
@@ -716,10 +800,11 @@ function aggregateLayers(
     edgeCount.set(e.target, (edgeCount.get(e.target) ?? 0) + 1)
   })
 
-  // column ごとに非ルートのフィールドノードを収集
+  // column ごとに非ルートのフィールドノードを収集。
+  // パラメータは専用レーンに描画するため集約対象に含めない
   const byColumn = new Map<number, ImpactGraphNode[]>()
   nodes.forEach((n) => {
-    if (n.kind !== 'field' || n.isRoot) return
+    if (n.kind !== 'field' || n.isRoot || n.isParameter) return
     if (!byColumn.has(n.column)) byColumn.set(n.column, [])
     byColumn.get(n.column)!.push(n)
   })
