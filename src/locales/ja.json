@@ -376,6 +376,8 @@
     "group_more": "他 {{count}} 件",
     "expand_node": "この先を表示",
     "collapse_node": "折りたたむ",
+    "relayout": "整列",
+    "relayout_hint": "レイアウトを整え直します（ノード位置がリセットされます）",
     "close": "閉じる"
   }
 }
