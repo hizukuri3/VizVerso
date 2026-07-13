@@ -309,7 +309,11 @@ export default function DashboardLayoutMap({
             zone は絶対配置なので、内側キャンバスをパディング分だけ縮めて
             端の zone が枠に接して見切れないようにする。 */}
         <div className="w-full min-w-[640px] aspect-[3/2] rounded-2xl border border-slate-200 bg-slate-100/50 overflow-hidden shadow-inner p-2.5 sm:p-4">
-          <div className="relative w-full h-full">
+          {/* isolate: zone の深度用 z-index（浮動オブジェクトで最大 40 超）を
+              このキャンバス内のスタッキング文脈に閉じ込める。これがないと
+              内部 z-index がページ全体へ漏れ、狭幅時にサイドバー（z-40）へ
+              ゾーンが被る。 */}
+          <div className="relative w-full h-full isolate">
             {ordered.map((zone, i) => {
               const style = KIND_STYLE[zone.kind]
               const isWorksheet =

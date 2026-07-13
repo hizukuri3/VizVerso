@@ -280,15 +280,23 @@ const bigDoc: TableauDocument = {
 }
 
 describe('buildImpactGraph (レイヤー内集約)', () => {
-  it('(a) 8個超の層は個別7 + group1 の計8ノードに集約されること', () => {
-    // BigSheet の生フィールドはすべて s:BigSheet にのみ接続 = 単一シグネチャ
+  it('(a) 8個超の層は個別7 + group1 に集約され、パラメータは専用レーン向けに単独で残ること', () => {
+    // BigSheet の生フィールドはすべて s:BigSheet にのみ接続 = 単一シグネチャ。
+    // パラメータ P1 は集約対象から除外され（専用レーンに描画）単独ノードで残るため、
+    // -1 列は「個別 calc/生 7 + group 1 + パラメータ 1」= 9 ノードになる
     const graph = buildImpactGraph(bigDoc, { kind: 'sheet', name: 'BigSheet' })!
     const layer = graph.nodes.filter((n) => n.column === -1)
-    expect(layer.length).toBe(8)
+    expect(layer.length).toBe(9)
     const groups = layer.filter((n) => n.kind === 'group')
     expect(groups.length).toBe(1)
     expect(groups[0].id).toBe('g:-1:0')
-    expect(layer.filter((n) => n.kind === 'field').length).toBe(7)
+    // パラメータは畳まれず単独で残る
+    const params = layer.filter((n) => n.isParameter)
+    expect(params.map((n) => n.id)).toEqual(['f:P1'])
+    // 集約後に個別表示される非パラメータのフィールドは 7 個
+    expect(
+      layer.filter((n) => n.kind === 'field' && !n.isParameter).length,
+    ).toBe(7)
   })
 
   it('(b) calc/param は個別に残り、group メンバーは生フィールドになること', () => {
@@ -542,6 +550,109 @@ describe('buildImpactGraph (4 シグネチャ以上の rest 集約)', () => {
   })
 })
 
+// 表示中フィールド間の依存エッジ補完の検証用フィクスチャ。
+// sheet ルートは field→sheet の星形エッジしか張らないため、棚上の計算フィールドが
+// 同じく棚上のフィールドを参照していてもエッジが欠落していた（group 展開後も同様）。
+// SmallSheet: 集約なし（5 フィールド）。GroupSheet: 集約あり（12 フィールド、
+// calc C0..C6 が個別枠 7 を占め、C0 の参照先 M1/M2 が group に畳まれる）。
+const visibleDepDoc: TableauDocument = {
+  datasources: [
+    {
+      name: 'ds1',
+      fields: [
+        { column: 'M', isCalc: false, dataType: 'real' },
+        { column: 'A', isCalc: true, formula: '[M] * 2' },
+        { column: 'M1', isCalc: false, dataType: 'real' },
+        { column: 'M2', isCalc: false, dataType: 'real' },
+        { column: 'Ext', isCalc: false, dataType: 'real' },
+        { column: 'C0', isCalc: true, formula: '[M1] + [M2]' },
+        ...Array.from({ length: 6 }, (_, i) => ({
+          column: `C${i + 1}`,
+          isCalc: true,
+          formula: `[Ext] + ${i + 1}`,
+        })),
+        ...Array.from({ length: 3 }, (_, i) => ({
+          column: `Raw${i}`,
+          isCalc: false,
+          dataType: 'real',
+        })),
+      ],
+    },
+  ],
+  worksheets: [
+    {
+      name: 'SmallSheet',
+      dependencies: ['[A]', '[M]', '[Raw0]', '[Raw1]', '[Raw2]'],
+    },
+    {
+      name: 'GroupSheet',
+      dependencies: [
+        ...Array.from({ length: 7 }, (_, i) => `[C${i}]`),
+        '[M1]',
+        '[M2]',
+        '[Raw0]',
+        '[Raw1]',
+        '[Raw2]',
+      ],
+    },
+  ],
+  dashboards: [],
+}
+
+describe('buildImpactGraph (表示中フィールド間の依存エッジ補完)', () => {
+  it('(a) sheet ルートで棚上フィールド同士の参照がエッジになること', () => {
+    const graph = buildImpactGraph(visibleDepDoc, {
+      kind: 'sheet',
+      name: 'SmallSheet',
+    })!
+    // A = [M] * 2: 両方とも表示中なので依存エッジが張られる
+    expect(graph.edges.some((e) => e.id === 'f:M->f:A')).toBe(true)
+    // 表示されていない参照先（無し）へのエッジは増えない
+    expect(graph.nodes.filter((n) => n.kind === 'group').length).toBe(0)
+  })
+
+  it('(b) 参照先が group に畳まれた場合はエッジが group 宛てに付替えられること', () => {
+    const graph = buildImpactGraph(visibleDepDoc, {
+      kind: 'sheet',
+      name: 'GroupSheet',
+    })!
+    // M1/M2 は同一シグネチャ（GroupSheet + C0）の group に畳まれる
+    const m12Group = graph.nodes.find(
+      (n) =>
+        n.kind === 'group' &&
+        n.memberFieldIds?.includes('M1') &&
+        n.memberFieldIds?.includes('M2'),
+    )
+    expect(m12Group).toBeDefined()
+    expect(graph.nodes.some((n) => n.id === 'f:M1')).toBe(false)
+    // C0 = [M1] + [M2] の依存が group → C0 のエッジで表現される
+    expect(
+      graph.edges.some((e) => e.source === m12Group!.id && e.target === 'f:C0'),
+    ).toBe(true)
+  })
+
+  it('(c) group 展開後にメンバーからの依存エッジが個別に復元されること', () => {
+    const base = buildImpactGraph(visibleDepDoc, {
+      kind: 'sheet',
+      name: 'GroupSheet',
+    })!
+    const m12Group = base.nodes.find(
+      (n) => n.kind === 'group' && n.memberFieldIds?.includes('M1'),
+    )!
+    const graph = buildImpactGraph(
+      visibleDepDoc,
+      { kind: 'sheet', name: 'GroupSheet' },
+      { expandedGroups: new Set([m12Group.id]) },
+    )!
+    const edgeIds = new Set(graph.edges.map((e) => e.id))
+    // メンバーは個別ノードに戻り、シートへのエッジと依存エッジの両方を持つ
+    expect(graph.nodes.some((n) => n.id === 'f:M1')).toBe(true)
+    expect(edgeIds.has('f:M1->s:GroupSheet')).toBe(true)
+    expect(edgeIds.has('f:M1->f:C0')).toBe(true)
+    expect(edgeIds.has('f:M2->f:C0')).toBe(true)
+  })
+})
+
 // ノードのその場展開（expandedNodes）の検証。
 // トップの doc（A=[B]*2, B=[Sales]+1, SheetA が [A] 使用, Dash1 が SheetA 含む）を使う。
 // sheet/dashboard ルートは近傍2層のみ表示するため、上流 calc フィールドの
@@ -748,5 +859,77 @@ describe('buildImpactGraph (棚ベースの直接フィールド抽出)', () => 
     expect(ids.has('f:CalcX')).toBe(true)
     expect(ids.has('f:Sales')).toBe(true)
     expect(ids.has('f:Base')).toBe(false)
+  })
+})
+
+// ────────────────────────────────────────
+// 再層化（最長路ベースの列割当）
+// ────────────────────────────────────────
+
+// P は C1 経由（深さ2）と D 経由（深さ3）の両方から参照される。
+// BFS の最短距離割当だと P は D と同じ -2 に置かれ、P → D が同一列エッジになる。
+// 下流側も同様に、Root の直接参照 Y が X からも参照される合流を含む。
+const relayerDoc: TableauDocument = {
+  datasources: [
+    {
+      name: 'ds1',
+      fields: [
+        {
+          column: 'P',
+          isCalc: false,
+          dataType: 'integer',
+          paramDomainType: 'list',
+        },
+        { column: 'C1', isCalc: true, formula: '[P] + 1' },
+        { column: 'D', isCalc: true, formula: '[P] * 2' },
+        { column: 'C2', isCalc: true, formula: '[D] + 1' },
+        { column: 'Root', isCalc: true, formula: '[C1] + [C2]' },
+        { column: 'X', isCalc: true, formula: '[Root]' },
+        { column: 'Y', isCalc: true, formula: '[Root] + [X]' },
+      ],
+    },
+  ],
+  worksheets: [{ name: 'WS1', dependencies: ['[Y]'] }],
+  dashboards: [],
+}
+
+describe('buildImpactGraph (再層化)', () => {
+  it('上流: 参照先と同列になったノードが1つ左の列へ押し出されること', () => {
+    const graph = buildImpactGraph(relayerDoc, { kind: 'field', name: 'Root' })!
+    const byId = new Map(graph.nodes.map((n) => [n.id, n]))
+    expect(byId.get('f:C1')?.column).toBe(-1)
+    expect(byId.get('f:C2')?.column).toBe(-1)
+    expect(byId.get('f:D')?.column).toBe(-2)
+    // BFS では P も -2 だが、P → D のエッジがあるため -3 へ層化される
+    expect(byId.get('f:P')?.column).toBe(-3)
+  })
+
+  it('下流: 参照元と同列になったノードが右へ押し出され、シート列も追従すること', () => {
+    const graph = buildImpactGraph(relayerDoc, { kind: 'field', name: 'Root' })!
+    const byId = new Map(graph.nodes.map((n) => [n.id, n]))
+    expect(byId.get('f:X')?.column).toBe(1)
+    // BFS では Y も 1 だが、X → Y のエッジがあるため 2 へ層化される
+    expect(byId.get('f:Y')?.column).toBe(2)
+    // シート列は最深の下流フィールドよりさらに右
+    expect(byId.get('s:WS1')?.column).toBe(3)
+  })
+
+  it('すべてのエッジが 参照元.column < 参照先.column を満たすこと', () => {
+    const graph = buildImpactGraph(relayerDoc, { kind: 'field', name: 'Root' })!
+    const byId = new Map(graph.nodes.map((n) => [n.id, n]))
+    graph.edges.forEach((e) => {
+      const s = byId.get(e.source)!
+      const t = byId.get(e.target)!
+      expect(s.column, `${e.id}: ${s.column} -> ${t.column}`).toBeLessThan(
+        t.column,
+      )
+    })
+  })
+
+  it('循環参照ペアがあっても無限ループせず、ルートは column 0 に留まること', () => {
+    const graph = buildImpactGraph(doc, { kind: 'field', name: 'CycA' })!
+    const byId = new Map(graph.nodes.map((n) => [n.id, n]))
+    expect(byId.get('f:CycA')?.column).toBe(0)
+    expect(byId.get('f:CycB')?.column).toBe(-1)
   })
 })
