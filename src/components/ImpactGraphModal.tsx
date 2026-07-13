@@ -25,6 +25,7 @@ import {
   Layers,
   LayoutGrid,
   SlidersHorizontal,
+  Expand,
 } from 'lucide-react'
 import { t } from '../utils/i18n'
 import type { TableauDocument } from '../types/tableau'
@@ -779,6 +780,63 @@ function nodeToRootRef(gn: ImpactGraphNode): GraphRootRef | null {
   return gn.entityName ? { kind: gn.kind, name: gn.entityName } : null
 }
 
+/** 全展開ループの安全弁。展開が新たな展開可能ノードを生む構造でも通常は数段で収束するが、
+ * 想定外の循環等で無限ループしないよう反復上限を設ける。 */
+const FULL_EXPANSION_MAX_PASSES = 20
+
+/**
+ * 「展開できるノードが無くなるまで」展開した状態（expandedGroups / expandedNodes）を
+ * 計算する純関数（固定点ループ）。
+ *
+ * 展開は新たな展開可能ノードを生む（例: A を展開して現れた B がさらに expandable になる、
+ * group を展開して現れた計算フィールドがさらに外側を持つ）ため、1 回の走査では収束しない。
+ * そこで、追加が無くなるまで buildImpactGraph → 展開対象の収集を反復する。
+ * 集合は単調増加（追加のみ）なので有限回で必ず収束するが、保険として
+ * FULL_EXPANSION_MAX_PASSES を上限に置く。また buildImpactGraph が
+ * GRAPH_MAX_FIELD_NODES 到達で truncated を返したら、それ以上ノードを膨らませず打ち切る
+ * （表示破綻防止のための上限であり、全展開もこの上限には従う）。
+ *
+ * base のセットは破壊しない（コピーから開始する）。
+ */
+// eslint-disable-next-line react-refresh/only-export-components -- テスト用に純関数を同居エクスポート（layoutNodes と同方針）
+export function collectFullExpansion(
+  doc: TableauDocument,
+  root: GraphRootRef,
+  baseGroups: ReadonlySet<string>,
+  baseNodes: ReadonlySet<string>,
+): { groups: Set<string>; nodes: Set<string> } {
+  const groups = new Set(baseGroups)
+  const nodes = new Set(baseNodes)
+
+  for (let pass = 0; pass < FULL_EXPANSION_MAX_PASSES; pass++) {
+    const graph = buildImpactGraph(doc, root, {
+      expandedGroups: groups,
+      expandedNodes: nodes,
+    })
+    if (!graph) break
+
+    let added = false
+    for (const node of graph.nodes) {
+      if (node.kind === 'group') {
+        if (!groups.has(node.id)) {
+          groups.add(node.id)
+          added = true
+        }
+      } else if ((node.expandableCount ?? 0) > 0 && !node.isExpanded) {
+        if (!nodes.has(node.id)) {
+          nodes.add(node.id)
+          added = true
+        }
+      }
+    }
+
+    // 追加が無ければ固定点。truncated は表示上限に達した打ち切り。
+    if (!added || graph.truncated) break
+  }
+
+  return { groups, nodes }
+}
+
 interface ImpactGraphModalProps {
   doc: TableauDocument
   /** 初期表示の中心オブジェクト */
@@ -900,6 +958,20 @@ function ImpactGraphModalInner({
   const handleRelayout = useCallback(() => {
     setRelayoutEpoch((e) => e + 1)
   }, [])
+
+  // 「全展開」ボタン: 展開できるノード・group が無くなるまで一括展開する。
+  // 固定点は collectFullExpansion が現在の展開集合を起点に一度だけ算出し、
+  // その結果で両展開集合をまとめて差し替える。
+  const handleExpandAll = useCallback(() => {
+    const { groups, nodes } = collectFullExpansion(
+      doc,
+      root,
+      expandedGroups,
+      expandedNodes,
+    )
+    setExpandedGroups(groups)
+    setExpandedNodes(nodes)
+  }, [doc, root, expandedGroups, expandedNodes])
 
   const { flowNodes, flowEdges } = useMemo(() => {
     if (!graph) return { flowNodes: [], flowEdges: [] }
@@ -1220,6 +1292,15 @@ function ImpactGraphModalInner({
                 <ArrowUpRight size={12} />
               </button>
             )}
+            <button
+              onClick={handleExpandAll}
+              data-testid="graph-expand-all"
+              title={t('graph.expand_all_hint')}
+              className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition-all active:scale-95"
+            >
+              {t('graph.expand_all')}
+              <Expand size={12} />
+            </button>
             <button
               onClick={handleRelayout}
               data-testid="graph-relayout"

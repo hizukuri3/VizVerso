@@ -378,6 +378,8 @@
     "collapse_node": "折りたたむ",
     "relayout": "整列",
     "relayout_hint": "レイアウトを整え直します（ノード位置がリセットされます）",
+    "expand_all": "全展開",
+    "expand_all_hint": "展開できるノードをすべて展開します",
     "close": "閉じる"
   }
 }
