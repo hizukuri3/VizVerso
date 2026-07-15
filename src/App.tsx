@@ -35,6 +35,12 @@ import { TrySampleButton } from './components/TrySampleButton'
 import { LandingSections } from './components/LandingSections'
 import { GuideTourModal } from './components/GuideTourModal'
 import { hasSeenTour, markTourSeen } from './utils/tourStorage'
+import { RestoreBanner } from './components/RestoreBanner'
+import {
+  saveLastWorkbook,
+  loadLastWorkbook,
+  clearLastWorkbook,
+} from './utils/sessionStore'
 
 type SelectionType = 'dashboard' | 'worksheet' | 'datasource'
 
@@ -54,6 +60,13 @@ export default function App() {
     markTourSeen()
     setIsTourOpen(false)
   }
+
+  // ── セッション復元（リロードで消えた解析状態を前回ファイルから復元） ──
+  // マウント時に IndexedDB から候補を読み込むが、自動では開かず復元バナーを提示する。
+  const [restoreCandidate, setRestoreCandidate] = useState<{
+    file: File
+    name: string
+  } | null>(null)
 
   // ナビゲーション状態
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -75,6 +88,10 @@ export default function App() {
       const parsedDoc = await parseWorkbookAsync(file)
       setDocumentData(parsedDoc)
       setUploadedFileName(file.name.replace(/\.(twbx?|twb)$/i, ''))
+      // 復元バナーは開いたので消す
+      setRestoreCandidate(null)
+      // 解析成功したファイルを次回リロード用に保存（fire-and-forget）
+      void saveLastWorkbook(file)
       // 最初の一つをデフォルトで選択（もしあれば）
       if (parsedDoc.dashboards.length > 0) {
         setSelectedId(parsedDoc.dashboards[0].name)
@@ -120,6 +137,31 @@ export default function App() {
   const [showSearchResults, setShowSearchResults] = useState(false)
   const searchResults = useSearch(documentData, debouncedSearchQuery)
   const searchRef = useRef<HTMLDivElement>(null)
+
+  // マウント時に前回のワークブックを読み込む（自動では開かず復元候補として保持）
+  useEffect(() => {
+    let cancelled = false
+    void loadLastWorkbook().then((res) => {
+      if (!cancelled && res) {
+        setRestoreCandidate({ file: res.file, name: res.file.name })
+      }
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  // 復元バナー: 「復元する」→ 既存の解析フローに File を投入
+  const handleRestore = () => {
+    if (!restoreCandidate) return
+    void handleFileDrop(restoreCandidate.file)
+  }
+
+  // 復元バナー: 「破棄」→ 保存データを削除してバナーを消す
+  const handleDiscardRestore = () => {
+    setRestoreCandidate(null)
+    void clearLastWorkbook()
+  }
 
   // Buy Me a Coffee ウィジェットの表示制御
   useEffect(() => {
@@ -461,6 +503,13 @@ export default function App() {
               {t('app.description')}
             </p>
             <div className="max-w-xl mx-auto">
+              {restoreCandidate && (
+                <RestoreBanner
+                  name={restoreCandidate.name}
+                  onRestore={handleRestore}
+                  onDiscard={handleDiscardRestore}
+                />
+              )}
               <DragDropZone onFileDrop={handleFileDrop} />
               {/* サンプルで試すデモボタン（既存の解析フローに投入） */}
               <TrySampleButton onFileDrop={handleFileDrop} onError={setError} />
