@@ -12,6 +12,7 @@ import {
   Download,
   AlertCircle,
   Info,
+  HelpCircle,
   X,
   Menu,
 } from 'lucide-react'
@@ -32,6 +33,8 @@ import { LegalModal } from './components/LegalModal'
 import { PrivacyModal } from './components/PrivacyModal'
 import { TrySampleButton } from './components/TrySampleButton'
 import { LandingSections } from './components/LandingSections'
+import { GuideTourModal } from './components/GuideTourModal'
+import { hasSeenTour, markTourSeen } from './utils/tourStorage'
 
 type SelectionType = 'dashboard' | 'worksheet' | 'datasource'
 
@@ -44,6 +47,13 @@ export default function App() {
   const [isPrivacyOpen, setIsPrivacyOpen] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const [lang, setLang] = useState<Language>(getLanguage())
+
+  // ── 使い方ガイドツアー（初回アクセス時に自動表示） ──
+  const [isTourOpen, setIsTourOpen] = useState(() => !hasSeenTour())
+  const handleTourClose = () => {
+    markTourSeen()
+    setIsTourOpen(false)
+  }
 
   // ナビゲーション状態
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -365,6 +375,13 @@ export default function App() {
 
         <div className="flex items-center gap-2 sm:gap-4">
           <button
+            onClick={() => setIsTourOpen(true)}
+            className="p-2 sm:p-2.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all"
+            title={t('tour.help_button')}
+          >
+            <HelpCircle size={20} />
+          </button>
+          <button
             onClick={() => setIsAboutOpen(true)}
             className="p-2 sm:p-2.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all"
             title={t('app.about_title')}
@@ -598,6 +615,9 @@ export default function App() {
 
       {/* モーダル */}
       <AboutModal isOpen={isAboutOpen} onClose={() => setIsAboutOpen(false)} />
+
+      {/* 使い方ガイドツアーモーダル */}
+      <GuideTourModal isOpen={isTourOpen} onClose={handleTourClose} />
 
       {/* 特定商取引法に基づく表記モーダル */}
       <LegalModal isOpen={isLegalOpen} onClose={() => setIsLegalOpen(false)} />

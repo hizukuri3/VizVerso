@@ -380,5 +380,30 @@
     "expand_all": "Expand all",
     "expand_all_hint": "Expand all expandable nodes",
     "close": "Close"
+  },
+  "tour": {
+    "badge": "Guide",
+    "title": "How to use VizVerso",
+    "help_button": "Guide",
+    "skip": "Skip",
+    "back": "Back",
+    "next": "Next",
+    "start": "Get started",
+    "step_upload": {
+      "title": "Drop your workbook",
+      "desc": "Just drag & drop a .twb / .twbx file to start the analysis. No file at hand? Use \"Try a sample\" to explore a demo."
+    },
+    "step_privacy": {
+      "title": "Your data never leaves the browser",
+      "desc": "All analysis runs entirely in your browser. Your workbook is never uploaded to any server."
+    },
+    "step_explore": {
+      "title": "Explore structure & calculations",
+      "desc": "Switch between dashboards and sheets in the left navigator. Click a calculated field to trace its references in the detail drawer and dependency graph."
+    },
+    "step_export": {
+      "title": "Export to Excel",
+      "desc": "Export the analysis results to an Excel file in one click. You can reopen this guide anytime from the ? button in the header."
+    }
   }
 }
