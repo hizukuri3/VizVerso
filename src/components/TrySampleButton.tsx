@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Sparkles } from 'lucide-react'
 import { t } from '../utils/i18n'
+import { trackEvent } from '../utils/analytics'
 
 interface TrySampleButtonProps {
   /** 取得したサンプルファイルを既存の解析フローへ流し込むコールバック */
@@ -22,6 +23,8 @@ export function TrySampleButton({ onFileDrop, onError }: TrySampleButtonProps) {
 
   const handleClick = async () => {
     if (isFetching) return
+    // サンプルを試した操作を計測（ファイル内容は送らない）
+    trackEvent('sample_tried')
     setIsFetching(true)
     try {
       const res = await fetch(SAMPLE_PATH)

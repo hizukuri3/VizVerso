@@ -3,3 +3,13 @@ name = "viz-verso"
 [pages_build_config]
 build_command = "npm run build"
 destination_dir = "dist"
+
+# 匿名の機能利用イベント計測用 Analytics Engine データセット。
+# functions/api/event.ts が env.VIZVERSO_ANALYTICS 経由で writeDataPoint する。
+# 注意: Cloudflare Pages ではこの [[analytics_engine_datasets]] だけでは有効化されず、
+#       Pages プロジェクトの「Settings > Functions > Analytics Engine bindings」で
+#       Variable name = VIZVERSO_ANALYTICS / Dataset = vizverso_events を
+#       ダッシュボードから手動でバインドする必要がある（本番・プレビュー両環境）。
+[[analytics_engine_datasets]]
+binding = "VIZVERSO_ANALYTICS"
+dataset = "vizverso_events"

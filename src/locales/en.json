@@ -350,6 +350,10 @@
         "title": "Purpose of Use",
         "content": "The collected information will only be used for providing services, responding to inquiries, and improving the quality of the service. We will not provide information to third parties except when required by law."
       },
+      "analytics": {
+        "title": "Anonymous Usage Statistics",
+        "content": "To improve the service, we may collect anonymous usage events (such as which features are used and how often). These statistics never include the contents of your files, file names, formulas, or any personal information. We do not use cookies and we respect your browser's Do Not Track setting."
+      },
       "stripe": {
         "title": "Payment Processing",
         "content": "We use services from Stripe, Inc. for payment processing. Your payment information is protected and managed according to Stripe's Privacy Policy."
