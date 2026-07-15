@@ -536,6 +536,10 @@ export function buildImpactGraph(
     // 同一列エッジを意図的に張る（集約で密度を処理する）設計なので、その前に走らせて
     // 意図的な同一列エッジを押し出さないようにする。
     enforceLayering(nodes, edges)
+    // 生フィールドを種別ベースで最左（最深フィールド列）へ沈める。
+    // connectVisibleFieldEdges は sheet/dashboard ルートで棚上フィールド同士の
+    // 同一列エッジを意図的に張るため、その判定を汚さないよう必ずこの前に走らせる。
+    sinkSourceFields(nodes)
     connectVisibleFieldEdges()
     aggregateLayers(nodes, edges, expandedGroups)
     computeExpandableCounts()
@@ -712,6 +716,8 @@ export function buildImpactGraph(
  * ことで解消する。ルートと、側をまたぐエッジ（循環由来）は動かさない。
  * 下流フィールドが右へ押し出されるとシート列と重なりうるため、
  * 最後にシート・ダッシュボード列を最深フィールド列の右へ揃え直す。
+ * なお、上流の生フィールドはこの再層化のあと sinkSourceFields で
+ * チェーン長ではなく種別ベースに最左列へ沈め直される。
  */
 function enforceLayering(
   nodes: Map<string, ImpactGraphNode>,
@@ -758,6 +764,41 @@ function enforceLayering(
     if (n.column <= 0) return
     if (n.kind === 'sheet') n.column = sheetColumn
     else if (n.kind === 'dashboard') n.column = dashColumn
+  })
+}
+
+/**
+ * 生フィールドの沈め込み（種別ベースの最左固定）。
+ * enforceLayering は参照チェーン長で列を決めるため、生フィールド（計算式を
+ * 持たないデータソース物理列）は「自分を参照する計算式の1つ左」に置かれ、
+ * 扇形の最深列には揃わない。しかし生フィールドは上流を持たない葉であり、
+ * チェーン長で位置づける意味が薄い。そこで種別で判断し、上流側の生フィールドを
+ * 一律に最深フィールド列（＝扇形の最左）へ沈める。左端＝物理列、右へ行くほど
+ * 加工が進む、という読みをグラフに与えるのが狙い。
+ *
+ * - 対象は上流側（column < 0）の生フィールドのみ。ルート・パラメータ・
+ *   計算フィールドは対象外。isUnresolved なフィールドも formula を持たないため
+ *   対象に含まれる。
+ * - パラメータは専用レーンに描くため動かさない。計算フィールドも、深さ上限で
+ *   参照展開が打ち切られたものを最深列に置くと「これ以上上流が無い」という
+ *   誤解を招くため動かさない。
+ * - 沈め先は kind === 'field' かつ非パラメータな全ノードの column の最小値
+ *   （＝扇形の最深フィールド列）。対象が無い、または最小値が現列と等しい場合は
+ *   何もしない（sheet ルート等、全員が同一列のケースは自然に no-op になる）。
+ */
+function sinkSourceFields(nodes: Map<string, ImpactGraphNode>): void {
+  let minFieldColumn = Infinity
+  const targets: ImpactGraphNode[] = []
+  nodes.forEach((n) => {
+    if (n.kind !== 'field' || n.isParameter) return
+    if (n.column < minFieldColumn) minFieldColumn = n.column
+    // 上流側（負列）の生フィールド＝計算式を持たない葉のみを沈め対象にする
+    if (!n.isRoot && !n.isCalc && n.column < 0) targets.push(n)
+  })
+  if (targets.length === 0 || minFieldColumn === Infinity) return
+  targets.forEach((n) => {
+    // 既に最深列にいるノードは動かさない（no-op）
+    if (n.column !== minFieldColumn) n.column = minFieldColumn
   })
 }
 

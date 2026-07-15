@@ -933,3 +933,116 @@ describe('buildImpactGraph (再層化)', () => {
     expect(byId.get('f:CycB')?.column).toBe(-1)
   })
 })
+
+// ────────────────────────────────────────
+// 生フィールドの沈め込み（種別ベースの最左固定）
+// ────────────────────────────────────────
+
+// Root <- B(calc) <- Z(生), Root <- Y(生) の分岐。
+// enforceLayering では Y は Root の1つ左（-1）に置かれるが、生フィールドは
+// 種別で最深フィールド列（-2）へ沈む。パラメータ・計算フィールドは動かさない。
+describe('buildImpactGraph (生フィールドの沈め込み)', () => {
+  it('上流の生フィールドが最深フィールド列へ沈むこと', () => {
+    const sinkDoc: TableauDocument = {
+      datasources: [
+        {
+          name: 'ds1',
+          fields: [
+            { column: 'Y', isCalc: false, dataType: 'real' },
+            { column: 'Z', isCalc: false, dataType: 'real' },
+            { column: 'B', isCalc: true, formula: '[Z]' },
+            { column: 'Root', isCalc: true, formula: '[B] + [Y]' },
+          ],
+        },
+      ],
+      worksheets: [],
+      dashboards: [],
+    }
+    const graph = buildImpactGraph(sinkDoc, { kind: 'field', name: 'Root' })!
+    const byId = new Map(graph.nodes.map((n) => [n.id, n]))
+    // 計算 B はチェーン長どおり -1、その参照先の生フィールド Z は -2
+    expect(byId.get('f:B')?.column).toBe(-1)
+    expect(byId.get('f:Z')?.column).toBe(-2)
+    // Root が直接参照する生フィールド Y も -2 へ沈む（-1 に留まらない）
+    expect(byId.get('f:Y')?.column).toBe(-2)
+  })
+
+  it('パラメータは沈まず、参照チェーン長どおりの列に留まること', () => {
+    const sinkDoc: TableauDocument = {
+      datasources: [
+        {
+          name: 'ds1',
+          fields: [
+            { column: 'Y', isCalc: false, dataType: 'real' },
+            { column: 'Z', isCalc: false, dataType: 'real' },
+            {
+              column: 'P',
+              isCalc: false,
+              dataType: 'integer',
+              paramDomainType: 'list',
+            },
+            { column: 'B', isCalc: true, formula: '[Z]' },
+            { column: 'Root', isCalc: true, formula: '[B] + [Y] + [P]' },
+          ],
+        },
+      ],
+      worksheets: [],
+      dashboards: [],
+    }
+    const graph = buildImpactGraph(sinkDoc, { kind: 'field', name: 'Root' })!
+    const byId = new Map(graph.nodes.map((n) => [n.id, n]))
+    expect(byId.get('f:Z')?.column).toBe(-2)
+    // 生フィールド Y は沈むが、パラメータ P は -1 のまま
+    expect(byId.get('f:Y')?.column).toBe(-2)
+    expect(byId.get('f:P')?.isParameter).toBe(true)
+    expect(byId.get('f:P')?.column).toBe(-1)
+  })
+
+  it('計算フィールドは沈まず、参照チェーン長どおりの列に留まること', () => {
+    const sinkDoc: TableauDocument = {
+      datasources: [
+        {
+          name: 'ds1',
+          fields: [
+            { column: 'Z', isCalc: false, dataType: 'real' },
+            { column: 'B', isCalc: true, formula: '[Z]' },
+            // 参照先を持たない計算（深い列を作らない）
+            { column: 'C', isCalc: true, formula: 'TODAY()' },
+            { column: 'Root', isCalc: true, formula: '[B] + [C]' },
+          ],
+        },
+      ],
+      worksheets: [],
+      dashboards: [],
+    }
+    const graph = buildImpactGraph(sinkDoc, { kind: 'field', name: 'Root' })!
+    const byId = new Map(graph.nodes.map((n) => [n.id, n]))
+    // B が生フィールド Z を参照して最深列 -2 を作っても…
+    expect(byId.get('f:Z')?.column).toBe(-2)
+    expect(byId.get('f:B')?.column).toBe(-1)
+    // …計算 C は沈まず -1 のまま
+    expect(byId.get('f:C')?.isCalc).toBe(true)
+    expect(byId.get('f:C')?.column).toBe(-1)
+  })
+
+  it('sheet ルート（全フィールドが -1）では沈め込みが no-op になること', () => {
+    const sinkDoc: TableauDocument = {
+      datasources: [
+        {
+          name: 'ds1',
+          fields: [
+            { column: 'R1', isCalc: false, dataType: 'real' },
+            { column: 'R2', isCalc: false, dataType: 'real' },
+          ],
+        },
+      ],
+      worksheets: [{ name: 'S', dependencies: ['[R1]', '[R2]'] }],
+      dashboards: [],
+    }
+    const graph = buildImpactGraph(sinkDoc, { kind: 'sheet', name: 'S' })!
+    const byId = new Map(graph.nodes.map((n) => [n.id, n]))
+    // 沈め先（最小列）= 現列 -1 のため全員 -1 のまま
+    expect(byId.get('f:R1')?.column).toBe(-1)
+    expect(byId.get('f:R2')?.column).toBe(-1)
+  })
+})

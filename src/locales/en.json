@@ -375,6 +375,10 @@
     "group_more": "+{{count}} more",
     "expand_node": "Show more",
     "collapse_node": "Collapse",
+    "relayout": "Tidy layout",
+    "relayout_hint": "Recompute the layout (node positions will be reset)",
+    "expand_all": "Expand all",
+    "expand_all_hint": "Expand all expandable nodes",
     "close": "Close"
   }
 }

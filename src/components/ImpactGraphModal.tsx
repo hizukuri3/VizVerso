@@ -23,7 +23,9 @@ import {
   ArrowLeft,
   ArrowUpRight,
   Layers,
+  LayoutGrid,
   SlidersHorizontal,
+  Expand,
 } from 'lucide-react'
 import { t } from '../utils/i18n'
 import type { TableauDocument } from '../types/tableau'
@@ -284,6 +286,301 @@ const LAYER_GAP = 140
 const PARAM_LANE_GAP = 128
 
 /**
+ * レイアウトのピン留め状態。差分レイアウト（layoutNodes の第3引数）に渡すと、
+ * 前回の座標をそのまま引き継いで「展開しても既存ノードを動かさない」配置になる。
+ * - positions: 全ノードの確定座標（id → x/y/所属 column）
+ * - columnX: 列ごとの「ルート側の基準バンド」の絶対x（列の代表x）
+ * - bandXs: 列ごとに実際に使われているバンド（サブ列）の絶対x昇順リスト
+ * - fanTop: パラメータレーンの基準となる扇形上端y（差分では再計算しない）
+ */
+export interface LayoutPinState {
+  positions: Map<string, { x: number; y: number; column: number }>
+  columnX: Map<number, number>
+  bandXs: Map<number, number[]>
+  fanTop: number
+}
+
+/** field かつパラメータ かつ 非ルート（＝専用レーンに積むパラメータ）か */
+function isLaneParam(n: ImpactGraphNode): boolean {
+  return n.kind === 'field' && n.isParameter && !n.isRoot
+}
+
+/**
+ * 確定座標からピン留め状態を構築する。bandXs/columnX は扇形ノード（非パラメータ）の
+ * 実座標から再導出し、次回の差分でスロットの占有・空きを判定できるようにする。
+ */
+function buildPin(
+  nodes: ImpactGraphNode[],
+  positions: Map<string, { x: number; y: number }>,
+  fanTop: number,
+): LayoutPinState {
+  const posWithCol = new Map<string, { x: number; y: number; column: number }>()
+  const bandSet = new Map<number, Set<number>>()
+  nodes.forEach((n) => {
+    const p = positions.get(n.id)
+    if (!p) return
+    posWithCol.set(n.id, { x: p.x, y: p.y, column: n.column })
+    if (!isLaneParam(n)) {
+      if (!bandSet.has(n.column)) bandSet.set(n.column, new Set())
+      bandSet.get(n.column)!.add(p.x)
+    }
+  })
+  const bandXs = new Map<number, number[]>()
+  const columnX = new Map<number, number>()
+  bandSet.forEach((set, col) => {
+    const xs = [...set].sort((a, b) => a - b)
+    bandXs.set(col, xs)
+    // ルート側の基準バンド: 上流層(col<0)は右端、下流層(col>=0)は左端
+    columnX.set(col, col < 0 ? xs.at(-1)! : xs[0])
+  })
+  // パラメータしか居ない列の columnX を補完する
+  nodes.forEach((n) => {
+    if (isLaneParam(n) && !columnX.has(n.column)) {
+      const p = positions.get(n.id)
+      if (p) columnX.set(n.column, p.x)
+    }
+  })
+  return { positions: posWithCol, columnX, bandXs, fanTop }
+}
+
+/**
+ * 差分レイアウト。前回のピン（prev）を基準に、展開で増減したノードだけを動かす。
+ * 契約（詳細は layoutNodes の doc コメント参照）:
+ * 1. 生存（prev にあり column も同じ）→ 座標はビット同一
+ * 2. column が変わった生存 → y 維持・x のみ新しい列へ
+ * 3. 新規 → 同じ列の既存バンドの、目標y に最も近い空きスロットへ（下方向優先）
+ * 4. 新規の列 → 既存レイアウトの外側（上流は左、下流は右）へ積む
+ * 5. パラメータ → 専用レーンの流儀を維持（新規は列の既存パラメータの上へ）
+ * 生存が1つも無い場合は差分を諦めて null を返す（呼び出し側がフルへフォールバック）。
+ */
+function diffLayout(
+  nodes: ImpactGraphNode[],
+  edges: { source: string; target: string }[],
+  prev: LayoutPinState,
+): {
+  positions: Map<string, { x: number; y: number }>
+  pin: LayoutPinState
+} | null {
+  // 無向隣接（新規ノードの目標y算出に使う）
+  const neighbors = new Map<string, string[]>()
+  edges.forEach((e) => {
+    if (!neighbors.has(e.source)) neighbors.set(e.source, [])
+    if (!neighbors.has(e.target)) neighbors.set(e.target, [])
+    neighbors.get(e.source)!.push(e.target)
+    neighbors.get(e.target)!.push(e.source)
+  })
+
+  const prevPos = prev.positions
+  const newPos = new Map<string, { x: number; y: number; column: number }>()
+
+  // (契約1) 生存ノード（column 同一）をビット同一でピン留めする
+  let survivorCount = 0
+  nodes.forEach((n) => {
+    const pp = prevPos.get(n.id)
+    if (pp && pp.column === n.column) {
+      newPos.set(n.id, { x: pp.x, y: pp.y, column: n.column })
+      survivorCount += 1
+    }
+  })
+  if (survivorCount === 0) return null // フルレイアウトへフォールバック
+
+  // 生存した扇形ノードから列ごとの占有バンド（実x集合）を再導出する
+  const bandXs = new Map<number, number[]>()
+  const bandSet = new Map<number, Set<number>>()
+  nodes.forEach((n) => {
+    if (isLaneParam(n)) return
+    const p = newPos.get(n.id)
+    if (!p) return
+    if (!bandSet.has(n.column)) bandSet.set(n.column, new Set())
+    bandSet.get(n.column)!.add(p.x)
+  })
+  bandSet.forEach((s, c) =>
+    bandXs.set(
+      c,
+      [...s].sort((a, b) => a - b),
+    ),
+  )
+  // 生存が居ない列は prev のバンドを流用する
+  prev.bandXs.forEach((xs, c) => {
+    if (!bandXs.has(c)) bandXs.set(c, xs.slice())
+  })
+
+  // 列ごとのルート側基準x（moved 生存・新規の配置先）
+  const columnX = new Map<number, number>()
+  bandXs.forEach((xs, c) => columnX.set(c, c < 0 ? xs.at(-1)! : xs[0]))
+  prev.columnX.forEach((x, c) => {
+    if (!columnX.has(c)) columnX.set(c, x)
+  })
+
+  // 既存レイアウトの左右端（新規列を外側へ積むための基準）
+  let leftEdge = Infinity
+  let rightEdge = -Infinity
+  newPos.forEach((p) => {
+    leftEdge = Math.min(leftEdge, p.x)
+    rightEdge = Math.max(rightEdge, p.x)
+  })
+
+  // (契約4) 新規の列を既存の外側へ配置する
+  const existingCols = new Set(columnX.keys())
+  const presentCols = new Set(nodes.map((n) => n.column))
+  const newCols = [...presentCols].filter((c) => !existingCols.has(c))
+  if (newCols.length > 0) {
+    const minExist = Math.min(...existingCols)
+    const maxExist = Math.max(...existingCols)
+    const STEP = NODE_WIDTH + LAYER_GAP
+    let leftCursor = leftEdge
+    newCols
+      .filter((c) => c < minExist)
+      .sort((a, b) => b - a) // 内側（min に近い）から外へ
+      .forEach((c) => {
+        leftCursor -= STEP
+        columnX.set(c, leftCursor)
+        bandXs.set(c, [leftCursor])
+      })
+    let rightCursor = rightEdge
+    newCols
+      .filter((c) => c > maxExist)
+      .sort((a, b) => a - b)
+      .forEach((c) => {
+        rightCursor += STEP
+        columnX.set(c, rightCursor)
+        bandXs.set(c, [rightCursor])
+      })
+    // 稀: 既存の内側に挟まる新規列。最も近い既存列から線形に外挿する
+    newCols
+      .filter((c) => c > minExist && c < maxExist)
+      .forEach((c) => {
+        let nearest = minExist
+        let best = Infinity
+        existingCols.forEach((ec) => {
+          const d = Math.abs(ec - c)
+          if (d < best) {
+            best = d
+            nearest = ec
+          }
+        })
+        const x = columnX.get(nearest)! + (c - nearest) * STEP
+        columnX.set(c, x)
+        bandXs.set(c, [x])
+      })
+  }
+
+  // (契約2) column が変わった生存ノード → y 維持・x のみ新しい列へ
+  nodes.forEach((n) => {
+    const pp = prevPos.get(n.id)
+    if (pp && pp.column !== n.column && !newPos.has(n.id)) {
+      const x = columnX.get(n.column) ?? pp.x
+      newPos.set(n.id, { x, y: pp.y, column: n.column })
+    }
+  })
+
+  // スロット占有判定（幾何）: 同一バンドxで |Δy| < ROW_GAP*0.8 なら占有
+  const occupied = (x: number, y: number): boolean => {
+    for (const p of newPos.values()) {
+      if (Math.abs(p.x - x) < 0.5 && Math.abs(p.y - y) < ROW_GAP * 0.8) {
+        return true
+      }
+    }
+    return false
+  }
+  // 目標y から ROW_GAP 刻みで上下交互に走査し、空きスロットを返す（下方向優先）
+  const findFreeSlot = (x: number, targetY: number): number => {
+    if (!occupied(x, targetY)) return targetY
+    for (let m = 1; m < 2000; m++) {
+      const down = targetY + m * ROW_GAP
+      if (!occupied(x, down)) return down
+      const up = targetY - m * ROW_GAP
+      if (!occupied(x, up)) return up
+    }
+    return targetY
+  }
+
+  // (契約3) 新規扇形ノードを配置する
+  const isNew = (n: ImpactGraphNode) => !prevPos.has(n.id)
+  const placeNewFan = (n: ImpactGraphNode) => {
+    const col = n.column
+    const cand = bandXs.get(col) ?? [columnX.get(col) ?? 0]
+    const placedNb = (neighbors.get(n.id) ?? [])
+      .map((id) => newPos.get(id))
+      .filter((p): p is { x: number; y: number; column: number } => !!p)
+    const targetY =
+      placedNb.length > 0
+        ? placedNb.reduce((s, p) => s + p.y, 0) / placedNb.length
+        : 0
+    // 目標y に最も近い空きスロットを持つバンドを選ぶ
+    let bestX = cand[0]
+    let bestY = targetY
+    let bestDist = Infinity
+    cand.forEach((bx) => {
+      const y = findFreeSlot(bx, targetY)
+      const d = Math.abs(y - targetY)
+      if (d < bestDist) {
+        bestDist = d
+        bestX = bx
+        bestY = y
+      }
+    })
+    newPos.set(n.id, { x: bestX, y: bestY, column: col })
+  }
+  // 配置済み隣接を持つノードを先に置き、目標y の種を広げる（多重掃引）
+  const newFan = nodes
+    .filter((n) => !isLaneParam(n) && isNew(n))
+    .sort((a, b) => a.id.localeCompare(b.id))
+  let remaining = [...newFan]
+  let progress = true
+  while (remaining.length > 0 && progress) {
+    progress = false
+    const still: ImpactGraphNode[] = []
+    for (const n of remaining) {
+      const hasPlaced = (neighbors.get(n.id) ?? []).some((id) => newPos.has(id))
+      if (hasPlaced) {
+        placeNewFan(n)
+        progress = true
+      } else {
+        still.push(n)
+      }
+    }
+    remaining = still
+  }
+  remaining.forEach(placeNewFan) // 隣接が無いもの（目標y=0）
+
+  // (契約5) パラメータ: 生存はピン済み。新規は列の既存パラメータの上へ積む
+  const paramMinY = new Map<number, number>()
+  const paramX = new Map<number, number>()
+  nodes.forEach((n) => {
+    if (!isLaneParam(n)) return
+    const p = newPos.get(n.id)
+    if (!p) return
+    paramMinY.set(n.column, Math.min(paramMinY.get(n.column) ?? Infinity, p.y))
+    if (!paramX.has(n.column)) paramX.set(n.column, p.x)
+  })
+  const paramXFor = (col: number): number => {
+    if (paramX.has(col)) return paramX.get(col)!
+    const xs = bandXs.get(col)
+    if (xs && xs.length > 0) return (xs[0] + xs.at(-1)!) / 2 // 層幅の中央に寄せる
+    return columnX.get(col) ?? 0
+  }
+  nodes
+    .filter((n) => isLaneParam(n) && isNew(n))
+    .sort((a, b) => a.id.localeCompare(b.id))
+    .forEach((n) => {
+      const col = n.column
+      const curMin = paramMinY.get(col)
+      const y =
+        curMin !== undefined ? curMin - ROW_GAP : prev.fanTop - PARAM_LANE_GAP
+      const x = paramXFor(col)
+      newPos.set(n.id, { x, y, column: col })
+      paramMinY.set(col, Math.min(paramMinY.get(col) ?? Infinity, y))
+      if (!paramX.has(col)) paramX.set(col, x)
+    })
+
+  const positions = new Map<string, { x: number; y: number }>()
+  newPos.forEach((p, id) => positions.set(id, { x: p.x, y: p.y }))
+  // fanTop は差分では再計算しない（扇が上に伸びてもパラメータレーンを動かさない）
+  return { positions, pin: buildPin(nodes, positions, prev.fanTop) }
+}
+
+/**
  * column（依存の深さ）ごとに配置する「扇形」レイヤードレイアウト。
  * - X軸 = 依存の深さ、というエンコーディングは維持する
  * - ルート側のサブ列を内側（細く）、外側ほど太く（行数を増やす）扇状に広げる
@@ -293,11 +590,26 @@ const PARAM_LANE_GAP = 128
  * - ルート層から外側への掃引後、両隣接層を使って並べ替えを反復し交差をさらに減らす
  * - group ノードは各層の最も外側のバンド（サブ列）に寄せる
  * - パラメータ（ルート以外）は扇形に混ぜず、扇形上端の専用レーンに列ごとに積む
+ *
+ * 差分モード（prev を渡す）: 上記フルレイアウトの結果をピン留めし、以降の展開
+ * （expandedGroups/expandedNodes の変化）では既存ノードを一切動かさない。増えた
+ * ノードだけを空きスロットへ差し込み、消えたノードのスロットは解放する。
+ * 全体を組み直す（＝既存ノードが動く）のは、ユーザーが「整列」を押して prev=null で
+ * 呼び直したときだけ。設計意図: 展開のたびに視界が流れて迷子になるのを防ぐ。
+ * prev=null のときは従来どおりフルレイアウトを実行し、その結果から pin を構築する。
  */
-function layoutNodes(
+// テスト用に純関数として export する（コンポーネントではないため HMR 粒度の警告は無視）。
+// eslint-disable-next-line react-refresh/only-export-components
+export function layoutNodes(
   graphNodes: ImpactGraphNode[],
   edges: { source: string; target: string }[],
-): Map<string, { x: number; y: number }> {
+  prev?: LayoutPinState | null,
+): { positions: Map<string, { x: number; y: number }>; pin: LayoutPinState } {
+  if (prev) {
+    const diff = diffLayout(graphNodes, edges, prev)
+    if (diff) return diff
+    // 生存ノードが無い等 → フルレイアウトへフォールバック
+  }
   const byColumn = new Map<number, ImpactGraphNode[]>()
   const paramsByColumn = new Map<number, ImpactGraphNode[]>()
   graphNodes.forEach((n) => {
@@ -450,7 +762,8 @@ function layoutNodes(
       })
     })
   })
-  return pos
+  // フルレイアウトの結果からピン留め状態を構築して返す
+  return { positions: pos, pin: buildPin(graphNodes, pos, fanTop) }
 }
 
 // ────────────────────────────────────────
@@ -465,6 +778,63 @@ function nodeToRootRef(gn: ImpactGraphNode): GraphRootRef | null {
   // 集約ノードは中心化できない（クリックは展開として別処理される）
   if (gn.kind === 'group') return null
   return gn.entityName ? { kind: gn.kind, name: gn.entityName } : null
+}
+
+/** 全展開ループの安全弁。展開が新たな展開可能ノードを生む構造でも通常は数段で収束するが、
+ * 想定外の循環等で無限ループしないよう反復上限を設ける。 */
+const FULL_EXPANSION_MAX_PASSES = 20
+
+/**
+ * 「展開できるノードが無くなるまで」展開した状態（expandedGroups / expandedNodes）を
+ * 計算する純関数（固定点ループ）。
+ *
+ * 展開は新たな展開可能ノードを生む（例: A を展開して現れた B がさらに expandable になる、
+ * group を展開して現れた計算フィールドがさらに外側を持つ）ため、1 回の走査では収束しない。
+ * そこで、追加が無くなるまで buildImpactGraph → 展開対象の収集を反復する。
+ * 集合は単調増加（追加のみ）なので有限回で必ず収束するが、保険として
+ * FULL_EXPANSION_MAX_PASSES を上限に置く。また buildImpactGraph が
+ * GRAPH_MAX_FIELD_NODES 到達で truncated を返したら、それ以上ノードを膨らませず打ち切る
+ * （表示破綻防止のための上限であり、全展開もこの上限には従う）。
+ *
+ * base のセットは破壊しない（コピーから開始する）。
+ */
+// eslint-disable-next-line react-refresh/only-export-components -- テスト用に純関数を同居エクスポート（layoutNodes と同方針）
+export function collectFullExpansion(
+  doc: TableauDocument,
+  root: GraphRootRef,
+  baseGroups: ReadonlySet<string>,
+  baseNodes: ReadonlySet<string>,
+): { groups: Set<string>; nodes: Set<string> } {
+  const groups = new Set(baseGroups)
+  const nodes = new Set(baseNodes)
+
+  for (let pass = 0; pass < FULL_EXPANSION_MAX_PASSES; pass++) {
+    const graph = buildImpactGraph(doc, root, {
+      expandedGroups: groups,
+      expandedNodes: nodes,
+    })
+    if (!graph) break
+
+    let added = false
+    for (const node of graph.nodes) {
+      if (node.kind === 'group') {
+        if (!groups.has(node.id)) {
+          groups.add(node.id)
+          added = true
+        }
+      } else if ((node.expandableCount ?? 0) > 0 && !node.isExpanded) {
+        if (!nodes.has(node.id)) {
+          nodes.add(node.id)
+          added = true
+        }
+      }
+    }
+
+    // 追加が無ければ固定点。truncated は表示上限に達した打ち切り。
+    if (!added || graph.truncated) break
+  }
+
+  return { groups, nodes }
 }
 
 interface ImpactGraphModalProps {
@@ -507,6 +877,17 @@ function ImpactGraphModalInner({
     y: number
     containerWidth: number
     containerHeight: number
+  } | null>(null)
+  // 「整列」の世代。インクリメントで pin を捨ててフル再レイアウトを促す
+  const [relayoutEpoch, setRelayoutEpoch] = useState(0)
+  // ピン留めレイアウトの持ち越しキャッシュ（レンダー間で前回結果を引き継ぐ）。
+  // 展開のたびにここを基準に差分配置し、既存ノードを動かさない。
+  // root 変更・「整列」押下ではフル再計算する。deps が正しいためレンダー中の
+  // 参照更新は決定的で冪等（StrictMode の二重実行でも同じ結果になる）。
+  const layoutCacheRef = useRef<{
+    pin: LayoutPinState
+    rootKey: string
+    epoch: number
   } | null>(null)
 
   const graph = useMemo(
@@ -573,9 +954,39 @@ function ImpactGraphModalInner({
     [recenter],
   )
 
+  // 「整列」ボタン: ピン留めを捨ててレイアウトを組み直す（既存ノードも動く）
+  const handleRelayout = useCallback(() => {
+    setRelayoutEpoch((e) => e + 1)
+  }, [])
+
+  // 「全展開」ボタン: 展開できるノード・group が無くなるまで一括展開する。
+  // 固定点は collectFullExpansion が現在の展開集合を起点に一度だけ算出し、
+  // その結果で両展開集合をまとめて差し替える。
+  const handleExpandAll = useCallback(() => {
+    const { groups, nodes } = collectFullExpansion(
+      doc,
+      root,
+      expandedGroups,
+      expandedNodes,
+    )
+    setExpandedGroups(groups)
+    setExpandedNodes(nodes)
+  }, [doc, root, expandedGroups, expandedNodes])
+
   const { flowNodes, flowEdges } = useMemo(() => {
     if (!graph) return { flowNodes: [], flowEdges: [] }
-    const positions = layoutNodes(graph.nodes, graph.edges)
+    // root が変わった or「整列」が押されたらフル、それ以外は前回 pin からの差分。
+    // レイアウトキャッシュはレンダー間の持ち越しに用いる意図的な用途のため、
+    // レンダー中の ref 参照/更新を許可する（deps が正しく冪等）。
+    const rootKey = `${root.kind}:${root.name}`
+    /* eslint-disable react-hooks/refs -- 意図的なレンダー間レイアウトキャッシュ */
+    const cache = layoutCacheRef.current
+    const carryOver =
+      cache && cache.rootKey === rootKey && cache.epoch === relayoutEpoch
+    const prevPin = carryOver ? cache.pin : null
+    const { positions, pin } = layoutNodes(graph.nodes, graph.edges, prevPin)
+    layoutCacheRef.current = { pin, rootKey, epoch: relayoutEpoch }
+    /* eslint-enable react-hooks/refs */
     const rootNodeId = graph.nodes.find((n) => n.isRoot)?.id
 
     const flowNodes: Node[] = graph.nodes.map((gn) => ({
@@ -610,7 +1021,7 @@ function ImpactGraphModalInner({
       }
     })
     return { flowNodes, flowEdges }
-  }, [graph, toggleNodeExpand, handleRecenterNode])
+  }, [graph, root, relayoutEpoch, toggleNodeExpand, handleRecenterNode])
 
   const { setNodes, setEdges, fitView, setCenter, getNodes } = useReactFlow()
   const containerRef = useRef<HTMLDivElement>(null)
@@ -881,6 +1292,24 @@ function ImpactGraphModalInner({
                 <ArrowUpRight size={12} />
               </button>
             )}
+            <button
+              onClick={handleExpandAll}
+              data-testid="graph-expand-all"
+              title={t('graph.expand_all_hint')}
+              className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition-all active:scale-95"
+            >
+              {t('graph.expand_all')}
+              <Expand size={12} />
+            </button>
+            <button
+              onClick={handleRelayout}
+              data-testid="graph-relayout"
+              title={t('graph.relayout_hint')}
+              className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition-all active:scale-95"
+            >
+              {t('graph.relayout')}
+              <LayoutGrid size={12} />
+            </button>
           </div>
           <div className="hidden lg:flex items-center gap-4 shrink-0">
             {legend.map((item) => (
