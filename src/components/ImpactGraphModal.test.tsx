@@ -221,7 +221,35 @@ const unresolvedDoc: TableauDocument = {
       fields: [{ column: 'Sales', isCalc: false, dataType: 'real' }],
     },
   ],
-  worksheets: [{ name: 'SheetGhost', dependencies: ['[Ghost]', '[Sales]'] }],
+  worksheets: [
+    {
+      name: 'SheetGhost',
+      dependencies: ['[Ghost]', '[Sales]'],
+      // fieldMeta のワークシートローカルフィールド走査分岐を通す
+      localFields: [{ column: 'Local1', isCalc: false, caption: 'ローカル1' }],
+    },
+  ],
+  dashboards: [],
+}
+
+// 多分岐の上流チェーンを持つフィクスチャ。
+// W=[R]+[T]、R=[S]+1、T=[S]*2、S は生フィールド（R・T が共有）。
+// sheet ルートで W を段階展開すると、1 展開で複数ノード・複数列が増え、
+// 共有ノード S は 2 度目の展開で生存扱いになる。差分レイアウトの
+// 多重掃引・新列・生存分岐を広く踏む。
+const multiDoc: TableauDocument = {
+  datasources: [
+    {
+      name: 'ds1',
+      fields: [
+        { column: 'S', isCalc: false, dataType: 'real' },
+        { column: 'R', isCalc: true, formula: '[S] + 1' },
+        { column: 'T', isCalc: true, formula: '[S] * 2' },
+        { column: 'W', isCalc: true, formula: '[R] + [T]' },
+      ],
+    },
+  ],
+  worksheets: [{ name: 'SheetW', dependencies: ['[W]'] }],
   dashboards: [],
 }
 
@@ -565,6 +593,29 @@ describe('ImpactGraphModal 差分レイアウト（パラメータ出現）', ()
     fireEvent.click(screen.getByTestId('node-expand-f:Q'))
     expect(screen.queryByTestId('rf-node-f:P')).not.toBeInTheDocument()
   })
+
+  it('多分岐チェーンの段階展開・整列・折りたたみでノードが破綻しないこと', () => {
+    render(
+      <ImpactGraphModal
+        doc={multiDoc}
+        root={{ kind: 'sheet', name: 'SheetW' }}
+        onClose={vi.fn()}
+      />,
+    )
+    // W を展開 → R・T が同時に新列へ現れる（複数ノード・複数列の差分）
+    fireEvent.click(screen.getByTestId('node-expand-f:W'))
+    expect(screen.getByTestId('rf-node-f:R')).toBeInTheDocument()
+    expect(screen.getByTestId('rf-node-f:T')).toBeInTheDocument()
+    // R を展開 → 共有の生フィールド S が現れる（S は R・T 双方の参照先）
+    fireEvent.click(screen.getByTestId('node-expand-f:R'))
+    expect(screen.getAllByTestId('rf-node-f:S').length).toBe(1)
+    // 「整列」でフル再レイアウトへ切り替え（差分キャッシュ破棄）
+    fireEvent.click(screen.getByTestId('graph-relayout'))
+    expect(screen.getByTestId('rf-node-f:W')).toBeInTheDocument()
+    // 折りたたみで枝が消える
+    fireEvent.click(screen.getByTestId('node-expand-f:W'))
+    expect(screen.queryByTestId('rf-node-f:R')).not.toBeInTheDocument()
+  })
 })
 
 describe('ImpactGraphModal ホバーカード（実体ノード）', () => {
@@ -685,6 +736,19 @@ describe('ImpactGraphModal truncated', () => {
         onClose={vi.fn()}
       />,
     )
+    expect(screen.getByText(t('graph.truncated'))).toBeInTheDocument()
+  })
+
+  it('上限超過 doc で全展開してもエラーなく打ち切られること', () => {
+    render(
+      <ImpactGraphModal
+        doc={truncatedDoc}
+        root={{ kind: 'sheet', name: 'HugeSheet' }}
+        onClose={vi.fn()}
+      />,
+    )
+    // collectFullExpansion は truncated 到達で打ち切る（無限膨張しない）
+    fireEvent.click(screen.getByTestId('graph-expand-all'))
     expect(screen.getByText(t('graph.truncated'))).toBeInTheDocument()
   })
 })
