@@ -438,6 +438,8 @@
     "before": "Before",
     "after": "After",
     "empty": "(none)",
+    "renamed": "Renamed",
+    "affected_sheets": "{{count}} affected sheets",
     "category": {
       "datasources": "Data Sources",
       "fields": "Fields",

@@ -44,8 +44,12 @@ describe('diffWorkbooks - フィールドの追加/削除', () => {
     })
 
     const result = diffWorkbooks(before, after)
-    expect(result.fields.added.map((f) => f.column)).toContain('New Field')
-    expect(result.fields.removed.map((f) => f.column)).toContain('Old Field')
+    expect(result.fields.added.map((lf) => lf.field.column)).toContain(
+      'New Field',
+    )
+    expect(result.fields.removed.map((lf) => lf.field.column)).toContain(
+      'Old Field',
+    )
     // Sales は両方に存在し変更なし
     expect(result.fields.unchangedCount).toBe(1)
   })
@@ -178,6 +182,117 @@ describe('diffWorkbooks - ダッシュボードのシート構成変化', () => 
     expect(
       props.some((c) => c.property === 'worksheets' && c.before === 'Sheet 2'),
     ).toBe(true)
+  })
+})
+
+describe('diffWorkbooks - 論理フィールドへの集約', () => {
+  it('データソース定義＋複数シートの再宣言を1論理フィールドに集約し、caption 変更を1エントリにまとめること', () => {
+    // データソース定義に Calc があり、2枚のシートが同じフィールドを再宣言している。
+    const mkDoc = (caption: string): TableauDocument =>
+      doc({
+        datasources: [
+          {
+            name: 'DS',
+            fields: [
+              field('Calculation_1', {
+                caption,
+                isCalc: true,
+                formula: '[Sales] * 2',
+                datasourceName: 'DS',
+              }),
+            ],
+          },
+        ],
+        worksheets: [
+          sheet('Sheet A', {
+            localFields: [
+              field('Calculation_1', { caption, datasourceName: 'DS' }),
+            ],
+          }),
+          sheet('Sheet B', {
+            localFields: [
+              field('Calculation_1', { caption, datasourceName: 'DS' }),
+            ],
+          }),
+        ],
+      })
+
+    const result = diffWorkbooks(mkDoc('売上'), mkDoc('売上高'))
+    // 7行ではなく1エントリに集約される
+    expect(result.fields.changed).toHaveLength(1)
+    const entry = result.fields.changed[0]
+    // caption 変更が1件だけ（property 単位で重複排除）
+    const captionChanges = entry.changes.filter((c) => c.property === 'caption')
+    expect(captionChanges).toHaveLength(1)
+    // 再宣言している2シートが declaredInSheets に入る
+    expect(entry.after.declaredInSheets).toEqual(
+      expect.arrayContaining(['Sheet A', 'Sheet B']),
+    )
+    expect(entry.after.declaredInSheets).toHaveLength(2)
+  })
+
+  it('サマリー件数が論理フィールド単位になること（再宣言で水増しされない）', () => {
+    const mkDoc = (): TableauDocument =>
+      doc({
+        datasources: [
+          { name: 'DS', fields: [field('Sales', { caption: '売上' })] },
+        ],
+        worksheets: [
+          sheet('S1', {
+            localFields: [
+              field('Sales', { caption: '売上', datasourceName: 'DS' }),
+            ],
+          }),
+          sheet('S2', {
+            localFields: [
+              field('Sales', { caption: '売上', datasourceName: 'DS' }),
+            ],
+          }),
+        ],
+      })
+    const result = diffWorkbooks(mkDoc(), mkDoc())
+    // 論理フィールドは Sales の1つだけ
+    expect(result.fields.unchangedCount).toBe(1)
+    expect(result.fields.changed).toHaveLength(0)
+    expect(result.fields.added).toHaveLength(0)
+    expect(result.fields.removed).toHaveLength(0)
+  })
+
+  it('どのデータソースにも属さないシート固有フィールドは従来どおり検出されること', () => {
+    // datasourceName が未知（データソース定義に存在しない）→ シート固有として扱う
+    const before = doc({
+      datasources: [{ name: 'DS', fields: [field('Sales')] }],
+      worksheets: [
+        sheet('S1', {
+          localFields: [
+            field('SheetLocal', {
+              caption: 'ローカル',
+              datasourceName: 'Unknown',
+            }),
+          ],
+        }),
+      ],
+    })
+    const after = doc({
+      datasources: [{ name: 'DS', fields: [field('Sales')] }],
+      worksheets: [
+        sheet('S1', {
+          localFields: [
+            field('SheetLocal', {
+              caption: 'ローカル改',
+              datasourceName: 'Unknown',
+            }),
+          ],
+        }),
+      ],
+    })
+    const result = diffWorkbooks(before, after)
+    const changed = result.fields.changed.find(
+      (c) => c.after.field.column === 'SheetLocal',
+    )
+    expect(changed).toBeDefined()
+    expect(changed?.after.field.datasourceName).toBe('ws:S1')
+    expect(changed?.changes.some((c) => c.property === 'caption')).toBe(true)
   })
 })
 

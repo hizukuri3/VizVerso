@@ -38,9 +38,21 @@ export interface DiffCategory<T> {
   unchangedCount: number
 }
 
+/**
+ * 論理フィールド1件。
+ * 同定キーは `${所属データソース名}::${column}`（データソース定義とワークシート再宣言を統合）。
+ * どのデータソースにも属さない column はシート固有とし、キーは `ws:${sheet}::${column}`。
+ */
+export interface LogicalField {
+  /** canonical な定義（データソース定義があれば優先、なければ最初の宣言） */
+  field: TableauField
+  /** この論理フィールドを再宣言しているワークシート名の集合 */
+  declaredInSheets: string[]
+}
+
 export interface WorkbookDiff {
   datasources: DiffCategory<TableauDatasource>
-  fields: DiffCategory<TableauField>
+  fields: DiffCategory<LogicalField>
   worksheets: DiffCategory<TableauWorksheet>
   dashboards: DiffCategory<TableauDashboard>
 }
@@ -129,25 +141,87 @@ function pushListChanges(
   for (const value of removed) changes.push({ property, before: value })
 }
 
-// ── フィールド収集 ──────────────────────────────────────────────
+// ── 論理フィールド収集 ──────────────────────────────────────────
 
-/** フィールド同定キー: データソースフィールドは `${ds}::${column}`、ローカルは `ws:${sheet}::${column}`。 */
-function collectFields(document: TableauDocument): Map<string, TableauField> {
-  const map = new Map<string, TableauField>()
+/** 収集中の内部アキュムレータ（canonical がデータソース由来かを記録）。 */
+interface LogicalFieldAcc {
+  field: TableauField
+  /** canonical がデータソース定義由来か（true なら以降の再宣言で上書きしない） */
+  fromDatasource: boolean
+  declaredInSheets: string[]
+}
+
+/**
+ * ドキュメントを「論理フィールド」単位で収集する。
+ * - データソース定義フィールドは `${ds.name}::${column}` をキーとし canonical を優先確保する。
+ * - ワークシートの localFields は元データソース名（TableauField.datasourceName）を保持しているため、
+ *   それが既知のデータソースを指す場合は同じ論理フィールドの再宣言として統合し、
+ *   宣言元シート名を declaredInSheets に集約する。
+ * - datasourceName が未知（どのデータソースにも属さない）場合のみ、シート固有フィールドとして
+ *   `ws:${sheet}::${column}` キーで残す（従来挙動を維持）。
+ */
+function collectLogicalFields(
+  document: TableauDocument,
+): Map<string, LogicalField> {
+  const acc = new Map<string, LogicalFieldAcc>()
+  const knownDatasources = new Set(document.datasources.map((d) => d.name))
+
+  // 1. データソース定義（canonical を優先確保）
   for (const ds of document.datasources) {
     for (const f of ds.fields) {
       const key = `${ds.name}::${f.column}`
-      // 表示のため所属情報を担保したコピーを保持
-      map.set(key, { ...f, datasourceName: f.datasourceName ?? ds.name })
+      const existing = acc.get(key)
+      // 同一データソース内で重複定義があっても最初のものを canonical とする
+      if (existing?.fromDatasource) continue
+      acc.set(key, {
+        field: { ...f, datasourceName: f.datasourceName ?? ds.name },
+        fromDatasource: true,
+        declaredInSheets: existing?.declaredInSheets ?? [],
+      })
     }
   }
+
+  // 2. ワークシートの再宣言（datasourceName で紐付け）
   for (const ws of document.worksheets) {
     for (const f of ws.localFields ?? []) {
-      const key = `ws:${ws.name}::${f.column}`
-      map.set(key, { ...f, datasourceName: `ws:${ws.name}` })
+      const origin = f.datasourceName
+      const isKnown = !!origin && knownDatasources.has(origin)
+      const key = isKnown
+        ? `${origin}::${f.column}`
+        : `ws:${ws.name}::${f.column}`
+      const existing = acc.get(key)
+      if (existing) {
+        if (!existing.declaredInSheets.includes(ws.name)) {
+          existing.declaredInSheets.push(ws.name)
+        }
+        // canonical は保持（データソース定義優先／なければ最初の宣言）
+      } else {
+        acc.set(key, {
+          field: { ...f, datasourceName: isKnown ? origin : `ws:${ws.name}` },
+          fromDatasource: false,
+          declaredInSheets: [ws.name],
+        })
+      }
     }
   }
-  return map
+
+  const result = new Map<string, LogicalField>()
+  for (const [key, v] of acc) {
+    result.set(key, { field: v.field, declaredInSheets: v.declaredInSheets })
+  }
+  return result
+}
+
+/** 変更点を property 単位で重複排除する（先勝ち）。 */
+function dedupeByProperty(changes: PropertyChange[]): PropertyChange[] {
+  const seen = new Set<string>()
+  const out: PropertyChange[] = []
+  for (const c of changes) {
+    if (seen.has(c.property)) continue
+    seen.add(c.property)
+    out.push(c)
+  }
+  return out
 }
 
 /** フィールドの変更点（formula/caption/dataType/role/isCalc）を列挙する。 */
@@ -179,31 +253,34 @@ function detectFieldChanges(
 function diffFields(
   before: TableauDocument,
   after: TableauDocument,
-): DiffCategory<TableauField> {
-  const beforeMap = collectFields(before)
-  const afterMap = collectFields(after)
+): DiffCategory<LogicalField> {
+  const beforeMap = collectLogicalFields(before)
+  const afterMap = collectLogicalFields(after)
 
-  const added: TableauField[] = []
-  const removed: TableauField[] = []
-  const changed: ChangedEntry<TableauField>[] = []
+  const added: LogicalField[] = []
+  const removed: LogicalField[] = []
+  const changed: ChangedEntry<LogicalField>[] = []
   let unchangedCount = 0
 
-  for (const [key, afterField] of afterMap) {
-    const beforeField = beforeMap.get(key)
-    if (beforeField === undefined) {
-      added.push(afterField)
+  for (const [key, afterLf] of afterMap) {
+    const beforeLf = beforeMap.get(key)
+    if (beforeLf === undefined) {
+      added.push(afterLf)
       continue
     }
-    const changes = detectFieldChanges(beforeField, afterField)
+    // 変更検出は canonical 定義同士で行い、property 単位で重複排除する
+    const changes = dedupeByProperty(
+      detectFieldChanges(beforeLf.field, afterLf.field),
+    )
     if (changes.length > 0) {
-      changed.push({ key, before: beforeField, after: afterField, changes })
+      changed.push({ key, before: beforeLf, after: afterLf, changes })
     } else {
       unchangedCount++
     }
   }
 
-  for (const [key, beforeField] of beforeMap) {
-    if (!afterMap.has(key)) removed.push(beforeField)
+  for (const [key, beforeLf] of beforeMap) {
+    if (!afterMap.has(key)) removed.push(beforeLf)
   }
 
   return { added, removed, changed, unchangedCount }

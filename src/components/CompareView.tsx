@@ -58,6 +58,28 @@ export function CompareView({ onExit }: CompareViewProps) {
     return diffWorkbooks(before.loaded.doc, after.loaded.doc)
   }, [before.loaded, after.loaded])
 
+  // 計算式のキャプション置換用メタ（column → caption）を両ドキュメントから構築（after 優先）。
+  const fieldMeta = useMemo(() => {
+    const meta = new Map<string, { caption?: string }>()
+    const collect = (doc: TableauDocument | undefined) => {
+      if (!doc) return
+      for (const ds of doc.datasources) {
+        for (const f of ds.fields) {
+          if (f.caption) meta.set(f.column, { caption: f.caption })
+        }
+      }
+      for (const ws of doc.worksheets) {
+        for (const f of ws.localFields ?? []) {
+          if (f.caption) meta.set(f.column, { caption: f.caption })
+        }
+      }
+    }
+    // before を先に入れ、after で上書き（after 優先）
+    collect(before.loaded?.doc)
+    collect(after.loaded?.doc)
+    return meta
+  }, [before.loaded, after.loaded])
+
   return (
     <div className="flex-1 overflow-y-auto bg-slate-50/50">
       <div className="max-w-4xl mx-auto w-full px-4 sm:px-6 py-8 space-y-6">
@@ -107,6 +129,7 @@ export function CompareView({ onExit }: CompareViewProps) {
               diff={diff}
               beforeName={before.loaded.fileName}
               afterName={after.loaded.fileName}
+              fieldMeta={fieldMeta}
             />
           </div>
         )}

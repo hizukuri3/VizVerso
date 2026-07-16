@@ -439,6 +439,8 @@
     "before": "変更前",
     "after": "変更後",
     "empty": "(なし)",
+    "renamed": "名称変更",
+    "affected_sheets": "影響シート: {{count}}件",
     "category": {
       "datasources": "データソース",
       "fields": "フィールド",
