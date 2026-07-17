@@ -1,15 +1,13 @@
 name = "viz-verso"
-
-[pages_build_config]
-build_command = "npm run build"
-destination_dir = "dist"
+# Cloudflare Pages の wrangler 設定（direct upload 用の現行スキーマ）。
+# デプロイは .github/workflows/deploy.yml の wrangler-action (wrangler 4) が行う。
+pages_build_output_dir = "dist"
 
 # 匿名の機能利用イベント計測用 Analytics Engine データセット。
 # functions/api/event.ts が env.VIZVERSO_ANALYTICS 経由で writeDataPoint する。
-# 注意: Cloudflare Pages ではこの [[analytics_engine_datasets]] だけでは有効化されず、
-#       Pages プロジェクトの「Settings > Functions > Analytics Engine bindings」で
-#       Variable name = VIZVERSO_ANALYTICS / Dataset = vizverso_events を
-#       ダッシュボードから手動でバインドする必要がある（本番・プレビュー両環境）。
+# wrangler 4 の direct upload ではこのバインディングがデプロイに適用される。
+# 反映されない場合は Pages プロジェクトの「Settings > Functions > Analytics Engine bindings」で
+# Variable name = VIZVERSO_ANALYTICS / Dataset = vizverso_events を手動バインドする。
 [[analytics_engine_datasets]]
 binding = "VIZVERSO_ANALYTICS"
 dataset = "vizverso_events"
