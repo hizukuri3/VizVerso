@@ -1,4 +1,12 @@
-import { X, ShieldCheck, Lock, Eye, FileText, ExternalLink } from 'lucide-react'
+import {
+  X,
+  ShieldCheck,
+  Lock,
+  Eye,
+  FileText,
+  ExternalLink,
+  BarChart3,
+} from 'lucide-react'
 import { t } from '../utils/i18n'
 
 interface PrivacyModalProps {
@@ -21,6 +29,10 @@ export function PrivacyModal({ isOpen, onClose }: PrivacyModalProps) {
     {
       key: 'purpose',
       icon: <FileText size={18} className="text-purple-500" />,
+    },
+    {
+      key: 'analytics',
+      icon: <BarChart3 size={18} className="text-sky-500" />,
     },
     {
       key: 'stripe',

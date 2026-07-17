@@ -9,6 +9,7 @@ import {
   ChevronRight,
 } from 'lucide-react'
 import { t } from '../utils/i18n'
+import { trackEvent } from '../utils/analytics'
 
 interface GuideTourModalProps {
   isOpen: boolean
@@ -24,12 +25,25 @@ export function GuideTourModal({ isOpen, onClose }: GuideTourModalProps) {
 function TourDialog({ onClose }: { onClose: () => void }) {
   const [step, setStep] = useState(0)
 
+  // 最終ステップの完了ボタンで閉じた場合は tour_completed、
+  // 途中でスキップ / X / Escape で閉じた場合は tour_skipped を計測する
+  const handleComplete = () => {
+    trackEvent('tour_completed')
+    onClose()
+  }
+  const handleSkip = () => {
+    trackEvent('tour_skipped')
+    onClose()
+  }
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape') handleSkip()
     }
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
+    // handleSkip は onClose にのみ依存するため onClose を依存に含める
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onClose])
 
   const steps = [
@@ -77,7 +91,7 @@ function TourDialog({ onClose }: { onClose: () => void }) {
             </span>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleSkip}
             aria-label={t('button.close')}
             className="p-2 hover:bg-slate-50 rounded-full transition-colors text-slate-400 hover:text-slate-600"
           >
@@ -134,7 +148,7 @@ function TourDialog({ onClose }: { onClose: () => void }) {
             </button>
           ) : (
             <button
-              onClick={onClose}
+              onClick={handleSkip}
               className="px-3 py-2 text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors"
             >
               {t('tour.skip')}
@@ -142,7 +156,7 @@ function TourDialog({ onClose }: { onClose: () => void }) {
           )}
 
           <button
-            onClick={() => (isLast ? onClose() : setStep(step + 1))}
+            onClick={() => (isLast ? handleComplete() : setStep(step + 1))}
             className="flex items-center gap-1 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-100"
           >
             {isLast ? t('tour.start') : t('tour.next')}

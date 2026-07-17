@@ -42,6 +42,12 @@ import {
   loadLastWorkbook,
   clearLastWorkbook,
 } from './utils/sessionStore'
+import {
+  trackEvent,
+  bucketFileSize,
+  bucketCount,
+  bucketDuration,
+} from './utils/analytics'
 
 type SelectionType = 'dashboard' | 'worksheet' | 'datasource'
 
@@ -85,6 +91,7 @@ export default function App() {
     setSelectedId(null)
     setSelectedType(null)
 
+    const startedAt = Date.now()
     try {
       const parsedDoc = await parseWorkbookAsync(file)
       setDocumentData(parsedDoc)
@@ -101,9 +108,23 @@ export default function App() {
         setSelectedId(parsedDoc.worksheets[0].name)
         setSelectedType('worksheet')
       }
+      // 匿名の利用計測（ファイル名・フィールド名等は送らず、粗いバケットのみ）
+      const fieldTotal = parsedDoc.datasources.reduce(
+        (sum, ds) => sum + ds.fields.length,
+        0,
+      )
+      trackEvent('workbook_analyzed', {
+        fileType: /\.twb$/i.test(file.name) ? 'twb' : 'twbx',
+        size: bucketFileSize(file.size),
+        sheets: bucketCount(parsedDoc.worksheets.length),
+        fields: bucketCount(fieldTotal),
+        duration: bucketDuration(Date.now() - startedAt),
+      })
     } catch (err) {
       const message = err instanceof Error ? err.message : t('error.default')
       setError(message)
+      // 失敗イベントはエラーメッセージ等を含めず名前のみ送る
+      trackEvent('analyze_failed')
     } finally {
       setLoading(false)
     }
@@ -130,6 +151,7 @@ export default function App() {
   const handleLanguageChange = (newLang: Language) => {
     setLanguage(newLang)
     setLang(newLang)
+    trackEvent('language_switched', { lang: newLang })
   }
 
   // ── 検索機能のステートとフック ──
@@ -190,6 +212,18 @@ export default function App() {
   // ── 依存グラフモーダルの状態（任意のオブジェクトを中心にできる） ──
   const [graphRoot, setGraphRoot] = useState<GraphRootRef | null>(null)
 
+  // 依存グラフを開く操作を集約し、匿名計測を行う（オブジェクト名は送らない）
+  const openGraph = (ref: GraphRootRef) => {
+    trackEvent('graph_opened', { kind: ref.kind })
+    setGraphRoot(ref)
+  }
+
+  // サイドドロワーを開く操作を集約し、匿名計測を行う
+  const openDrawer = () => {
+    trackEvent('drawer_opened')
+    setIsDrawerOpen(true)
+  }
+
   // グラフの「詳細を開く」: 該当オブジェクトのビューへ遷移してグラフを閉じる
   const handleOpenObjectFromGraph = (ref: GraphRootRef) => {
     setGraphRoot(null)
@@ -201,7 +235,7 @@ export default function App() {
       setIsDrawerOpen(false)
     } else {
       handleNavigateFieldInDrawer(ref.name)
-      setIsDrawerOpen(true)
+      openDrawer()
     }
   }
 
@@ -240,7 +274,7 @@ export default function App() {
           handleSelect(type, id)
           if (field) {
             setTargetFieldName(field)
-            setIsDrawerOpen(true)
+            openDrawer()
           }
         }, 0)
       }
@@ -272,7 +306,7 @@ export default function App() {
     handleSelect(type, id)
     if (field) {
       setTargetFieldName(field)
-      setIsDrawerOpen(true)
+      openDrawer()
     } else {
       setIsDrawerOpen(false)
     }
@@ -472,6 +506,7 @@ export default function App() {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => {
+                  trackEvent('excel_exported')
                   void exportToExcel(documentData, uploadedFileName)
                 }}
                 className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-100"
@@ -624,7 +659,7 @@ export default function App() {
                 doc={documentData}
                 fileName={uploadedFileName}
                 selectedId={selectedId}
-                onOpenGraph={setGraphRoot}
+                onOpenGraph={openGraph}
                 onOpenLegal={() => setIsLegalOpen(true)}
                 onOpenPrivacy={() => setIsPrivacyOpen(true)}
                 onSelect={(type, id) => {
@@ -669,7 +704,7 @@ export default function App() {
               activeFieldName={targetFieldName}
               onOpenDrawer={(fieldName) => {
                 setTargetFieldName(fieldName)
-                setIsDrawerOpen(true)
+                openDrawer()
               }}
             />
           </div>
@@ -717,7 +752,7 @@ export default function App() {
             setIsDrawerOpen(false)
           }}
           onOpenGraph={(fieldName) =>
-            setGraphRoot({ kind: 'field', name: fieldName })
+            openGraph({ kind: 'field', name: fieldName })
           }
         />
       )}
