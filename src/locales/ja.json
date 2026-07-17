@@ -266,8 +266,16 @@
     "unused_badge": "未使用",
     "used_label": "使用中"
   },
+  "restore": {
+    "title": "前回のワークブック「{{name}}」を復元しますか？",
+    "hint": "リロード前に解析していたファイルをそのまま開けます",
+    "action": "復元する",
+    "discard": "破棄"
+  },
   "search": {
     "placeholder": "シート、データソース、計算フィールドを検索...",
+    "open": "検索を開く",
+    "close": "検索を閉じる",
     "no_results": "一致するアイテムが見つかりませんでした",
     "direct_match": "直接一致",
     "dependency_match": "依存関係",

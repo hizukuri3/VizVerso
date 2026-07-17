@@ -3,9 +3,9 @@ import type { TableauDocument } from '../types/tableau'
 import { useDependencyIndex } from './useDependencyIndex'
 
 export type SearchHitReason =
-  | 'direct'      // 名前やキャプションが直接一致
-  | 'formula'     // 計算式内に検索語が含まれる
-  | 'dependency'  // 依存先がヒットしたことによる連鎖ヒット
+  | 'direct' // 名前やキャプションが直接一致
+  | 'formula' // 計算式内に検索語が含まれる
+  | 'dependency' // 依存先がヒットしたことによる連鎖ヒット
 
 export interface SearchResult {
   id: string
@@ -18,6 +18,44 @@ export interface SearchResult {
   parentCaption?: string // 定義元の表示名
   parentType: 'datasource' | 'worksheet' // 定義元の種類
   targetField?: string // ヒットのきっかけとなったフィールドID（あれば）
+  score?: number // 表示順スコア（大きいほど上位。降順ソート用）
+}
+
+// ヒット理由の優先度（direct > formula > dependency）
+const REASON_RANK: Record<SearchHitReason, number> = {
+  direct: 3,
+  formula: 2,
+  dependency: 1,
+}
+
+/**
+ * name / caption と検索語のマッチ品質を評価する。
+ * 完全一致(3) > 前方一致(2) > 部分一致(1) > 一致なし(0)。
+ * 検索語は既に trim / toLowerCase 済みであることを前提とする。
+ */
+function matchQuality(
+  name: string,
+  caption: string | undefined,
+  q: string,
+): number {
+  let best = 0
+  for (const raw of [name, caption]) {
+    if (!raw) continue
+    const s = raw.toLowerCase()
+    if (s === q) best = Math.max(best, 3)
+    else if (s.startsWith(q)) best = Math.max(best, 2)
+    else if (s.includes(q)) best = Math.max(best, 1)
+  }
+  return best
+}
+
+/**
+ * 検索語に対する最終スコアを算出する。
+ * マッチ品質を主軸（×10）、ヒット理由を従（+）として合成し、
+ * マッチ品質 > ヒット理由 の優先順位を単一の数値で表現する。
+ */
+function computeScore(res: SearchResult, q: string): number {
+  return matchQuality(res.name, res.caption, q) * 10 + REASON_RANK[res.reason]
 }
 
 export function useSearch(doc: TableauDocument | null, query: string) {
@@ -35,13 +73,22 @@ export function useSearch(doc: TableauDocument | null, query: string) {
       return info?.field.caption || fieldName
     }
 
-    const getParentInfo = (parentName: string, parentType: 'datasource' | 'worksheet') => {
+    const getParentInfo = (
+      parentName: string,
+      parentType: 'datasource' | 'worksheet',
+    ) => {
       if (parentType === 'datasource') {
-        const ds = doc.datasources.find(d => d.name === parentName)
-        return { caption: ds?.caption || parentName, type: 'datasource' as const }
+        const ds = doc.datasources.find((d) => d.name === parentName)
+        return {
+          caption: ds?.caption || parentName,
+          type: 'datasource' as const,
+        }
       } else {
-        const ws = doc.worksheets.find(w => w.name === parentName)
-        return { caption: ws?.caption || parentName, type: 'worksheet' as const }
+        const ws = doc.worksheets.find((w) => w.name === parentName)
+        return {
+          caption: ws?.caption || parentName,
+          type: 'worksheet' as const,
+        }
       }
     }
 
@@ -75,7 +122,7 @@ export function useSearch(doc: TableauDocument | null, query: string) {
           reason: 'direct',
           parentName: ws.name,
           parentCaption: ws.caption,
-          parentType: 'worksheet'
+          parentType: 'worksheet',
         })
       }
     })
@@ -94,7 +141,7 @@ export function useSearch(doc: TableauDocument | null, query: string) {
           reason: 'direct',
           parentName: ds.name,
           parentCaption: ds.caption,
-          parentType: 'datasource'
+          parentType: 'datasource',
         })
       }
     })
@@ -124,7 +171,7 @@ export function useSearch(doc: TableauDocument | null, query: string) {
           reason,
           parentName: info.parentName,
           parentCaption: p.caption,
-          parentType: p.type
+          parentType: p.type,
         })
         directFieldHits.push(name)
       }
@@ -158,7 +205,7 @@ export function useSearch(doc: TableauDocument | null, query: string) {
               subReason: hitFieldCaption,
               parentName: info.parentName,
               parentCaption: p.caption,
-              parentType: p.type
+              parentType: p.type,
             })
             queue.push({ name: parentName, depth: depth + 1 })
           }
@@ -181,14 +228,28 @@ export function useSearch(doc: TableauDocument | null, query: string) {
               parentName: ws.name,
               parentCaption: ws.caption,
               parentType: 'worksheet',
-              targetField: name // 依存元のフィールドIDを保持
+              targetField: name, // 依存元のフィールドIDを保持
             })
           }
         })
       }
     }
 
-    return Array.from(hitMap.values())
+    // スコアを付与してソート（マッチ品質→ヒット理由→名前の短い順→ロケール順）
+    const scored = Array.from(hitMap.values()).map((res) => ({
+      ...res,
+      score: computeScore(res, q),
+    }))
+
+    scored.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score
+      // 同点: 名前が短い順
+      if (a.name.length !== b.name.length) return a.name.length - b.name.length
+      // さらに同点: ロケール順
+      return a.name.localeCompare(b.name)
+    })
+
+    return scored
   }, [doc, index, query])
 
   return results

@@ -28,6 +28,7 @@ import { AboutModal } from './components/AboutModal'
 import { t, setLanguage, getLanguage, type Language } from './utils/i18n'
 import { useSearch } from './hooks/useSearch'
 import { SearchResultsList } from './components/SearchResultsList'
+import { MobileSearchOverlay } from './components/MobileSearchOverlay'
 import { SideDrawer } from './components/SideDrawer'
 import { LegalModal } from './components/LegalModal'
 import { PrivacyModal } from './components/PrivacyModal'
@@ -35,6 +36,12 @@ import { TrySampleButton } from './components/TrySampleButton'
 import { LandingSections } from './components/LandingSections'
 import { GuideTourModal } from './components/GuideTourModal'
 import { hasSeenTour, markTourSeen } from './utils/tourStorage'
+import { RestoreBanner } from './components/RestoreBanner'
+import {
+  saveLastWorkbook,
+  loadLastWorkbook,
+  clearLastWorkbook,
+} from './utils/sessionStore'
 
 type SelectionType = 'dashboard' | 'worksheet' | 'datasource'
 
@@ -54,6 +61,13 @@ export default function App() {
     markTourSeen()
     setIsTourOpen(false)
   }
+
+  // ── セッション復元（リロードで消えた解析状態を前回ファイルから復元） ──
+  // マウント時に IndexedDB から候補を読み込むが、自動では開かず復元バナーを提示する。
+  const [restoreCandidate, setRestoreCandidate] = useState<{
+    file: File
+    name: string
+  } | null>(null)
 
   // ナビゲーション状態
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -75,6 +89,10 @@ export default function App() {
       const parsedDoc = await parseWorkbookAsync(file)
       setDocumentData(parsedDoc)
       setUploadedFileName(file.name.replace(/\.(twbx?|twb)$/i, ''))
+      // 復元バナーは開いたので消す
+      setRestoreCandidate(null)
+      // 解析成功したファイルを次回リロード用に保存（fire-and-forget）
+      void saveLastWorkbook(file)
       // 最初の一つをデフォルトで選択（もしあれば）
       if (parsedDoc.dashboards.length > 0) {
         setSelectedId(parsedDoc.dashboards[0].name)
@@ -118,8 +136,35 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('')
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('')
   const [showSearchResults, setShowSearchResults] = useState(false)
+  // 狭い画面（md 未満）向けの検索オーバーレイの開閉状態
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false)
   const searchResults = useSearch(documentData, debouncedSearchQuery)
   const searchRef = useRef<HTMLDivElement>(null)
+
+  // マウント時に前回のワークブックを読み込む（自動では開かず復元候補として保持）
+  useEffect(() => {
+    let cancelled = false
+    void loadLastWorkbook().then((res) => {
+      if (!cancelled && res) {
+        setRestoreCandidate({ file: res.file, name: res.file.name })
+      }
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  // 復元バナー: 「復元する」→ 既存の解析フローに File を投入
+  const handleRestore = () => {
+    if (!restoreCandidate) return
+    void handleFileDrop(restoreCandidate.file)
+  }
+
+  // 復元バナー: 「破棄」→ 保存データを削除してバナーを消す
+  const handleDiscardRestore = () => {
+    setRestoreCandidate(null)
+    void clearLastWorkbook()
+  }
 
   // Buy Me a Coffee ウィジェットの表示制御
   useEffect(() => {
@@ -328,7 +373,7 @@ export default function App() {
 
         {documentData && (
           <div
-            className="flex-1 max-w-xl mx-4 sm:mx-8 relative"
+            className="hidden md:block flex-1 max-w-xl mx-4 sm:mx-8 relative"
             ref={searchRef}
           >
             <div className="relative">
@@ -374,6 +419,17 @@ export default function App() {
         )}
 
         <div className="flex items-center gap-2 sm:gap-4">
+          {/* 狭い画面用の検索アイコン（md 未満のみ表示、タップで全幅オーバーレイを開く） */}
+          {documentData && (
+            <button
+              onClick={() => setIsMobileSearchOpen(true)}
+              className="md:hidden p-2 sm:p-2.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all"
+              aria-label={t('search.open')}
+              title={t('search.open')}
+            >
+              <Search size={20} />
+            </button>
+          )}
           <button
             onClick={() => setIsTourOpen(true)}
             className="p-2 sm:p-2.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all"
@@ -461,6 +517,13 @@ export default function App() {
               {t('app.description')}
             </p>
             <div className="max-w-xl mx-auto">
+              {restoreCandidate && (
+                <RestoreBanner
+                  name={restoreCandidate.name}
+                  onRestore={handleRestore}
+                  onDiscard={handleDiscardRestore}
+                />
+              )}
               <DragDropZone onFileDrop={handleFileDrop} />
               {/* サンプルで試すデモボタン（既存の解析フローに投入） */}
               <TrySampleButton onFileDrop={handleFileDrop} onError={setError} />
@@ -611,6 +674,18 @@ export default function App() {
             />
           </div>
         </main>
+      )}
+
+      {/* 狭い画面用の検索オーバーレイ（md 未満のみ有効） */}
+      {documentData && (
+        <MobileSearchOverlay
+          isOpen={isMobileSearchOpen}
+          onClose={() => setIsMobileSearchOpen(false)}
+          query={searchQuery}
+          onQueryChange={setSearchQuery}
+          results={searchResults}
+          onNavigate={handleNavigateFromSearch}
+        />
       )}
 
       {/* モーダル */}
