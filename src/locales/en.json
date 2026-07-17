@@ -417,5 +417,47 @@
       "title": "Export to Excel",
       "desc": "Export the analysis results to an Excel file in one click. You can reopen this guide anytime from the ? button in the header."
     }
+  },
+  "diff": {
+    "entry_button": "Compare two workbooks (beta)",
+    "title": "Workbook Comparison",
+    "subtitle": "Load a before and after workbook to see added, removed, and changed elements at a glance.",
+    "before_label": "Base (before)",
+    "after_label": "Target (after)",
+    "drop_hint": "Drop a .twb / .twbx file",
+    "replace": "Replace",
+    "sheets_count": "{{count}} sheets",
+    "datasources_count": "{{count}} data sources",
+    "back_to_analyze": "Back to analysis",
+    "loading": "Computing diff…",
+    "summary_added": "Added",
+    "summary_removed": "Removed",
+    "summary_changed": "Changed",
+    "no_changes": "No changes",
+    "unchanged_count": "{{count}} unchanged",
+    "before": "Before",
+    "after": "After",
+    "empty": "(none)",
+    "renamed": "Renamed",
+    "affected_sheets": "{{count}} affected sheets",
+    "category": {
+      "datasources": "Data Sources",
+      "fields": "Fields",
+      "worksheets": "Worksheets",
+      "dashboards": "Dashboards"
+    },
+    "prop": {
+      "formula": "Formula",
+      "caption": "Caption",
+      "dataType": "Data type",
+      "role": "Role",
+      "isCalc": "Calculated field",
+      "dependencies": "Dependencies",
+      "rows": "Rows",
+      "cols": "Columns",
+      "filters": "Filters",
+      "markType": "Mark type",
+      "worksheets": "Sheet composition"
+    }
   }
 }

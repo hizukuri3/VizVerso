@@ -34,6 +34,7 @@ import { LegalModal } from './components/LegalModal'
 import { PrivacyModal } from './components/PrivacyModal'
 import { TrySampleButton } from './components/TrySampleButton'
 import { LandingSections } from './components/LandingSections'
+import { CompareView } from './components/CompareView'
 import { GuideTourModal } from './components/GuideTourModal'
 import { hasSeenTour, markTourSeen } from './utils/tourStorage'
 import { RestoreBanner } from './components/RestoreBanner'
@@ -60,6 +61,8 @@ export default function App() {
   const [isPrivacyOpen, setIsPrivacyOpen] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const [lang, setLang] = useState<Language>(getLanguage())
+  // 表示モード: 単一解析 / 2ワークブック比較
+  const [mode, setMode] = useState<'analyze' | 'compare'>('analyze')
 
   // ── 使い方ガイドツアー（初回アクセス時に自動表示） ──
   const [isTourOpen, setIsTourOpen] = useState(() => !hasSeenTour())
@@ -145,6 +148,7 @@ export default function App() {
     setDocumentData(null)
     setError(null)
     setSearchQuery('')
+    setMode('analyze')
     clearUrl()
   }
 
@@ -532,7 +536,7 @@ export default function App() {
         </div>
       </header>
 
-      {!documentData && !loading && (
+      {!documentData && !loading && mode === 'analyze' && (
         <main className="flex-1 flex flex-col items-center justify-center p-6 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-50 via-white to-white">
           <div className="max-w-3xl w-full text-center animate-in fade-in zoom-in duration-700">
             <div className="flex items-center justify-center gap-4 sm:gap-6 mb-8 sm:mb-10">
@@ -562,6 +566,15 @@ export default function App() {
               <DragDropZone onFileDrop={handleFileDrop} />
               {/* サンプルで試すデモボタン（既存の解析フローに投入） */}
               <TrySampleButton onFileDrop={handleFileDrop} onError={setError} />
+              {/* 2つのワークブックを比較する比較モードへの導線 */}
+              <div className="mt-5">
+                <button
+                  onClick={() => setMode('compare')}
+                  className="text-sm font-bold text-slate-400 hover:text-blue-600 transition-colors underline decoration-slate-200 hover:decoration-blue-300 underline-offset-4"
+                >
+                  {t('diff.entry_button')}
+                </button>
+              </div>
             </div>
 
             <div className="mt-12 sm:mt-16 grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8 text-center">
@@ -599,6 +612,12 @@ export default function App() {
             {/* ユースケース + FAQ セクション */}
             <LandingSections />
           </div>
+        </main>
+      )}
+
+      {mode === 'compare' && (
+        <main className="flex-1 flex overflow-hidden">
+          <CompareView onExit={() => setMode('analyze')} />
         </main>
       )}
 
@@ -770,7 +789,7 @@ export default function App() {
       )}
 
       {/* フッター */}
-      {!loading && !documentData && (
+      {!loading && !documentData && mode === 'analyze' && (
         <footer className="py-4 px-6 text-center mt-auto w-full">
           <div className="max-w-7xl mx-auto space-y-1.5">
             {/* 上段: 法的リンク */}

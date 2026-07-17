@@ -418,5 +418,47 @@
       "title": "Excel にエクスポート",
       "desc": "解析結果はワンクリックで Excel ファイルに出力できます。このガイドはヘッダーの ? ボタンからいつでも見直せます。"
     }
+  },
+  "diff": {
+    "entry_button": "2つのワークブックを比較（β）",
+    "title": "ワークブック比較",
+    "subtitle": "変更前と変更後の2つのワークブックを読み込むと、追加・削除・変更された要素を一覧できます。",
+    "before_label": "基準（変更前）",
+    "after_label": "比較対象（変更後）",
+    "drop_hint": ".twb / .twbx ファイルをドロップ",
+    "replace": "差し替え",
+    "sheets_count": "{{count}} シート",
+    "datasources_count": "{{count}} データソース",
+    "back_to_analyze": "解析に戻る",
+    "loading": "比較を計算中…",
+    "summary_added": "追加",
+    "summary_removed": "削除",
+    "summary_changed": "変更",
+    "no_changes": "変更なし",
+    "unchanged_count": "変更なし {{count}} 件",
+    "before": "変更前",
+    "after": "変更後",
+    "empty": "(なし)",
+    "renamed": "名称変更",
+    "affected_sheets": "影響シート: {{count}}件",
+    "category": {
+      "datasources": "データソース",
+      "fields": "フィールド",
+      "worksheets": "ワークシート",
+      "dashboards": "ダッシュボード"
+    },
+    "prop": {
+      "formula": "計算式",
+      "caption": "キャプション",
+      "dataType": "データ型",
+      "role": "役割",
+      "isCalc": "計算フィールド",
+      "dependencies": "依存フィールド",
+      "rows": "行",
+      "cols": "列",
+      "filters": "フィルター",
+      "markType": "マークタイプ",
+      "worksheets": "シート構成"
+    }
   }
 }
