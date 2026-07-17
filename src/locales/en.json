@@ -273,6 +273,8 @@
   },
   "search": {
     "placeholder": "Search sheets, datasources, fields...",
+    "open": "Open search",
+    "close": "Close search",
     "no_results": "No matching items found",
     "direct_match": "Direct Match",
     "dependency_match": "Dependency",

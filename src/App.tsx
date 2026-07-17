@@ -28,6 +28,7 @@ import { AboutModal } from './components/AboutModal'
 import { t, setLanguage, getLanguage, type Language } from './utils/i18n'
 import { useSearch } from './hooks/useSearch'
 import { SearchResultsList } from './components/SearchResultsList'
+import { MobileSearchOverlay } from './components/MobileSearchOverlay'
 import { SideDrawer } from './components/SideDrawer'
 import { LegalModal } from './components/LegalModal'
 import { PrivacyModal } from './components/PrivacyModal'
@@ -135,6 +136,8 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('')
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('')
   const [showSearchResults, setShowSearchResults] = useState(false)
+  // 狭い画面（md 未満）向けの検索オーバーレイの開閉状態
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false)
   const searchResults = useSearch(documentData, debouncedSearchQuery)
   const searchRef = useRef<HTMLDivElement>(null)
 
@@ -370,7 +373,7 @@ export default function App() {
 
         {documentData && (
           <div
-            className="flex-1 max-w-xl mx-4 sm:mx-8 relative"
+            className="hidden md:block flex-1 max-w-xl mx-4 sm:mx-8 relative"
             ref={searchRef}
           >
             <div className="relative">
@@ -416,6 +419,17 @@ export default function App() {
         )}
 
         <div className="flex items-center gap-2 sm:gap-4">
+          {/* 狭い画面用の検索アイコン（md 未満のみ表示、タップで全幅オーバーレイを開く） */}
+          {documentData && (
+            <button
+              onClick={() => setIsMobileSearchOpen(true)}
+              className="md:hidden p-2 sm:p-2.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all"
+              aria-label={t('search.open')}
+              title={t('search.open')}
+            >
+              <Search size={20} />
+            </button>
+          )}
           <button
             onClick={() => setIsTourOpen(true)}
             className="p-2 sm:p-2.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all"
@@ -660,6 +674,18 @@ export default function App() {
             />
           </div>
         </main>
+      )}
+
+      {/* 狭い画面用の検索オーバーレイ（md 未満のみ有効） */}
+      {documentData && (
+        <MobileSearchOverlay
+          isOpen={isMobileSearchOpen}
+          onClose={() => setIsMobileSearchOpen(false)}
+          query={searchQuery}
+          onQueryChange={setSearchQuery}
+          results={searchResults}
+          onNavigate={handleNavigateFromSearch}
+        />
       )}
 
       {/* モーダル */}

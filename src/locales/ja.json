@@ -274,6 +274,8 @@
   },
   "search": {
     "placeholder": "シート、データソース、計算フィールドを検索...",
+    "open": "検索を開く",
+    "close": "検索を閉じる",
     "no_results": "一致するアイテムが見つかりませんでした",
     "direct_match": "直接一致",
     "dependency_match": "依存関係",
