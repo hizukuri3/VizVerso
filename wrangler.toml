@@ -1,15 +1,15 @@
 name = "viz-verso"
-
-[pages_build_config]
-build_command = "npm run build"
-destination_dir = "dist"
+# Cloudflare Pages の wrangler 設定（direct upload 用の現行スキーマ）。
+# デプロイは .github/workflows/deploy.yml の wrangler-action (wrangler 4) が行う。
+pages_build_output_dir = "dist"
 
 # 匿名の機能利用イベント計測用 Analytics Engine データセット。
-# functions/api/event.ts が env.VIZVERSO_ANALYTICS 経由で writeDataPoint する。
-# 注意: Cloudflare Pages ではこの [[analytics_engine_datasets]] だけでは有効化されず、
-#       Pages プロジェクトの「Settings > Functions > Analytics Engine bindings」で
-#       Variable name = VIZVERSO_ANALYTICS / Dataset = vizverso_events を
-#       ダッシュボードから手動でバインドする必要がある（本番・プレビュー両環境）。
-[[analytics_engine_datasets]]
-binding = "VIZVERSO_ANALYTICS"
-dataset = "vizverso_events"
+# functions/api/event.ts が env.VIZVERSO_ANALYTICS 経由で writeDataPoint する
+# （バインディング不在時は 204 を返す無害な no-op）。
+#
+# 注意: このバインディングは CF アカウントで Analytics Engine が有効になっていないと
+# デプロイ自体が失敗する。有効化（https://dash.cloudflare.com → Workers → Analytics Engine）
+# した後で、下記のコメントを外すと計測が有効になる。
+# [[analytics_engine_datasets]]
+# binding = "VIZVERSO_ANALYTICS"
+# dataset = "vizverso_events"

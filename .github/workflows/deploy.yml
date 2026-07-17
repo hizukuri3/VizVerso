@@ -30,11 +30,12 @@ jobs:
       - name: Build
         run: npm run build
 
+      # pages-action@v1 は廃止済みで内部の wrangler 2 が Functions バンドルを壊すため、
+      # 現行の wrangler-action (wrangler 4) による direct upload に置き換え
       - name: Deploy to Cloudflare Pages
-        uses: cloudflare/pages-action@v1
+        uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: viz-verso
-          directory: dist
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          command: pages deploy dist --project-name=viz-verso --branch=${{ github.head_ref || github.ref_name }}
