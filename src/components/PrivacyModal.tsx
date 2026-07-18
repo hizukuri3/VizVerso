@@ -98,7 +98,7 @@ export function PrivacyModal({ isOpen, onClose }: PrivacyModalProps) {
                 Stripe Global Privacy Policy
               </h4>
               <p className="text-xs text-blue-700 leading-relaxed">
-                詳細はStripeの公式サイトでもご確認いただけます。
+                {t('privacy.stripe_link_note')}
               </p>
               <a
                 href="https://stripe.com/privacy"

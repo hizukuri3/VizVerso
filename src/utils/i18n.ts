@@ -29,6 +29,36 @@ export type TKey = Paths<TranslationKeys>
 
 let currentLang: Language = 'ja'
 
+const LANG_STORAGE_KEY = 'vizverso_lang'
+
+/**
+ * 初期表示言語を判定する。
+ * ユーザーが明示的に選択した言語（localStorage）があればそれを優先し、
+ * なければブラウザの言語設定から判定する（日本語以外は英語）。
+ */
+export const detectInitialLanguage = (): Language => {
+  try {
+    const stored = window.localStorage.getItem(LANG_STORAGE_KEY)
+    if (stored === 'ja' || stored === 'en') return stored
+  } catch {
+    // localStorage 不可の環境ではブラウザ言語のみで判定する
+  }
+  const browserLang =
+    typeof navigator !== 'undefined'
+      ? (navigator.languages?.[0] ?? navigator.language ?? '')
+      : ''
+  return browserLang.toLowerCase().startsWith('ja') ? 'ja' : 'en'
+}
+
+/** ユーザーが明示的に選択した言語を保存する（自動判定より優先される） */
+export const persistLanguage = (lang: Language) => {
+  try {
+    window.localStorage.setItem(LANG_STORAGE_KEY, lang)
+  } catch {
+    // 保存できない環境では次回も自動判定になるだけなので無視
+  }
+}
+
 /**
  * 翻訳キーから文字列を取得する
  * @param key 翻訳キー（例: 'app.title'）
@@ -67,6 +97,10 @@ export const t = (
 
 export const setLanguage = (lang: Language) => {
   currentLang = lang
+  if (typeof document !== 'undefined') {
+    document.documentElement.lang = lang
+    document.title = t('app.doc_title')
+  }
 }
 
 export const getLanguage = () => currentLang
