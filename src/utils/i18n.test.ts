@@ -1,5 +1,12 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { t, setLanguage, getLanguage, tMark, tAgg } from './i18n'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import {
+  t,
+  setLanguage,
+  getLanguage,
+  tMark,
+  tAgg,
+  detectInitialLanguage,
+} from './i18n'
 
 describe('i18n utility', () => {
   beforeEach(() => {
@@ -43,5 +50,51 @@ describe('i18n utility', () => {
     expect(tAgg('sum')).toBe('合計')
     expect(tAgg('avg')).toBe('平均')
     expect(tAgg('UNKNOWN')).toBe('UNKNOWN')
+  })
+})
+
+describe('detectInitialLanguage - 初期言語の自動判定', () => {
+  const stubEnv = (storedLang: string | null, browserLang: string) => {
+    vi.stubGlobal('window', {
+      localStorage: { getItem: () => storedLang },
+    })
+    vi.stubGlobal('navigator', {
+      languages: [browserLang],
+      language: browserLang,
+    })
+  }
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('保存済みの言語選択があればブラウザ言語より優先すること', () => {
+    stubEnv('en', 'ja-JP')
+    expect(detectInitialLanguage()).toBe('en')
+  })
+
+  it('保存がなくブラウザ言語が日本語なら ja になること', () => {
+    stubEnv(null, 'ja-JP')
+    expect(detectInitialLanguage()).toBe('ja')
+  })
+
+  it('保存がなくブラウザ言語が日本語以外なら en になること', () => {
+    stubEnv(null, 'fr-FR')
+    expect(detectInitialLanguage()).toBe('en')
+  })
+
+  it('保存値が不正な場合はブラウザ言語で判定すること', () => {
+    stubEnv('de', 'ja')
+    expect(detectInitialLanguage()).toBe('ja')
+  })
+
+  it('localStorage が使えない環境でもブラウザ言語で判定できること', () => {
+    vi.stubGlobal('window', {
+      get localStorage(): Storage {
+        throw new Error('access denied')
+      },
+    })
+    vi.stubGlobal('navigator', { languages: ['ja'], language: 'ja' })
+    expect(detectInitialLanguage()).toBe('ja')
   })
 })

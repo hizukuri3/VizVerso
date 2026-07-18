@@ -25,7 +25,13 @@ const ImpactGraphModal = lazy(() =>
 )
 import { exportToExcel } from './utils/excelExporter'
 import { AboutModal } from './components/AboutModal'
-import { t, setLanguage, getLanguage, type Language } from './utils/i18n'
+import {
+  t,
+  setLanguage,
+  getLanguage,
+  persistLanguage,
+  type Language,
+} from './utils/i18n'
 import { useSearch } from './hooks/useSearch'
 import { SearchResultsList } from './components/SearchResultsList'
 import { MobileSearchOverlay } from './components/MobileSearchOverlay'
@@ -154,6 +160,7 @@ export default function App() {
 
   const handleLanguageChange = (newLang: Language) => {
     setLanguage(newLang)
+    persistLanguage(newLang)
     setLang(newLang)
     trackEvent('language_switched', { lang: newLang })
   }

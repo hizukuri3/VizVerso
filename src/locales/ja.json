@@ -1,6 +1,7 @@
 {
   "app": {
     "title": "VizVerso",
+    "doc_title": "VizVerso | Tableau ワークブック解析ツール（.twbx / .twb）",
     "tagline": "Tableau ワークブックを解析。計算の依存関係を可視化。",
     "description": "Tableau ワークブックをドロップするだけで、構成要素や計算式のつながりを即座に解明します。",
     "about_title": "About VizVerso"
@@ -338,6 +339,7 @@
   },
   "privacy": {
     "title": "プライバシーポリシー",
+    "stripe_link_note": "詳細はStripeの公式サイトでもご確認いただけます。",
     "sections": {
       "data_security": {
         "title": "データの安全性について",

@@ -1,6 +1,7 @@
 {
   "app": {
     "title": "VizVerso",
+    "doc_title": "VizVerso | Tableau Workbook Analyzer (.twbx / .twb)",
     "tagline": "Analyze Tableau workbooks and visualize dependencies.",
     "description": "Drop a .twbx file to visualize dashboard structures and calculated field dependencies in detail.",
     "about_title": "About VizVerso"
@@ -337,6 +338,7 @@
   },
   "privacy": {
     "title": "Privacy Policy",
+    "stripe_link_note": "For details, please see Stripe's official website.",
     "sections": {
       "data_security": {
         "title": "Data Security",
