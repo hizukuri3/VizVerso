@@ -29,6 +29,10 @@ tests/fixtures/DetectiveConan.twbx
 *.sln
 *.sw?
 
+# Test coverage output
+coverage/
+test_output.txt
+
 # Temporary test files
 # NOTE: public/sample.twbx はデモモード（サンプルで試す）の同梱ファイルのため追跡する
 public/corrupt.twbx
