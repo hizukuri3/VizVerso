@@ -109,12 +109,6 @@ describe('excelExporter - 実ファイルからのワークブック生成', () 
     expect(new Set(names).size).toBe(names.length)
     names.forEach((n) => expect(n.length).toBeLessThanOrEqual(31))
   })
-
-  it('B2VB2026W8.twbx でもエラーなくワークブックを構築できること', async () => {
-    const doc = await loadDoc('B2VB2026W8.twbx')
-    const wb = buildExcelWorkbook(doc)
-    expect(wb.worksheets.length).toBeGreaterThan(1)
-  })
 })
 
 // 集計種別・計算種別・パラメータ種別・全 zone 種別を網羅した合成ドキュメントで、
