@@ -421,7 +421,7 @@
     }
   },
   "diff": {
-    "entry_button": "Compare two workbooks (beta)",
+    "entry_button": "Compare two workbooks",
     "title": "Workbook Comparison",
     "subtitle": "Load a before and after workbook to see added, removed, and changed elements at a glance.",
     "before_label": "Base (before)",
@@ -459,7 +459,37 @@
       "cols": "Columns",
       "filters": "Filters",
       "markType": "Mark type",
-      "worksheets": "Sheet composition"
+      "worksheets": "Sheet composition",
+      "fieldType": "Continuous/Discrete",
+      "paramValue": "Current value",
+      "paramDomain": "Allowable values",
+      "paramRange": "Value range",
+      "paramMembers": "Value list",
+      "encodingColor": "Color",
+      "encodingSize": "Size",
+      "encodingLabel": "Label",
+      "encodingDetail": "Detail",
+      "encodingTooltip": "Tooltip",
+      "encodingShape": "Shape",
+      "size": "Size (px)",
+      "usedFields": "Referenced fields",
+      "zones": "Objects",
+      "zoneLayout": "Object layout"
+    },
+    "export_button": "Export diff report to Excel",
+    "excel": {
+      "suffix": "_diff_report",
+      "sheet_summary": "Summary",
+      "col_category": "Category",
+      "col_state": "Status",
+      "col_name": "Name",
+      "col_property": "Property",
+      "col_before": "Before",
+      "col_after": "After",
+      "col_unchanged": "Unchanged",
+      "meta_before_file": "Before file",
+      "meta_after_file": "After file",
+      "meta_generated": "Generated at"
     }
   }
 }

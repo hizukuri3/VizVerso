@@ -21,7 +21,7 @@ A twbx analysis tool for peeking into the backend of Tableau and unraveling its 
 - **マルチレイヤー解析**: 二重軸やマップレイヤーなど、Tableau 特有の複雑なペイン構造を解明。
 - **未使用フィールド検出**: どのシート・計算式・ダッシュボード（パラメータコントロールや動的ゾーン表示を含む）からも参照されていないフィールドを検出し、バッジ表示と Excel 出力の「使用状況」列で確認可能。
 - **計算式コピー**: フィールド詳細ドロワーからワンクリックで計算式をクリップボードにコピー。
-- **ワークブック比較（β）**: 2つのワークブックを比較し、シート・計算フィールドなどの差分を表示。
+- **ワークブック比較**: 2つのワークブックを比較し、フィールド・シート・ダッシュボードレイアウトなどの差分を表示。差分レポートは Excel 形式でエクスポート可能。
 
 - **Structure Visualization**: Explore relationships between all entities within a workbook in your browser.
 - **Calculated Field Analysis**: View detailed calculation logic and dependencies.
@@ -29,7 +29,7 @@ A twbx analysis tool for peeking into the backend of Tableau and unraveling its 
 - **Multi-layer Analysis**: Unravel complex pane structures like dual axes and map layers.
 - **Unused Field Detection**: Detect fields not referenced by any sheet, calculation, or dashboard (including parameter controls and dynamic zone visibility), with badge indicators and a "Usage Status" column in the Excel export.
 - **Formula Copy**: Copy a calculated field's formula to the clipboard with one click from the field detail drawer.
-- **Workbook Diff (beta)**: Compare two workbooks and see differences in sheets, calculated fields, and more.
+- **Workbook Diff**: Compare two workbooks and see differences in fields, sheets, dashboard layouts, and more. Diff reports can be exported to Excel.
 
 ## 技術スタック / Tech Stack
 

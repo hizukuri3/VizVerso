@@ -408,8 +408,8 @@ function renderSheet(
   }
 }
 
-// ブラウザでダウンロードさせる
-async function downloadWorkbook(wb: ExcelJS.Workbook, filename: string) {
+// ブラウザでダウンロードさせる（diff レポート出力からも再利用）
+export async function downloadWorkbook(wb: ExcelJS.Workbook, filename: string) {
   const buffer = await wb.xlsx.writeBuffer()
   const blob = new Blob([buffer], {
     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
