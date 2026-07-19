@@ -47,7 +47,7 @@ export function LandingSections() {
                 <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100">
                   {icon}
                 </div>
-                <h4 className="font-bold text-slate-800 text-base">
+                <h4 className="font-bold text-slate-800 text-base [word-break:keep-all] [overflow-wrap:anywhere]">
                   {t(`usecases.${key}.title`)}
                 </h4>
               </div>
@@ -77,7 +77,7 @@ export function LandingSections() {
                 <span>{t(`faq.${key}.q`)}</span>
                 <ChevronDown
                   size={18}
-                  className="flex-shrink-0 text-slate-400 transition-transform duration-200 group-open:rotate-180"
+                  className="flex-shrink-0 text-slate-500 transition-transform duration-200 group-open:rotate-180"
                 />
               </summary>
               <div className="px-5 pb-5 -mt-1 text-sm text-slate-500 font-medium leading-relaxed whitespace-pre-line">

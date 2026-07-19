@@ -153,7 +153,7 @@ function ImpactCardNode({ data }: NodeProps<ImpactFlowNode>) {
     return (
       <div
         style={{ width: NODE_WIDTH, height: NODE_HEIGHT }}
-        className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-dashed border-slate-300 bg-slate-50 shadow-sm transition-all cursor-pointer hover:border-slate-400 hover:shadow-md"
+        className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-dashed border-slate-300 bg-slate-50 shadow-sm transition cursor-pointer hover:border-slate-400 hover:shadow-md"
         title={t('graph.group_label', { count })}
       >
         <Handle
@@ -168,7 +168,7 @@ function ImpactCardNode({ data }: NodeProps<ImpactFlowNode>) {
           <p className="text-xs font-bold truncate text-slate-600">
             {t('graph.group_label', { count })}
           </p>
-          <p className="text-[9px] text-slate-400 truncate">
+          <p className="text-[9px] text-slate-500 truncate">
             {t('graph.group_expand')}
           </p>
         </div>
@@ -196,7 +196,7 @@ function ImpactCardNode({ data }: NodeProps<ImpactFlowNode>) {
   return (
     <div
       style={{ width: NODE_WIDTH, height: NODE_HEIGHT }}
-      className={`group/card relative flex items-center gap-2 px-3 py-2.5 rounded-xl border shadow-sm transition-all ${card} ${
+      className={`group/card relative flex items-center gap-2 px-3 py-2.5 rounded-xl border shadow-sm transition ${card} ${
         expandable ? 'cursor-pointer hover:shadow-md' : 'cursor-default'
       } ${gn.isUnresolved ? 'opacity-50' : ''}`}
       title={label}
@@ -211,7 +211,7 @@ function ImpactCardNode({ data }: NodeProps<ImpactFlowNode>) {
           title={
             gn.isExpanded ? t('graph.collapse_node') : t('graph.expand_node')
           }
-          className="absolute top-1/2 -translate-y-1/2 z-10 min-w-5 h-5 px-1 rounded-full bg-white border border-slate-300 shadow-sm text-[9px] font-black text-slate-500 hover:border-indigo-400 hover:text-indigo-600 transition-all flex items-center justify-center"
+          className="absolute top-1/2 -translate-y-1/2 z-10 min-w-5 h-5 px-1 rounded-full bg-white border border-slate-300 shadow-sm text-[9px] font-black text-slate-500 hover:border-indigo-400 hover:text-indigo-600 transition flex items-center justify-center"
           style={{ [gn.column < 0 ? 'left' : 'right']: -12 }}
         >
           {gn.isExpanded ? '−' : `+${gn.expandableCount}`}
@@ -225,7 +225,7 @@ function ImpactCardNode({ data }: NodeProps<ImpactFlowNode>) {
             data.onRecenter(gn)
           }}
           title={t('graph.recenter')}
-          className="absolute -top-2 -right-2 z-10 w-5 h-5 rounded-full bg-white border border-slate-300 shadow-sm text-slate-400 hover:text-blue-600 hover:border-blue-400 opacity-0 group-hover/card:opacity-100 focus-visible:opacity-100 transition-all flex items-center justify-center"
+          className="absolute -top-2 -right-2 z-10 w-5 h-5 rounded-full bg-white border border-slate-300 shadow-sm text-slate-500 hover:text-blue-600 hover:border-blue-400 opacity-0 group-hover/card:opacity-100 focus-visible:opacity-100 transition flex items-center justify-center"
         >
           <Crosshair size={11} />
         </button>
@@ -1223,7 +1223,7 @@ function ImpactGraphModalInner({
         key={gn.id}
         disabled={!ref || gn.isUnresolved}
         onClick={() => ref && recenter(ref)}
-        className={`w-full flex items-center gap-2 px-3 py-2 bg-white border border-slate-100 rounded-xl transition-all text-left ${
+        className={`w-full flex items-center gap-2 px-3 py-2 bg-white border border-slate-100 rounded-xl transition text-left ${
           ref && !gn.isUnresolved
             ? `${hoverClass} hover:shadow-sm`
             : 'opacity-50 cursor-not-allowed'
@@ -1234,7 +1234,7 @@ function ImpactGraphModalInner({
           {stripBracket(gn.label)}
         </span>
         {gn.kind === 'field' && gn.column !== 0 && (
-          <span className="ml-auto text-[9px] font-black text-slate-300 shrink-0">
+          <span className="ml-auto text-[9px] font-black text-slate-400 shrink-0">
             {gn.column < 0 ? '↑' : '↓'}
             {Math.abs(gn.column)}
           </span>
@@ -1244,7 +1244,12 @@ function ImpactGraphModalInner({
   }
 
   return (
-    <div className="impact-modal fixed inset-0 z-[80] flex flex-col bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
+    <div
+      className="impact-modal fixed inset-0 z-[80] flex flex-col bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300"
+      role="dialog"
+      aria-modal="true"
+      aria-label={`${t('graph.title')} — ${rootLabel}`}
+    >
       <div className="m-3 sm:m-6 flex-1 flex flex-col bg-white rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
         {/* ヘッダー */}
         <header className="px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-4 shrink-0">
@@ -1253,7 +1258,7 @@ function ImpactGraphModalInner({
               <button
                 onClick={goBack}
                 data-testid="graph-back-button"
-                className="p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-400 hover:text-slate-600 group shrink-0"
+                className="p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-500 hover:text-slate-600 group shrink-0"
                 title={t('button.back')}
               >
                 <ArrowLeft
@@ -1272,7 +1277,7 @@ function ImpactGraphModalInner({
               )}
             </div>
             <div className="overflow-hidden">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+              <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">
                 {t('graph.title')} — {kindLabel(root.kind)}
               </p>
               <h2
@@ -1286,7 +1291,7 @@ function ImpactGraphModalInner({
               <button
                 onClick={() => onOpenObject(root)}
                 data-testid="graph-open-detail"
-                className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition-all active:scale-95"
+                className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition active:scale-95"
               >
                 {t('graph.open_detail')}
                 <ArrowUpRight size={12} />
@@ -1296,7 +1301,7 @@ function ImpactGraphModalInner({
               onClick={handleExpandAll}
               data-testid="graph-expand-all"
               title={t('graph.expand_all_hint')}
-              className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition-all active:scale-95"
+              className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition active:scale-95"
             >
               {t('graph.expand_all')}
               <Expand size={12} />
@@ -1305,7 +1310,7 @@ function ImpactGraphModalInner({
               onClick={handleRelayout}
               data-testid="graph-relayout"
               title={t('graph.relayout_hint')}
-              className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition-all active:scale-95"
+              className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition active:scale-95"
             >
               {t('graph.relayout')}
               <LayoutGrid size={12} />
@@ -1315,7 +1320,7 @@ function ImpactGraphModalInner({
             {legend.map((item) => (
               <span
                 key={item.label}
-                className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400"
+                className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500"
               >
                 <span className={`w-2.5 h-2.5 rounded-full ${item.color}`} />
                 {item.label}
@@ -1324,7 +1329,7 @@ function ImpactGraphModalInner({
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-red-50 hover:text-red-500 rounded-xl transition-all text-slate-400 shrink-0"
+            className="p-2 hover:bg-red-50 hover:text-red-500 rounded-xl transition text-slate-500 shrink-0"
             title={t('graph.close')}
           >
             <X size={22} />
@@ -1386,7 +1391,11 @@ function ImpactGraphModalInner({
                   if (gn.isParameter) return '#a78bfa'
                   return gn.column < 0 ? '#d8b4fe' : '#6ee7b7'
                 }}
-                style={{ borderRadius: '12px' }}
+                style={{
+                  borderRadius: '12px',
+                  border: '1px solid #e2e8f0',
+                  boxShadow: '0 4px 12px rgba(15, 23, 42, 0.08)',
+                }}
               />
               <Background
                 variant={BackgroundVariant.Dots}
@@ -1423,7 +1432,7 @@ function ImpactGraphModalInner({
                             </p>
                           ))}
                           {rest > 0 && (
-                            <p className="text-[10px] text-slate-400">
+                            <p className="text-[11px] text-slate-500">
                               {t('graph.group_more', { count: rest })}
                             </p>
                           )}
@@ -1475,7 +1484,7 @@ function ImpactGraphModalInner({
                     </div>
                     {hover.gn.kind === 'field' && hover.gn.formula && (
                       <div>
-                        <h5 className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                        <h5 className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">
                           {t('drawer.formula')}
                         </h5>
                         <div className="max-h-44 overflow-hidden text-xs">
@@ -1490,7 +1499,7 @@ function ImpactGraphModalInner({
                     )}
                     {hover.gn.kind === 'field' && hover.gn.paramValue && (
                       <div>
-                        <h5 className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                        <h5 className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">
                           {t('detail.current_value')}
                         </h5>
                         <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs font-bold">
@@ -1538,7 +1547,7 @@ function ImpactGraphModalInner({
 
             {panelGroups.upstreamFields.length > 0 && (
               <section className="space-y-2">
-                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
                   <span className="w-1 h-3 bg-purple-500 rounded-full" />
                   {t('graph.upstream')}
                 </h4>
@@ -1550,7 +1559,7 @@ function ImpactGraphModalInner({
 
             {panelGroups.downstreamFields.length > 0 && (
               <section className="space-y-2">
-                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
                   <span className="w-1 h-3 bg-emerald-500 rounded-full" />
                   {t('graph.downstream')}
                 </h4>
@@ -1562,7 +1571,7 @@ function ImpactGraphModalInner({
 
             {panelGroups.sheets.length > 0 && (
               <section className="space-y-2">
-                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
                   <span className="w-1 h-3 bg-blue-500 rounded-full" />
                   {t('graph.sheets')}
                 </h4>
@@ -1574,7 +1583,7 @@ function ImpactGraphModalInner({
 
             {panelGroups.dashboards.length > 0 && (
               <section className="space-y-2">
-                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
                   <span className="w-1 h-3 bg-rose-500 rounded-full" />
                   {t('graph.dashboards')}
                 </h4>
@@ -1587,7 +1596,7 @@ function ImpactGraphModalInner({
             {panelGroups.fieldCount === 0 &&
               panelGroups.sheets.length === 0 &&
               panelGroups.dashboards.length === 0 && (
-                <p className="text-xs text-slate-400 italic">
+                <p className="text-xs text-slate-500 italic">
                   {t('drawer.impact_none')}
                 </p>
               )}

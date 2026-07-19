@@ -86,7 +86,7 @@ function DependencyTreeItem({
         disabled={!clickable}
         onClick={() => clickable && onNavigate(node.fieldId)}
         style={{ marginLeft: depth * 16 }}
-        className={`w-full flex items-center gap-2 p-3 bg-white border border-slate-100 rounded-xl transition-all group text-left ${
+        className={`w-full flex items-center gap-2 p-3 bg-white border border-slate-100 rounded-xl transition group text-left ${
           clickable
             ? 'hover:border-purple-300 hover:shadow-sm'
             : 'opacity-60 cursor-not-allowed'
@@ -96,7 +96,7 @@ function DependencyTreeItem({
           className={`p-1.5 rounded-lg transition-colors shrink-0 ${
             clickable
               ? 'bg-purple-50 text-purple-600 group-hover:bg-purple-100'
-              : 'bg-slate-100 text-slate-400'
+              : 'bg-slate-100 text-slate-500'
           }`}
         >
           <Hash size={14} />
@@ -122,7 +122,7 @@ function DependencyTreeItem({
         {clickable && (
           <ChevronRight
             size={16}
-            className="ml-auto text-slate-300 group-hover:text-purple-500 group-hover:translate-x-1 transition-all shrink-0"
+            className="ml-auto text-slate-400 group-hover:text-purple-500 group-hover:translate-x-1 transition shrink-0"
           />
         )}
       </button>
@@ -263,6 +263,18 @@ export function SideDrawer({
     return formatFormulaText(formula, fieldMetaForFormatter)
   }, [fieldInfo, fieldMetaForFormatter])
 
+  // 閉じるときも同じ経路で退出させるため、exit アニメーション（300ms）が終わるまでマウントを維持する
+  const [shouldRender, setShouldRender] = useState(isOpen)
+  if (isOpen && !shouldRender) {
+    // レンダー中の状態調整パターン: 開いた瞬間に再マウントする
+    setShouldRender(true)
+  }
+  useEffect(() => {
+    if (isOpen || !shouldRender) return
+    const timer = setTimeout(() => setShouldRender(false), 320)
+    return () => clearTimeout(timer)
+  }, [isOpen, shouldRender])
+
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden'
@@ -275,35 +287,51 @@ export function SideDrawer({
     }
   }, [isOpen])
 
-  if (!isOpen) return null
+  // Escape で閉じる + 開いたらドロワーへフォーカスを移す
+  useEffect(() => {
+    if (!isOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', onKey)
+    drawerRef.current?.focus()
+    return () => document.removeEventListener('keydown', onKey)
+  }, [isOpen, onClose])
+
+  if (!shouldRender) return null
 
   return (
     <>
       {/* Overlay */}
       <div
-        className="drawer-backdrop fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-[60] transition-opacity animate-in fade-in duration-300"
+        className={`drawer-backdrop fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-[60] duration-300 ${
+          isOpen
+            ? 'animate-in fade-in'
+            : 'animate-out fade-out fill-mode-forwards'
+        }`}
         onClick={onClose}
-        onKeyDown={(e) => {
-          if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
-            onClose()
-          }
-        }}
-        role="button"
-        tabIndex={-1}
-        aria-label="Close drawer"
+        aria-hidden="true"
       />
 
       {/* Drawer */}
       <div
         ref={drawerRef}
-        className="side-drawer fixed inset-y-0 right-0 w-[40%] max-w-2xl bg-white shadow-2xl z-[70] flex flex-col animate-in slide-in-from-right duration-500 ease-out border-l border-slate-200"
+        role="dialog"
+        aria-modal="true"
+        aria-label={fieldInfo?.field.caption || targetFieldName || undefined}
+        tabIndex={-1}
+        className={`side-drawer fixed inset-y-0 right-0 w-full md:w-[40%] max-w-2xl bg-white shadow-2xl z-[70] flex flex-col duration-300 border-l border-slate-200 focus:outline-none ${
+          isOpen
+            ? 'animate-in slide-in-from-right ease-out'
+            : 'animate-out slide-out-to-right ease-in fill-mode-forwards'
+        }`}
       >
-        <header className="p-8 border-b border-slate-100 flex items-center justify-between bg-white/80 backdrop-blur-md sticky top-0 z-10">
+        <header className="p-5 sm:p-8 border-b border-slate-100 flex items-center justify-between bg-white/80 backdrop-blur-md sticky top-0 z-10">
           <div className="flex items-center gap-4 overflow-hidden">
             {history.length > 0 && (
               <button
                 onClick={handleBack}
-                className="p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-400 hover:text-slate-600 group shrink-0"
+                className="p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-500 hover:text-slate-600 group shrink-0"
                 title={t('button.back') || '戻る'}
               >
                 <ArrowLeft
@@ -315,7 +343,7 @@ export function SideDrawer({
             <div className="overflow-hidden">
               <div className="flex items-center gap-2 mb-1">
                 <span
-                  className={`whitespace-nowrap text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full shrink-0 ${formattedFormula ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'}`}
+                  className={`whitespace-nowrap text-[11px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full shrink-0 ${formattedFormula ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'}`}
                 >
                   {formattedFormula
                     ? t('detail.calculated_fields')
@@ -323,7 +351,7 @@ export function SideDrawer({
                 </span>
                 {fieldInfo?.parentCaption && (
                   <span
-                    className="text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate min-w-0"
+                    className="text-[11px] font-bold text-slate-500 uppercase tracking-widest truncate min-w-0"
                     title={fieldInfo.parentCaption}
                   >
                     {fieldInfo.parentCaption}
@@ -332,7 +360,7 @@ export function SideDrawer({
                 {fieldInfo?.resolvedDataType && (
                   <>
                     <span className="text-slate-200 mx-1">•</span>
-                    <span className="whitespace-nowrap text-[10px] font-bold text-blue-500 uppercase tracking-widest bg-blue-50 px-2 py-0.5 rounded shrink-0">
+                    <span className="whitespace-nowrap text-[11px] font-bold text-blue-500 uppercase tracking-widest bg-blue-50 px-2 py-0.5 rounded shrink-0">
                       {fieldInfo.resolvedDataType}
                     </span>
                   </>
@@ -341,7 +369,7 @@ export function SideDrawer({
                   <span
                     data-testid="drawer-unused-badge"
                     title={t('usage.unused_hint')}
-                    className="whitespace-nowrap text-[10px] font-bold text-amber-700 uppercase tracking-widest bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full shrink-0"
+                    className="whitespace-nowrap text-[11px] font-bold text-amber-700 uppercase tracking-widest bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full shrink-0"
                   >
                     {t('usage.unused_badge')}
                   </span>
@@ -361,24 +389,26 @@ export function SideDrawer({
               disabled={!graphAvailable}
               data-testid="drawer-graph-button"
               title={t('drawer.view_graph')}
-              className="p-2 hover:bg-slate-100 hover:text-slate-600 rounded-xl transition-all text-slate-400 disabled:opacity-30 disabled:cursor-not-allowed"
+              className="p-2 hover:bg-slate-100 hover:text-slate-600 rounded-xl transition text-slate-500 disabled:opacity-30 disabled:cursor-not-allowed"
             >
               <GitBranch size={20} />
             </button>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-red-50 hover:text-red-500 rounded-xl transition-all text-slate-400"
+              title={t('button.close')}
+              aria-label={t('button.close')}
+              className="p-2 hover:bg-red-50 hover:text-red-500 rounded-xl transition text-slate-500"
             >
               <X size={24} />
             </button>
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-8 space-y-10">
+        <div className="flex-1 overflow-y-auto p-5 sm:p-8 space-y-8 sm:space-y-10">
           {/* 計算式セクション（パラメータ以外の場合のみ表示） */}
           {formattedFormula && !field?.paramDomainType && (
             <section className="space-y-4">
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
                 <span className="w-1.5 h-4 bg-emerald-500 rounded-full" />
                 {t('drawer.formula')}
                 <button
@@ -390,7 +420,7 @@ export function SideDrawer({
                       .then(() => setCopied(true))
                   }}
                   title={t('drawer.copy_formula')}
-                  className={`ml-auto flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[10px] font-bold normal-case tracking-normal transition-all active:scale-95 ${
+                  className={`ml-auto flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-bold normal-case tracking-normal transition active:scale-95 ${
                     copied
                       ? 'bg-emerald-50 text-emerald-600 border-emerald-200'
                       : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300 hover:text-slate-700'
@@ -410,14 +440,14 @@ export function SideDrawer({
           {/* パラメータ設定セクション */}
           {field?.paramDomainType && (
             <section className="space-y-4">
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
                 <span className="w-1.5 h-4 bg-purple-500 rounded-full" />
                 {t('detail.param_settings')}
               </h3>
               <div className="bg-slate-50/50 rounded-2xl border border-slate-100 p-6 space-y-6">
                 {field.value !== undefined && (
                   <div className="space-y-2">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">
                       {t('detail.current_value')}
                     </p>
                     <div className="px-4 py-3 bg-blue-50 text-blue-700 rounded-xl text-sm font-bold border border-blue-100 shadow-sm inline-block">
@@ -427,7 +457,7 @@ export function SideDrawer({
                 )}
                 {field.paramDomainType === 'list' && field.paramMembers && (
                   <div className="space-y-3">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">
                       {t('detail.list')}
                     </p>
                     <div className="grid grid-cols-1 gap-2">
@@ -440,7 +470,7 @@ export function SideDrawer({
                             {m.alias || m.value}
                           </span>
                           {m.alias && (
-                            <span className="text-[10px] text-slate-400">
+                            <span className="text-[11px] text-slate-500">
                               Value: {m.value}
                             </span>
                           )}
@@ -451,12 +481,12 @@ export function SideDrawer({
                 )}
                 {field.paramDomainType === 'range' && field.paramRange && (
                   <div className="space-y-3">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">
                       {t('detail.range')}
                     </p>
                     <div className="flex items-center justify-between px-2">
                       <div className="text-center">
-                        <p className="text-[9px] text-slate-400 uppercase font-bold mb-1">
+                        <p className="text-[9px] text-slate-500 uppercase font-bold mb-1">
                           {t('detail.min')}
                         </p>
                         <p className="text-lg font-black text-slate-700">
@@ -464,7 +494,7 @@ export function SideDrawer({
                         </p>
                       </div>
                       <div className="text-center">
-                        <p className="text-[9px] text-slate-400 uppercase font-bold mb-1">
+                        <p className="text-[9px] text-slate-500 uppercase font-bold mb-1">
                           {t('detail.max')}
                         </p>
                         <p className="text-lg font-black text-slate-700">
@@ -473,7 +503,7 @@ export function SideDrawer({
                       </div>
                       {field.paramRange.step && (
                         <div className="text-center">
-                          <p className="text-[9px] text-slate-400 uppercase font-bold mb-1">
+                          <p className="text-[9px] text-slate-500 uppercase font-bold mb-1">
                             {t('detail.step')}
                           </p>
                           <p className="text-lg font-black text-slate-700">
@@ -491,10 +521,10 @@ export function SideDrawer({
           {/* 影響分析: 下流波及のサマリと依存グラフ起動 */}
           {impact && (
             <section className="space-y-4">
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
                 <span className="w-1.5 h-4 bg-rose-500 rounded-full" />
                 {t('drawer.impact_title')}
-                <span className="ml-auto normal-case tracking-normal text-[10px] font-medium text-slate-300">
+                <span className="ml-auto normal-case tracking-normal text-[11px] font-medium text-slate-400">
                   {t('drawer.impact_hint')}
                 </span>
               </h3>
@@ -537,7 +567,7 @@ export function SideDrawer({
                     targetFieldName && onOpenGraph?.(targetFieldName)
                   }
                   disabled={!graphAvailable}
-                  className="w-full flex items-center justify-center gap-2 py-3 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-200 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold transition-all active:scale-[0.98] shadow-md shadow-slate-200"
+                  className="w-full flex items-center justify-center gap-2 py-3 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-200 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold transition active:scale-[0.98] shadow-md shadow-slate-200"
                 >
                   <GitBranch size={14} />
                   {t('drawer.view_graph')}
@@ -548,7 +578,7 @@ export function SideDrawer({
 
           {/* 使用されているシート */}
           <section className="space-y-4">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
               <span className="w-1.5 h-4 bg-blue-500 rounded-full" />
               {t('nav.sheets')} ({sheetNames.length})
             </h3>
@@ -561,14 +591,14 @@ export function SideDrawer({
                     <button
                       key={name}
                       onClick={() => onNavigateToSheet?.(name)}
-                      className="px-3 py-1.5 bg-blue-50 text-blue-700 text-sm font-bold rounded-xl border border-blue-100 hover:bg-blue-100 hover:border-blue-300 hover:shadow-sm transition-all active:scale-95 text-left"
+                      className="px-3 py-1.5 bg-blue-50 text-blue-700 text-sm font-bold rounded-xl border border-blue-100 hover:bg-blue-100 hover:border-blue-300 hover:shadow-sm transition active:scale-95 text-left"
                     >
                       {displayName}
                     </button>
                   )
                 })
               ) : (
-                <p className="text-sm text-slate-400 italic py-2 pl-4">
+                <p className="text-sm text-slate-500 italic py-2 pl-4">
                   {t('drawer.no_sheets')}
                 </p>
               )}
@@ -580,10 +610,10 @@ export function SideDrawer({
             dependencyTree.isCalc &&
             dependencyTree.children.length > 0 && (
               <section className="space-y-4">
-                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
                   <span className="w-1.5 h-4 bg-purple-500 rounded-full" />
                   {t('drawer.dependency_tree')}
-                  <span className="ml-auto normal-case tracking-normal text-[10px] font-medium text-slate-300">
+                  <span className="ml-auto normal-case tracking-normal text-[11px] font-medium text-slate-400">
                     {t('drawer.tree_depth_note', { depth: TREE_MAX_DEPTH })}
                   </span>
                 </h3>
@@ -602,7 +632,7 @@ export function SideDrawer({
 
           {/* 依存関係: 下流 (Consumers / この項目を参照している) */}
           <section className="space-y-4">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
               <span className="w-1.5 h-4 bg-emerald-500 rounded-full" />
               {t('drawer.downstream')} ({downstreamNames.length})
             </h3>
@@ -614,7 +644,7 @@ export function SideDrawer({
                     <button
                       key={name}
                       onClick={() => handleDrillDown(name)}
-                      className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl hover:border-emerald-300 hover:shadow-md transition-all group text-left"
+                      className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl hover:border-emerald-300 hover:shadow-md transition group text-left"
                     >
                       <div className="flex items-center gap-3">
                         <div className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg group-hover:bg-emerald-100 transition-colors">
@@ -631,13 +661,13 @@ export function SideDrawer({
                       </div>
                       <ChevronRight
                         size={16}
-                        className="text-slate-300 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all"
+                        className="text-slate-400 group-hover:text-emerald-500 group-hover:translate-x-1 transition"
                       />
                     </button>
                   )
                 })
               ) : (
-                <p className="text-sm text-slate-400 italic py-2 pl-4">
+                <p className="text-sm text-slate-500 italic py-2 pl-4">
                   {t('drawer.no_downstream')}
                 </p>
               )}
@@ -646,7 +676,7 @@ export function SideDrawer({
         </div>
 
         <footer className="p-8 border-t border-slate-100 bg-slate-50/30">
-          <p className="text-[10px] text-slate-300 font-medium text-center uppercase tracking-[0.2em]">
+          <p className="text-[11px] text-slate-400 font-medium text-center uppercase tracking-[0.2em]">
             VizVerso Dependency Explorer
           </p>
         </footer>

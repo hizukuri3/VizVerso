@@ -151,12 +151,16 @@ export function useSearch(doc: TableauDocument | null, query: string) {
     index.fields.forEach((info, name) => {
       const f = info.field
       let reason: SearchHitReason | null = null
+      let subReason: string | undefined
 
-      if (
-        name.toLowerCase().includes(q) ||
-        (f.caption && f.caption.toLowerCase().includes(q))
-      ) {
+      const nameMatch = name.toLowerCase().includes(q)
+      const captionMatch = !!f.caption && f.caption.toLowerCase().includes(q)
+      if (nameMatch || captionMatch) {
         reason = 'direct'
+        // 表示名には一致せず内部名にのみ一致した場合、根拠が見えないため内部名を補足する
+        if (!captionMatch && f.caption) {
+          subReason = name
+        }
       } else if (f.formula && f.formula.toLowerCase().includes(q)) {
         reason = 'formula'
       }
@@ -169,6 +173,7 @@ export function useSearch(doc: TableauDocument | null, query: string) {
           caption: f.caption,
           type: 'field',
           reason,
+          subReason,
           parentName: info.parentName,
           parentCaption: p.caption,
           parentType: p.type,

@@ -133,7 +133,7 @@ function AffectedSheets({ sheets }: { sheets: string[] }) {
   if (sheets.length === 0) return null
   return (
     <span
-      className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-400 flex-shrink-0"
+      className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500 flex-shrink-0"
       title={sheets.join(', ')}
     >
       <Layers size={11} />
@@ -169,7 +169,7 @@ function EntityRow({
       {icon}
       <span className="text-sm font-bold text-slate-700 truncate">{label}</span>
       {sublabel && (
-        <span className="text-[11px] text-slate-400 font-medium truncate">
+        <span className="text-[11px] text-slate-500 font-medium truncate">
           {sublabel}
         </span>
       )}
@@ -206,7 +206,7 @@ function FieldEntityRow({
         {fieldDisplayName(f)}
       </span>
       {aux && (
-        <span className="text-[11px] text-slate-400 font-mono truncate">
+        <span className="text-[11px] text-slate-500 font-mono truncate">
           {aux}
         </span>
       )}
@@ -261,11 +261,11 @@ function FormulaDiff({
 
   return (
     <div className="space-y-2">
-      <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+      <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
         {propLabel('formula')}
       </div>
       <div>
-        <div className="text-[10px] font-bold text-red-500 mb-1">
+        <div className="text-[11px] font-bold text-red-500 mb-1">
           {t('diff.before')}
         </div>
         <pre className="bg-white rounded-xl border border-slate-100 shadow-sm p-3 font-mono text-[13px] leading-relaxed whitespace-pre-wrap break-all">
@@ -273,7 +273,7 @@ function FormulaDiff({
         </pre>
       </div>
       <div>
-        <div className="text-[10px] font-bold text-emerald-600 mb-1">
+        <div className="text-[11px] font-bold text-emerald-600 mb-1">
           {t('diff.after')}
         </div>
         <pre className="bg-white rounded-xl border border-slate-100 shadow-sm p-3 font-mono text-[13px] leading-relaxed whitespace-pre-wrap break-all">
@@ -306,13 +306,13 @@ function PropertyChangeRow({
 
   return (
     <div className="flex flex-wrap items-center gap-2 text-sm">
-      <span className="text-[11px] font-bold text-slate-400 min-w-[80px]">
+      <span className="text-[11px] font-bold text-slate-500 min-w-[80px]">
         {propLabel(change.property)}
       </span>
       <span className="px-2 py-0.5 rounded-lg bg-red-50 text-red-600 font-medium line-through decoration-red-300">
         {change.before ?? empty}
       </span>
-      <span className="text-slate-300">→</span>
+      <span className="text-slate-400">→</span>
       <span className="px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-600 font-medium">
         {change.after ?? empty}
       </span>
@@ -365,14 +365,14 @@ function FieldChangedRow({
         {captionChange ? (
           <>
             <Tag size={14} className="text-amber-500 flex-shrink-0" />
-            <span className="text-sm font-bold text-slate-400 line-through decoration-slate-300 truncate">
+            <span className="text-sm font-bold text-slate-500 line-through decoration-slate-300 truncate">
               {beforeName}
             </span>
-            <span className="text-slate-300">→</span>
+            <span className="text-slate-400">→</span>
             <span className="text-sm font-bold text-slate-700 truncate">
               {afterName}
             </span>
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-amber-100 text-amber-700">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-bold bg-amber-100 text-amber-700">
               {t('diff.renamed')}
             </span>
           </>
@@ -425,12 +425,12 @@ function SectionShell({
           <SummaryBadges cat={cat} />
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-[11px] text-slate-400 font-medium">
+          <span className="text-[11px] text-slate-500 font-medium">
             {t('diff.unchanged_count', { count: cat.unchangedCount })}
           </span>
           <ChevronDown
             size={18}
-            className={`text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`}
+            className={`text-slate-500 transition-transform ${open ? 'rotate-180' : ''}`}
           />
         </div>
       </button>
@@ -438,7 +438,7 @@ function SectionShell({
       {open && (
         <div className="px-5 pb-5 pt-1 space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
           {empty ? (
-            <p className="text-sm text-slate-400 font-medium py-4 text-center">
+            <p className="text-sm text-slate-500 font-medium py-4 text-center">
               {t('diff.no_changes')}
             </p>
           ) : (
@@ -517,7 +517,7 @@ export function DiffView({
             <span className="px-2 py-0.5 rounded-lg bg-slate-100 text-slate-600">
               {beforeName ?? t('diff.before_label')}
             </span>
-            <span className="text-slate-300">→</span>
+            <span className="text-slate-400">→</span>
             <span className="px-2 py-0.5 rounded-lg bg-slate-100 text-slate-600">
               {afterName ?? t('diff.after_label')}
             </span>

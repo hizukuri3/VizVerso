@@ -44,7 +44,10 @@
     "dashboards": "Dashboards",
     "sheets": "Sheets",
     "datasources": "Data Sources",
-    "home": "Home"
+    "home": "Home",
+    "analyzing_file": "Analyzing File",
+    "hide_navigator": "Hide navigator",
+    "show_navigator": "Show navigator"
   },
   "detail": {
     "dashboard_summary": "Dashboard Summary",

@@ -42,10 +42,10 @@ describe('FormulaHighlighter', () => {
     expect(Element.prototype.scrollIntoView).toHaveBeenCalled()
   })
 
-  it('文字列リテラルは text-slate-400 で表示されること', () => {
+  it('文字列リテラルは text-slate-500 で表示されること', () => {
     render(<FormulaHighlighter formula='"Hello"' />)
     const span = screen.getByText('"Hello"')
-    expect(span.className).toContain('text-slate-400')
+    expect(span.className).toContain('text-slate-500')
   })
 
   it('パラメータ参照（[Parameters].[...]）は text-purple-500 で表示されること', () => {

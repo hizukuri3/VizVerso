@@ -100,7 +100,7 @@ function FindingRow({
     <button
       type="button"
       onClick={() => onOpenField?.(finding.fieldId)}
-      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-slate-100 bg-white hover:border-blue-300 hover:shadow-sm transition-all group text-left"
+      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-slate-100 bg-white hover:border-blue-300 hover:shadow-sm transition group text-left"
     >
       <span
         className="text-sm font-bold text-slate-700 truncate"
@@ -109,7 +109,7 @@ function FindingRow({
         {finding.caption}
       </span>
       {finding.datasourceName && (
-        <span className="text-[11px] text-slate-400 font-medium truncate shrink-0">
+        <span className="text-[11px] text-slate-500 font-medium truncate shrink-0">
           {finding.datasourceName}
         </span>
       )}
@@ -152,13 +152,13 @@ function RuleCard({
               {t('health.findings_count', { count: findings.length })}
             </span>
           </div>
-          <p className="text-[11px] text-slate-400 font-medium leading-relaxed">
+          <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
             {t(`health.rule.${ruleId}.desc` as TKey)}
           </p>
         </div>
         <ChevronDown
           size={18}
-          className={`text-slate-400 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
+          className={`text-slate-500 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
         />
       </button>
 
@@ -187,7 +187,7 @@ function CategorySection({
 }) {
   return (
     <div className="space-y-3">
-      <h3 className="px-1 text-xs font-bold text-slate-400 uppercase tracking-widest">
+      <h3 className="px-1 text-xs font-bold text-slate-500 uppercase tracking-widest">
         {t(`health.category.${category}` as TKey)}
       </h3>
       {children}
@@ -236,7 +236,7 @@ export function HealthCheckView({ doc, onOpenField }: HealthCheckViewProps) {
               <p className="text-sm text-slate-500 font-medium leading-relaxed">
                 {t('health.subtitle')}
               </p>
-              <p className="mt-3 text-xs font-bold text-slate-400">
+              <p className="mt-3 text-xs font-bold text-slate-500">
                 {t('health.calc_fields', { count: result.calcFieldCount })}
               </p>
             </div>
@@ -249,7 +249,7 @@ export function HealthCheckView({ doc, onOpenField }: HealthCheckViewProps) {
               >
                 {result.score}
               </span>
-              <span className="mt-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+              <span className="mt-2 text-[11px] font-bold text-slate-500 uppercase tracking-widest">
                 {t('health.score_label')}
               </span>
             </div>

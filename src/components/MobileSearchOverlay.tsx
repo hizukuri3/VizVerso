@@ -58,7 +58,7 @@ export function MobileSearchOverlay({
         <div className="flex items-center gap-2">
           <div className="relative flex-1">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search size={16} className="text-slate-400" />
+              <Search size={16} className="text-slate-500" />
             </div>
             <input
               type="text"
@@ -68,7 +68,7 @@ export function MobileSearchOverlay({
               value={query}
               onChange={(e) => onQueryChange(e.target.value)}
               placeholder={t('search.placeholder')}
-              className="block w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-2xl bg-white text-sm shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+              className="block w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-2xl bg-white text-sm shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
             />
           </div>
           <button
@@ -76,7 +76,7 @@ export function MobileSearchOverlay({
             data-testid="mobile-search-close"
             aria-label={t('search.close')}
             onClick={onClose}
-            className="p-2.5 rounded-2xl bg-white border border-slate-200 shadow-lg text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all flex-shrink-0"
+            className="p-2.5 rounded-2xl bg-white border border-slate-200 shadow-lg text-slate-500 hover:text-slate-600 hover:bg-slate-50 transition flex-shrink-0"
           >
             <X size={18} />
           </button>
@@ -85,7 +85,7 @@ export function MobileSearchOverlay({
         {query.trim() && (
           <div className="mt-2 bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
             <div className="p-3 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">
                 {t('search.type_field')} ({results.length})
               </span>
             </div>

@@ -75,14 +75,14 @@ const KIND_STYLE: Record<
     labelKey: 'detail.zone_text',
     icon: Type,
     box: 'border-slate-200 border-dashed bg-slate-50/40',
-    text: 'text-slate-400',
+    text: 'text-slate-500',
     z: 10,
   },
   other: {
     labelKey: 'detail.zone_other',
     icon: Square,
     box: 'border-slate-200 bg-slate-50/40',
-    text: 'text-slate-400',
+    text: 'text-slate-500',
     z: 10,
   },
 }
@@ -99,7 +99,7 @@ export default function DashboardLayoutMap({
 
   if (!zones || zones.length === 0) {
     return (
-      <p className="text-sm text-slate-400 italic">
+      <p className="text-sm text-slate-500 italic">
         {t('detail.layout_empty')}
       </p>
     )
@@ -171,7 +171,7 @@ export default function DashboardLayoutMap({
                 <span className="text-slate-700 font-medium">{dsList}</span>
               </div>
             )}
-            <div className="text-slate-400">
+            <div className="text-slate-500">
               {t('detail.columns')} {cols} ・ {t('detail.rows')} {rows} ・{' '}
               {t('detail.filters')} {filters}
             </div>
@@ -198,14 +198,14 @@ export default function DashboardLayoutMap({
       const heading = zone.title || pf?.caption || normalizeFieldId(zone.param)
       return (
         <>
-          <div className="font-semibold text-slate-400 text-[10px] uppercase tracking-wide flex items-center gap-1.5">
+          <div className="font-semibold text-slate-500 text-[11px] uppercase tracking-wide flex items-center gap-1.5">
             <Icon size={12} /> {t('detail.zone_paramctrl')}
           </div>
           <div className="mt-0.5 font-bold text-slate-800 break-words">
             {heading}
           </div>
           {pf?.caption && pf.caption !== heading && (
-            <div className="text-slate-400 break-words">{pf.caption}</div>
+            <div className="text-slate-500 break-words">{pf.caption}</div>
           )}
           {current && (
             <div className="mt-1 text-slate-500">
@@ -239,7 +239,7 @@ export default function DashboardLayoutMap({
     const Icon = style.icon
     return (
       <>
-        <div className="font-semibold text-slate-400 text-[10px] uppercase tracking-wide flex items-center gap-1.5">
+        <div className="font-semibold text-slate-500 text-[11px] uppercase tracking-wide flex items-center gap-1.5">
           <Icon size={12} /> {t(style.labelKey)}
         </div>
         {zone.title && (
@@ -254,7 +254,7 @@ export default function DashboardLayoutMap({
           </div>
         )}
         {zone.kind === 'image' && zone.param && (
-          <div className="mt-0.5 text-slate-400 break-all">{zone.param}</div>
+          <div className="mt-0.5 text-slate-500 break-all">{zone.param}</div>
         )}
       </>
     )
@@ -346,7 +346,7 @@ export default function DashboardLayoutMap({
               // 浮動オブジェクトは影＋リングで「浮き上がり」を、tiled は影なしで
               // 基盤レイヤーであることを表現する（Z軸の奥行き表現）。
               const floatClass = zone.floating ? depthShadow(zone) : ''
-              const commonClass = `absolute overflow-hidden rounded-md border ${style.box} ${floatClass} transition-all`
+              const commonClass = `absolute overflow-hidden rounded-md border ${style.box} ${floatClass} transition`
               const positionStyle: React.CSSProperties = {
                 left: pct(zone.x),
                 top: pct(zone.y),
@@ -357,7 +357,7 @@ export default function DashboardLayoutMap({
 
               const inner = showLabel ? (
                 <span
-                  className={`flex items-start gap-1 p-1 text-[10px] font-semibold leading-tight ${style.text}`}
+                  className={`flex items-start gap-1 p-1 text-[11px] font-semibold leading-tight ${style.text}`}
                 >
                   <Icon size={11} className="shrink-0 mt-px" />
                   <span className="truncate">{label}</span>

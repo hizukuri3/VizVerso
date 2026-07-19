@@ -59,14 +59,14 @@ export function PrivacyModal({ isOpen, onClose }: PrivacyModalProps) {
               <h2 className="text-xl sm:text-2xl font-black text-slate-800 tracking-tight">
                 {t('privacy.title')}
               </h2>
-              <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-0.5">
+              <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mt-0.5">
                 Privacy Policy
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-slate-100 rounded-xl transition-all text-slate-400 hover:text-slate-600"
+            className="p-2 hover:bg-slate-100 rounded-xl transition text-slate-500 hover:text-slate-600"
           >
             <X size={24} />
           </button>
@@ -113,7 +113,7 @@ export function PrivacyModal({ isOpen, onClose }: PrivacyModalProps) {
         </div>
 
         <footer className="p-6 bg-slate-50 border-t border-slate-100 text-center">
-          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">
+          <p className="text-[11px] text-slate-500 font-bold uppercase tracking-[0.2em]">
             VizVerso Privacy Commitment
           </p>
         </footer>

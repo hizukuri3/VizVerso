@@ -103,7 +103,7 @@ export function CompareView({ onExit }: CompareViewProps) {
           {onExit && (
             <button
               onClick={onExit}
-              className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-all flex-shrink-0"
+              className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition flex-shrink-0"
             >
               <ArrowLeft size={14} />
               <span className="hidden sm:inline">
@@ -142,7 +142,7 @@ export function CompareView({ onExit }: CompareViewProps) {
                     after.loaded!.fileName,
                   )
                 }
-                className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition-all"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition"
               >
                 <FileSpreadsheet size={14} />
                 {t('diff.export_button')}
@@ -175,14 +175,14 @@ function FileSlot({
 }) {
   return (
     <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-5">
-      <div className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-3">
+      <div className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3">
         {label}
       </div>
 
       {slot.loading && (
         <div className="flex flex-col items-center justify-center py-10 gap-3">
           <div className="w-10 h-10 border-4 border-slate-100 border-t-blue-600 rounded-full animate-spin" />
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-widest animate-pulse">
+          <span className="text-xs font-bold text-slate-500 uppercase tracking-widest animate-pulse">
             {t('status.processing')}
           </span>
         </div>
@@ -198,7 +198,7 @@ function FileSlot({
               <div className="text-sm font-bold text-slate-700 truncate">
                 {slot.loaded.fileName}
               </div>
-              <div className="text-[11px] text-slate-400 font-medium">
+              <div className="text-[11px] text-slate-500 font-medium">
                 {t('diff.sheets_count', {
                   count: slot.loaded.doc.worksheets.length,
                 })}

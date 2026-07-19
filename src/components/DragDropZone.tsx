@@ -57,7 +57,7 @@ export default function DragDropZone({ onFileDrop }: DragDropZoneProps) {
       className={`
         relative w-full max-w-2xl mx-auto p-12 mt-10
         border-2 border-dashed rounded-2xl
-        transition-all duration-300 ease-in-out cursor-pointer
+        transition duration-300 ease-in-out cursor-pointer
         backdrop-blur-sm
         flex flex-col items-center justify-center gap-4
         ${
