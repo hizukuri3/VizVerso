@@ -421,6 +421,65 @@
       "desc": "解析結果はワンクリックで Excel ファイルに出力できます。このガイドはヘッダーの ? ボタンからいつでも見直せます。"
     }
   },
+  "health": {
+    "nav": "ヘルスチェック",
+    "title": "ワークブック ヘルスチェック",
+    "subtitle": "計算フィールドをパフォーマンス・複雑度・クリーンアップの観点で自動チェックします。",
+    "score_label": "ヘルススコア",
+    "calc_fields": "検査した計算フィールド: {{count}}",
+    "findings_count": "{{count}} 件",
+    "no_findings": "問題は見つかりませんでした",
+    "no_findings_desc": "検査したすべての計算フィールドがルールをパスしました。",
+    "severity": {
+      "warning": "警告",
+      "info": "情報"
+    },
+    "category": {
+      "performance": "パフォーマンス",
+      "complexity": "複雑度",
+      "cleanup": "クリーンアップ"
+    },
+    "rule": {
+      "nestedLod": {
+        "title": "LOD式の入れ子",
+        "desc": "LOD式の中に別のLOD式が含まれています。クエリが複雑になり、パフォーマンス低下の原因になります。",
+        "detail": "入れ子の深さ: {{depth}}"
+      },
+      "countd": {
+        "title": "COUNTD の使用",
+        "desc": "COUNTD は計算コストの高い集計です。特にファイルベースのデータソースでは低速になりがちです。",
+        "detail": "COUNTD の使用: {{count}} 箇所"
+      },
+      "heavyStringCalc": {
+        "title": "行レベルの文字列処理",
+        "desc": "CONTAINS や REGEXP などの文字列関数は行ごとに評価されるため、大きなデータでは負荷が高くなります。",
+        "detail": "使用関数: {{functions}}"
+      },
+      "deepIfChain": {
+        "title": "長い条件分岐",
+        "desc": "IF/ELSEIF や CASE の分岐が多すぎます。グループ・セット・参照テーブルへの置き換えを検討してください。",
+        "detail": "分岐数: {{count}}"
+      },
+      "deepDependency": {
+        "title": "深い依存チェーン",
+        "desc": "計算フィールドの参照が深く連鎖しています。ロジックの追跡が難しくなるため、中間フィールドの整理を検討してください。",
+        "detail": "依存の深さ: {{depth}}"
+      },
+      "duplicateFormula": {
+        "title": "重複した計算式",
+        "desc": "同じ計算式を持つフィールドが複数あります。1つに統合するとメンテナンスしやすくなります。",
+        "detail": "同じ式のフィールド: {{others}}"
+      },
+      "unusedCalc": {
+        "title": "未使用の計算フィールド",
+        "desc": "どのシート・計算式・ダッシュボードからも参照されていない計算フィールドです。削除するとワークブックを軽くできます。"
+      },
+      "unusedParam": {
+        "title": "未使用のパラメータ",
+        "desc": "どこからも参照されていないパラメータです。"
+      }
+    }
+  },
   "diff": {
     "entry_button": "2つのワークブックを比較",
     "title": "ワークブック比較",

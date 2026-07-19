@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import DragDropZone from './components/DragDropZone'
 import Sidebar from './components/Sidebar'
 import DetailView from './components/DetailView'
+import { HealthCheckView } from './components/HealthCheckView'
 import Breadcrumbs from './components/Breadcrumbs'
 import { parseWorkbookAsync } from './utils/workerManager'
 import type { TableauDocument } from './types/tableau'
@@ -87,6 +88,8 @@ export default function App() {
   // ナビゲーション状態
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [selectedType, setSelectedType] = useState<SelectionType | null>(null)
+  // ワークブック ヘルスチェックビューの表示状態
+  const [showHealth, setShowHealth] = useState(false)
   const [uploadedFileName, setUploadedFileName] =
     useState<string>('tableau_analysis')
 
@@ -97,6 +100,7 @@ export default function App() {
   const handleFileDrop = async (file: File) => {
     setLoading(true)
     setError(null)
+    setShowHealth(false)
     setSelectedId(null)
     setSelectedType(null)
 
@@ -140,11 +144,14 @@ export default function App() {
   }
 
   const handleSelect = (type: SelectionType, id: string) => {
+    // 通常の選択が入ったらヘルスチェックビューは閉じて詳細表示に戻す
+    setShowHealth(false)
     setSelectedType(type)
     setSelectedId(id)
   }
 
   const handleReset = () => {
+    setShowHealth(false)
     setSelectedId(null)
     setSelectedType(null)
     clearUrl()
@@ -685,7 +692,15 @@ export default function App() {
                 doc={documentData}
                 fileName={uploadedFileName}
                 selectedId={selectedId}
+                isHealthActive={showHealth}
                 onOpenGraph={openGraph}
+                onOpenHealth={() => {
+                  setShowHealth(true)
+                  // モバイルでは開いた後に自動で閉じる（選択時と同じパターン）
+                  if (window.innerWidth < 768) {
+                    setIsSidebarOpen(false)
+                  }
+                }}
                 onOpenLegal={() => setIsLegalOpen(true)}
                 onOpenPrivacy={() => setIsPrivacyOpen(true)}
                 onSelect={(type, id) => {
@@ -701,38 +716,53 @@ export default function App() {
 
           {/* ディテール: メインエリア */}
           <div className="flex-1 flex flex-col overflow-hidden bg-slate-50/50">
-            {/* 上部ナビゲーションエリア */}
-            <div className="px-10 pt-8">
-              <Breadcrumbs
-                dashboardName={
-                  selectedType === 'dashboard'
-                    ? selectedId!
-                    : selectedType === 'worksheet'
-                      ? documentData.dashboards.find((d) =>
-                          d.worksheets.includes(selectedId!),
-                        )?.name
-                      : undefined
-                }
-                worksheetName={
-                  selectedType === 'worksheet' ? selectedId! : undefined
-                }
-                onReset={handleReset}
-                onNavigateDashboard={(name) => handleSelect('dashboard', name)}
+            {showHealth ? (
+              // ワークブック ヘルスチェックビュー（Breadcrumbs は非表示）
+              <HealthCheckView
+                doc={documentData}
+                onOpenField={(fieldName) => {
+                  setTargetFieldName(fieldName)
+                  openDrawer()
+                }}
               />
-            </div>
+            ) : (
+              <>
+                {/* 上部ナビゲーションエリア */}
+                <div className="px-10 pt-8">
+                  <Breadcrumbs
+                    dashboardName={
+                      selectedType === 'dashboard'
+                        ? selectedId!
+                        : selectedType === 'worksheet'
+                          ? documentData.dashboards.find((d) =>
+                              d.worksheets.includes(selectedId!),
+                            )?.name
+                          : undefined
+                    }
+                    worksheetName={
+                      selectedType === 'worksheet' ? selectedId! : undefined
+                    }
+                    onReset={handleReset}
+                    onNavigateDashboard={(name) =>
+                      handleSelect('dashboard', name)
+                    }
+                  />
+                </div>
 
-            {/* 詳細コンテンツ */}
-            <DetailView
-              doc={documentData}
-              selectedId={selectedId}
-              selectedType={selectedType}
-              onNavigate={handleSelect}
-              activeFieldName={targetFieldName}
-              onOpenDrawer={(fieldName) => {
-                setTargetFieldName(fieldName)
-                openDrawer()
-              }}
-            />
+                {/* 詳細コンテンツ */}
+                <DetailView
+                  doc={documentData}
+                  selectedId={selectedId}
+                  selectedType={selectedType}
+                  onNavigate={handleSelect}
+                  activeFieldName={targetFieldName}
+                  onOpenDrawer={(fieldName) => {
+                    setTargetFieldName(fieldName)
+                    openDrawer()
+                  }}
+                />
+              </>
+            )}
           </div>
         </main>
       )}
