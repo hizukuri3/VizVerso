@@ -55,6 +55,9 @@ describe('GuideTourModal - 使い方ガイドツアー', () => {
     expect(screen.getByText('構造と計算式を探索')).toBeInTheDocument()
 
     fireEvent.click(screen.getByText('次へ'))
+    expect(screen.getByText('ヘルスチェックで健全性を確認')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByText('次へ'))
     expect(screen.getByText('Excel にエクスポート')).toBeInTheDocument()
     expect(screen.getByText('はじめる')).toBeInTheDocument()
     expect(screen.queryByText('次へ')).not.toBeInTheDocument()
@@ -64,7 +67,7 @@ describe('GuideTourModal - 使い方ガイドツアー', () => {
     const onClose = vi.fn()
     render(<GuideTourModal isOpen={true} onClose={onClose} />)
 
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 4; i++) {
       fireEvent.click(screen.getByText('次へ'))
     }
     fireEvent.click(screen.getByText('はじめる'))
@@ -95,7 +98,9 @@ describe('GuideTourModal - 使い方ガイドツアー', () => {
 
   it('ドットインジケーターのクリックで任意のステップへ移動できること', () => {
     render(<GuideTourModal isOpen={true} onClose={() => {}} />)
-    fireEvent.click(screen.getByLabelText('4 / 4'))
+    fireEvent.click(screen.getByLabelText('4 / 5'))
+    expect(screen.getByText('ヘルスチェックで健全性を確認')).toBeInTheDocument()
+    fireEvent.click(screen.getByLabelText('5 / 5'))
     expect(screen.getByText('Excel にエクスポート')).toBeInTheDocument()
   })
 })

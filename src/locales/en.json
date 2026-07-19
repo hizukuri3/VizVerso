@@ -415,6 +415,10 @@
       "title": "Explore structure & calculations",
       "desc": "Switch between dashboards and sheets in the left navigator. Click a calculated field to trace its references in the detail drawer and dependency graph."
     },
+    "step_health": {
+      "title": "Check workbook health",
+      "desc": "Open \"Health Check\" in the navigator to automatically detect nested LODs, duplicated formulas, unused fields, and more — with an overall health score."
+    },
     "step_export": {
       "title": "Export to Excel",
       "desc": "Export the analysis results to an Excel file in one click. You can reopen this guide anytime from the ? button in the header."
