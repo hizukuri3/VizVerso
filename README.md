@@ -22,6 +22,7 @@ A twbx analysis tool for peeking into the backend of Tableau and unraveling its 
 - **未使用フィールド検出**: どのシート・計算式・ダッシュボード（パラメータコントロールや動的ゾーン表示を含む）からも参照されていないフィールドを検出し、バッジ表示と Excel 出力の「使用状況」列で確認可能。
 - **計算式コピー**: フィールド詳細ドロワーからワンクリックで計算式をクリップボードにコピー。
 - **ワークブック比較**: 2つのワークブックを比較し、フィールド・シート・ダッシュボードレイアウトなどの差分を表示。差分レポートは Excel 形式でエクスポート可能。
+- **ヘルスチェック**: 計算フィールドをパフォーマンス（LOD入れ子・COUNTD等）・複雑度（長い条件分岐・深い依存）・クリーンアップ（重複計算式・未使用フィールド）の観点で自動リントし、ヘルススコアを表示。
 
 - **Structure Visualization**: Explore relationships between all entities within a workbook in your browser.
 - **Calculated Field Analysis**: View detailed calculation logic and dependencies.
@@ -30,6 +31,7 @@ A twbx analysis tool for peeking into the backend of Tableau and unraveling its 
 - **Unused Field Detection**: Detect fields not referenced by any sheet, calculation, or dashboard (including parameter controls and dynamic zone visibility), with badge indicators and a "Usage Status" column in the Excel export.
 - **Formula Copy**: Copy a calculated field's formula to the clipboard with one click from the field detail drawer.
 - **Workbook Diff**: Compare two workbooks and see differences in fields, sheets, dashboard layouts, and more. Diff reports can be exported to Excel.
+- **Health Check**: Automatically lints calculated fields for performance (nested LODs, COUNTD), complexity (long conditional chains, deep dependencies), and cleanup opportunities (duplicated formulas, unused fields), with an overall health score.
 
 ## 技術スタック / Tech Stack
 

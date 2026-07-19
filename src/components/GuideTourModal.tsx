@@ -4,6 +4,7 @@ import {
   FileUp,
   ShieldCheck,
   Network,
+  HeartPulse,
   Download,
   ChevronLeft,
   ChevronRight,
@@ -64,6 +65,12 @@ function TourDialog({ onClose }: { onClose: () => void }) {
       iconClass: 'bg-violet-50 text-violet-600',
       title: t('tour.step_explore.title'),
       desc: t('tour.step_explore.desc'),
+    },
+    {
+      icon: <HeartPulse size={28} />,
+      iconClass: 'bg-rose-50 text-rose-600',
+      title: t('tour.step_health.title'),
+      desc: t('tour.step_health.desc'),
     },
     {
       icon: <Download size={28} />,

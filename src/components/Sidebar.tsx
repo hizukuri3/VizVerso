@@ -5,6 +5,7 @@ import {
   ChevronRight,
   Database,
   GitBranch,
+  HeartPulse,
 } from 'lucide-react'
 import { t } from '../utils/i18n'
 import type { TableauDocument } from '../types/tableau'
@@ -17,6 +18,10 @@ interface SidebarProps {
   onSelect: (type: 'dashboard' | 'worksheet' | 'datasource', id: string) => void
   /** 項目の依存グラフを開く（ホバーで表示されるアイコンから） */
   onOpenGraph?: (ref: GraphRootRef) => void
+  /** ワークブック ヘルスチェックビューを開く */
+  onOpenHealth?: () => void
+  /** ヘルスチェックビューが選択中か（ハイライト表示用） */
+  isHealthActive?: boolean
   onOpenLegal?: () => void
   onOpenPrivacy?: () => void
 }
@@ -51,6 +56,8 @@ export default function Sidebar({
   selectedId,
   onSelect,
   onOpenGraph,
+  onOpenHealth,
+  isHealthActive,
   onOpenLegal,
   onOpenPrivacy,
 }: SidebarProps) {
@@ -118,6 +125,25 @@ export default function Sidebar({
       </div>
 
       <div className="flex-1 p-4 pb-8 space-y-8 overflow-y-auto">
+        {/* Health Check（ワークブック全体の計算フィールド健全性チェック） */}
+        <div>
+          <button
+            onClick={onOpenHealth}
+            data-testid="sidebar-health-nav"
+            className={`w-full text-left px-3 py-2 rounded-xl text-sm transition-all duration-200 flex items-center gap-2 ${
+              isHealthActive
+                ? 'sidebar-item-active shadow-sm'
+                : 'hover:bg-slate-50 text-slate-600'
+            }`}
+          >
+            <HeartPulse
+              size={14}
+              className={isHealthActive ? 'text-blue-500' : 'text-rose-400'}
+            />
+            <span className="truncate font-semibold">{t('health.nav')}</span>
+          </button>
+        </div>
+
         {/* Dashboards Section */}
         {doc.dashboards.length > 0 && (
           <div>
