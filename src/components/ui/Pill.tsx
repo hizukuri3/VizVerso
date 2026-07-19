@@ -35,7 +35,7 @@ export function SyntaxHighlightedFormula({ formula }: { formula: string }) {
                 key={lineIdx}
                 className="hover:bg-slate-100/50 transition-colors"
               >
-                <td className="w-8 select-none text-right pr-3 text-slate-300 border-r border-slate-100 bg-slate-50/50 py-0.5 text-[10px]">
+                <td className="w-8 select-none text-right pr-3 text-slate-400 border-r border-slate-100 bg-slate-50/50 py-0.5 text-[11px]">
                   {lineIdx + 1}
                 </td>
                 <td className="pl-3 pr-10 py-1 whitespace-pre-wrap break-all text-[11px]">
@@ -43,7 +43,7 @@ export function SyntaxHighlightedFormula({ formula }: { formula: string }) {
                     if (!part) return null
                     if (part.startsWith('"') || part.startsWith("'"))
                       return (
-                        <span key={i} className="text-slate-400">
+                        <span key={i} className="text-slate-500">
                           {part}
                         </span>
                       )
@@ -163,12 +163,12 @@ function PortalTooltip({
       <div
         className={`w-max max-w-lg p-4 bg-white border border-slate-200 shadow-2xl rounded-xl text-slate-800 ring-1 ring-black/5`}
       >
-        <p className="text-[10px] font-bold text-slate-400 mb-2 border-b border-slate-100 pb-1 uppercase tracking-wider">
+        <p className="text-[11px] font-bold text-slate-500 mb-2 border-b border-slate-100 pb-1 uppercase tracking-wider">
           {title}
         </p>
 
         {/* メタ情報（型・連続/不連続・計算種別） */}
-        <div className="flex flex-wrap items-center gap-1.5 mb-2 text-[10px]">
+        <div className="flex flex-wrap items-center gap-1.5 mb-2 text-[11px]">
           <span
             className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded font-semibold text-white"
             style={{ backgroundColor: isContinuous ? '#10b981' : '#0284c7' }}
@@ -195,7 +195,7 @@ function PortalTooltip({
         {formula ? (
           <SyntaxHighlightedFormula formula={formula} />
         ) : (
-          <div className="px-3 py-2 bg-slate-900 text-white rounded-lg text-[10px] font-mono">
+          <div className="px-3 py-2 bg-slate-900 text-white rounded-lg text-[11px] font-mono">
             {t('detail.physical_name')}: {physicalName}
           </div>
         )}
@@ -257,7 +257,7 @@ export function Pill({
       }}
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
-      className={`pill-container relative inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold shadow-sm text-white transition-all z-0 
+      className={`pill-container relative inline-flex max-w-full items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold shadow-sm text-white transition z-0
         ${onClick ? 'cursor-pointer hover:brightness-110 active:scale-95' : 'cursor-default'}
         ${isActive ? 'ring-4 ring-offset-2 ring-yellow-400 scale-105 shadow-xl animate-pulse brightness-110' : ''}
         ${isUnused ? 'opacity-50 saturate-50' : ''}

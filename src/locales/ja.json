@@ -44,7 +44,10 @@
     "dashboards": "ダッシュボード",
     "sheets": "シート",
     "datasources": "データソース",
-    "home": "ホーム"
+    "home": "ホーム",
+    "analyzing_file": "解析中のファイル",
+    "hide_navigator": "ナビゲーターを隠す",
+    "show_navigator": "ナビゲーターを表示"
   },
   "detail": {
     "dashboard_summary": "ダッシュボードの概要",

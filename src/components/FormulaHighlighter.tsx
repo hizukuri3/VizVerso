@@ -59,7 +59,7 @@ export function FormulaHighlighter({
     let className = 'text-slate-600'
 
     if (part.startsWith('"') || part.startsWith("'")) {
-      className = 'text-slate-400'
+      className = 'text-slate-500'
     } else if (part.startsWith(`[${paramLabel}].`)) {
       className = 'text-purple-500'
     } else if (part.startsWith('[')) {
@@ -92,7 +92,7 @@ export function FormulaHighlighter({
                   key={lineIdx}
                   className="hover:bg-slate-50 transition-colors"
                 >
-                  <td className="w-12 select-none text-right pr-4 text-slate-300 border-r border-slate-50 bg-slate-50/30 py-1 text-[11px] font-mono">
+                  <td className="w-12 select-none text-right pr-4 text-slate-400 border-r border-slate-50 bg-slate-50/30 py-1 text-[11px] font-mono">
                     {lineIdx + 1}
                   </td>
                   <td className="pl-6 pr-10 py-1 whitespace-pre-wrap break-all">

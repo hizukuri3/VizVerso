@@ -51,19 +51,19 @@ export function TrySampleButton({ onFileDrop, onError }: TrySampleButtonProps) {
         type="button"
         onClick={handleClick}
         disabled={isFetching}
-        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold transition-all shadow-md shadow-slate-200 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
+        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold transition shadow-md shadow-slate-200 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
       >
         <Sparkles size={16} />
         {t('dropzone.try_sample')}
       </button>
-      <p className="text-xs text-slate-400 font-medium">
+      <p className="text-xs text-slate-500 font-medium">
         {t('dropzone.try_sample_hint')}
       </p>
       <a
         href="https://www.tableau.com/data-insights/dashboard-showcase/superstore"
         target="_blank"
         rel="noopener noreferrer"
-        className="text-[11px] text-slate-400 hover:text-slate-600 underline underline-offset-2 transition-colors"
+        className="text-[11px] text-slate-500 hover:text-slate-600 underline underline-offset-2 transition-colors"
       >
         {t('dropzone.try_sample_source')}
       </a>

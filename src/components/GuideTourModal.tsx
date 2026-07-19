@@ -93,15 +93,15 @@ function TourDialog({ onClose }: { onClose: () => void }) {
         className="bg-white w-full max-w-md rounded-3xl shadow-2xl shadow-slate-200/50 overflow-hidden flex flex-col animate-in zoom-in-95 duration-300"
       >
         <header className="px-8 pt-8 pb-2 flex justify-between items-start">
-          <div className="flex items-center gap-3 text-slate-400">
-            <span className="text-[10px] font-bold uppercase tracking-[0.2em]">
+          <div className="flex items-center gap-3 text-slate-500">
+            <span className="text-[11px] font-bold uppercase tracking-[0.2em]">
               {t('tour.badge')}
             </span>
           </div>
           <button
             onClick={handleSkip}
             aria-label={t('button.close')}
-            className="p-2 hover:bg-slate-50 rounded-full transition-colors text-slate-400 hover:text-slate-600"
+            className="p-2 hover:bg-slate-50 rounded-full transition-colors text-slate-500 hover:text-slate-600"
           >
             <X size={20} />
           </button>
@@ -135,7 +135,7 @@ function TourDialog({ onClose }: { onClose: () => void }) {
                 key={i}
                 onClick={() => setStep(i)}
                 aria-label={`${i + 1} / ${steps.length}`}
-                className={`h-2 rounded-full transition-all ${
+                className={`h-2 rounded-full transition ${
                   i === step
                     ? 'w-6 bg-blue-600'
                     : 'w-2 bg-slate-200 hover:bg-slate-300'
@@ -149,7 +149,7 @@ function TourDialog({ onClose }: { onClose: () => void }) {
           {step > 0 ? (
             <button
               onClick={() => setStep(step - 1)}
-              className="flex items-center gap-1 px-3 py-2 text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors"
+              className="flex items-center gap-1 px-3 py-2 text-xs font-bold text-slate-500 hover:text-slate-600 transition-colors"
             >
               <ChevronLeft size={14} />
               {t('tour.back')}
@@ -157,7 +157,7 @@ function TourDialog({ onClose }: { onClose: () => void }) {
           ) : (
             <button
               onClick={handleSkip}
-              className="px-3 py-2 text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors"
+              className="px-3 py-2 text-xs font-bold text-slate-500 hover:text-slate-600 transition-colors"
             >
               {t('tour.skip')}
             </button>
@@ -165,7 +165,7 @@ function TourDialog({ onClose }: { onClose: () => void }) {
 
           <button
             onClick={() => (isLast ? handleComplete() : setStep(step + 1))}
-            className="flex items-center gap-1 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-100"
+            className="flex items-center gap-1 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-md shadow-blue-100"
           >
             {isLast ? t('tour.start') : t('tour.next')}
             {!isLast && <ChevronRight size={14} />}

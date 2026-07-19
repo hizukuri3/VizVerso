@@ -25,7 +25,7 @@ export function SearchResultsList({
 }: SearchResultsListProps) {
   if (results.length === 0) {
     return (
-      <div className="p-8 text-center text-slate-400">
+      <div className="p-8 text-center text-slate-500">
         <p className="text-sm font-medium">{t('search.no_results')}</p>
       </div>
     )
@@ -48,9 +48,20 @@ export function SearchResultsList({
     switch (result.reason) {
       case 'direct':
         return (
-          <span className="px-1.5 py-0.5 bg-slate-100 text-slate-500 text-[9px] font-bold rounded uppercase tracking-wider">
-            {t('search.direct_match')}
-          </span>
+          <div className="flex items-center gap-1 min-w-0">
+            <span className="px-1.5 py-0.5 bg-slate-100 text-slate-500 text-[9px] font-bold rounded uppercase tracking-wider shrink-0">
+              {t('search.direct_match')}
+            </span>
+            {result.subReason && (
+              <span
+                className="text-[9px] text-slate-500 flex items-center gap-0.5 truncate"
+                title={result.subReason}
+              >
+                <CornerDownRight size={10} className="shrink-0" />[
+                {result.subReason}]
+              </span>
+            )}
+          </div>
         )
       case 'formula':
         return (
@@ -65,7 +76,7 @@ export function SearchResultsList({
               {t('search.dependency_match')}
             </span>
             {result.subReason && (
-              <span className="text-[9px] text-slate-400 flex items-center gap-0.5">
+              <span className="text-[9px] text-slate-500 flex items-center gap-0.5">
                 <CornerDownRight size={10} />[{result.subReason}]
               </span>
             )}
@@ -111,7 +122,7 @@ export function SearchResultsList({
               </div>
 
               <div className="flex items-center justify-between">
-                <span className="text-[10px] text-slate-400 font-medium">
+                <span className="text-[11px] text-slate-500 font-medium">
                   {res.type === 'field'
                     ? res.parentCaption || res.parentName
                     : res.type === 'worksheet'
@@ -119,7 +130,7 @@ export function SearchResultsList({
                       : t('search.type_datasource')}
                 </span>
 
-                <span className="text-[10px] text-blue-500 font-bold opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-all">
+                <span className="text-[11px] text-blue-500 font-bold opacity-0 group-hover:opacity-100 flex items-center gap-1 transition">
                   {res.type === 'field'
                     ? t('search.definition')
                     : t('search.usage')}

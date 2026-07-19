@@ -18,23 +18,23 @@ export default function Breadcrumbs({
     <nav className="flex items-center space-x-2 text-sm text-slate-500 mb-4 bg-white p-2 rounded-lg border border-slate-200 shadow-sm">
       <button
         onClick={onReset}
-        className="flex items-center hover:text-blue-600 transition-colors gap-1 px-2 py-1 rounded hover:bg-slate-50"
+        className="flex items-center hover:text-blue-600 transition-colors gap-1 px-2 py-1 rounded hover:bg-slate-50 shrink-0"
       >
-        <Home size={14} />
-        <span className="font-medium">{t('nav.home')}</span>
+        <Home size={14} className="shrink-0" />
+        <span className="font-medium whitespace-nowrap">{t('nav.home')}</span>
       </button>
 
       {dashboardName && (
         <>
-          <ChevronRight size={14} className="text-slate-300" />
+          <ChevronRight size={14} className="text-slate-400 shrink-0" />
           {worksheetName ? (
             <button
               onClick={() => onNavigateDashboard?.(dashboardName)}
-              className="flex items-center gap-1 px-2 py-1 hover:bg-blue-50 text-blue-400 hover:text-blue-700 rounded-md transition-all min-w-0"
+              className="flex items-center gap-1 px-2 py-1 hover:bg-blue-50 text-blue-400 hover:text-blue-700 rounded-md transition min-w-0"
             >
               <Layout size={14} className="shrink-0" />
               <span
-                className="font-semibold truncate max-w-[220px]"
+                className="font-semibold truncate max-w-[120px] sm:max-w-[220px]"
                 title={dashboardName}
               >
                 {dashboardName}
@@ -44,7 +44,7 @@ export default function Breadcrumbs({
             <div className="flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 rounded-md min-w-0">
               <Layout size={14} className="shrink-0" />
               <span
-                className="font-semibold truncate max-w-[220px]"
+                className="font-semibold truncate max-w-[120px] sm:max-w-[220px]"
                 title={dashboardName}
               >
                 {dashboardName}
@@ -56,11 +56,11 @@ export default function Breadcrumbs({
 
       {worksheetName && (
         <>
-          <ChevronRight size={14} className="text-slate-300" />
+          <ChevronRight size={14} className="text-slate-400 shrink-0" />
           <div className="flex items-center gap-1 px-2 py-1 bg-emerald-50 text-emerald-700 rounded-md min-w-0">
             <FileText size={14} className="shrink-0" />
             <span
-              className="font-semibold truncate max-w-[220px]"
+              className="font-semibold truncate max-w-[120px] sm:max-w-[220px]"
               title={worksheetName}
             >
               {worksheetName}

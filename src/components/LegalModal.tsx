@@ -38,14 +38,14 @@ export function LegalModal({ isOpen, onClose }: LegalModalProps) {
               <h2 className="text-xl sm:text-2xl font-black text-slate-800 tracking-tight">
                 {t('legal.title')}
               </h2>
-              <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-0.5">
+              <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mt-0.5">
                 Legal Notice
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-slate-100 rounded-xl transition-all text-slate-400 hover:text-slate-600"
+            className="p-2 hover:bg-slate-100 rounded-xl transition text-slate-500 hover:text-slate-600"
           >
             <X size={24} />
           </button>
@@ -55,7 +55,7 @@ export function LegalModal({ isOpen, onClose }: LegalModalProps) {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             {/* Vendor */}
             <div className="space-y-2">
-              <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+              <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em] flex items-center gap-2">
                 <User size={12} className="text-blue-500" /> {t('legal.seller')}
               </h3>
               <p className="text-sm font-bold text-slate-700 bg-slate-50 p-4 rounded-2xl border border-slate-100">
@@ -65,7 +65,7 @@ export function LegalModal({ isOpen, onClose }: LegalModalProps) {
 
             {/* Representative */}
             <div className="space-y-2">
-              <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+              <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em] flex items-center gap-2">
                 <User size={12} className="text-emerald-500" />{' '}
                 {t('legal.representative')}
               </h3>
@@ -77,7 +77,7 @@ export function LegalModal({ isOpen, onClose }: LegalModalProps) {
 
           {/* Address */}
           <div className="space-y-2">
-            <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+            <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em] flex items-center gap-2">
               <MapPin size={12} className="text-orange-500" />{' '}
               {t('legal.address')}
             </h3>
@@ -88,7 +88,7 @@ export function LegalModal({ isOpen, onClose }: LegalModalProps) {
 
           {/* Contact */}
           <div className="space-y-4">
-            <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+            <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em] flex items-center gap-2">
               <Mail size={12} className="text-purple-500" />{' '}
               {t('legal.contact')}
             </h3>
@@ -120,7 +120,7 @@ export function LegalModal({ isOpen, onClose }: LegalModalProps) {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             {/* Price */}
             <div className="space-y-2">
-              <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+              <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em] flex items-center gap-2">
                 <CreditCard size={12} className="text-amber-500" />{' '}
                 {t('legal.price')}
               </h3>
@@ -131,7 +131,7 @@ export function LegalModal({ isOpen, onClose }: LegalModalProps) {
 
             {/* Additional Charges */}
             <div className="space-y-2">
-              <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+              <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em] flex items-center gap-2">
                 <CreditCard size={12} className="text-rose-500" />{' '}
                 {t('legal.additional_charges')}
               </h3>
@@ -142,7 +142,7 @@ export function LegalModal({ isOpen, onClose }: LegalModalProps) {
 
             {/* Payment Method */}
             <div className="space-y-2">
-              <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+              <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em] flex items-center gap-2">
                 <CreditCard size={12} className="text-blue-500" />{' '}
                 {t('legal.payment_method')}
               </h3>
@@ -153,7 +153,7 @@ export function LegalModal({ isOpen, onClose }: LegalModalProps) {
 
             {/* Payment Timing */}
             <div className="space-y-2">
-              <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+              <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em] flex items-center gap-2">
                 <Clock size={12} className="text-indigo-500" />{' '}
                 {t('legal.payment_timing')}
               </h3>
@@ -164,7 +164,7 @@ export function LegalModal({ isOpen, onClose }: LegalModalProps) {
 
             {/* Delivery Timing */}
             <div className="space-y-2">
-              <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+              <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em] flex items-center gap-2">
                 <Truck size={12} className="text-emerald-500" />{' '}
                 {t('legal.delivery_timing')}
               </h3>
@@ -176,7 +176,7 @@ export function LegalModal({ isOpen, onClose }: LegalModalProps) {
 
           {/* Returns */}
           <div className="space-y-2 pb-4">
-            <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+            <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em] flex items-center gap-2">
               <RotateCcw size={12} className="text-red-500" />{' '}
               {t('legal.returns')}
             </h3>
@@ -187,7 +187,7 @@ export function LegalModal({ isOpen, onClose }: LegalModalProps) {
         </div>
 
         <footer className="p-6 bg-slate-50 border-t border-slate-100 text-center">
-          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">
+          <p className="text-[11px] text-slate-500 font-bold uppercase tracking-[0.2em]">
             VizVerso Legal Compliance
           </p>
         </footer>

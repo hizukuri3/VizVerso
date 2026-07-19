@@ -397,12 +397,21 @@ export default function App() {
           {documentData && (
             <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className={`p-2 rounded-xl transition-all ${
+              className={`p-2 rounded-xl transition ${
                 isSidebarOpen
                   ? 'bg-blue-50 text-blue-600'
-                  : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'
+                  : 'text-slate-500 hover:bg-slate-100 hover:text-slate-600'
               }`}
-              title={isSidebarOpen ? 'Hide Navigator' : 'Show Navigator'}
+              title={
+                isSidebarOpen
+                  ? t('nav.hide_navigator')
+                  : t('nav.show_navigator')
+              }
+              aria-label={
+                isSidebarOpen
+                  ? t('nav.hide_navigator')
+                  : t('nav.show_navigator')
+              }
             >
               <Menu size={20} />
             </button>
@@ -425,7 +434,7 @@ export default function App() {
           >
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search size={16} className="text-slate-400" />
+                <Search size={16} className="text-slate-500" />
               </div>
               <input
                 type="text"
@@ -436,12 +445,12 @@ export default function App() {
                 }}
                 onFocus={() => setShowSearchResults(true)}
                 placeholder={t('search.placeholder')}
-                className="block w-full pl-10 pr-10 py-2 border border-slate-200 rounded-2xl bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                className="block w-full pl-10 pr-10 py-2 border border-slate-200 rounded-2xl bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-slate-600"
                 >
                   <X size={16} />
                 </button>
@@ -451,7 +460,7 @@ export default function App() {
             {showSearchResults && searchQuery.trim() && (
               <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-2xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                 <div className="p-3 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">
                     {t('search.type_field')} ({searchResults.length})
                   </span>
                 </div>
@@ -470,7 +479,7 @@ export default function App() {
           {documentData && (
             <button
               onClick={() => setIsMobileSearchOpen(true)}
-              className="md:hidden p-2 sm:p-2.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all"
+              className="md:hidden p-2 sm:p-2.5 text-slate-500 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition"
               aria-label={t('search.open')}
               title={t('search.open')}
             >
@@ -479,14 +488,14 @@ export default function App() {
           )}
           <button
             onClick={() => setIsTourOpen(true)}
-            className="p-2 sm:p-2.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all"
+            className="p-2 sm:p-2.5 text-slate-500 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition"
             title={t('tour.help_button')}
           >
             <HelpCircle size={20} />
           </button>
           <button
             onClick={() => setIsAboutOpen(true)}
-            className="p-2 sm:p-2.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all"
+            className="p-2 sm:p-2.5 text-slate-500 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition"
             title={t('app.about_title')}
           >
             <Info size={20} />
@@ -495,20 +504,20 @@ export default function App() {
           <div className="flex items-center bg-slate-100 p-1 rounded-xl">
             <button
               onClick={() => handleLanguageChange('ja')}
-              className={`px-2 sm:px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all ${
+              className={`px-2 sm:px-3 py-1.5 rounded-lg text-[11px] font-bold transition ${
                 lang === 'ja'
                   ? 'bg-white text-slate-900 shadow-sm'
-                  : 'text-slate-400 hover:text-slate-600'
+                  : 'text-slate-500 hover:text-slate-600'
               }`}
             >
               JA
             </button>
             <button
               onClick={() => handleLanguageChange('en')}
-              className={`px-2 sm:px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all ${
+              className={`px-2 sm:px-3 py-1.5 rounded-lg text-[11px] font-bold transition ${
                 lang === 'en'
                   ? 'bg-white text-slate-900 shadow-sm'
-                  : 'text-slate-400 hover:text-slate-600'
+                  : 'text-slate-500 hover:text-slate-600'
               }`}
             >
               EN
@@ -522,7 +531,7 @@ export default function App() {
                   trackEvent('excel_exported')
                   void exportToExcel(documentData, uploadedFileName)
                 }}
-                className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-100"
+                className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-md shadow-emerald-100"
                 title={t('button.excel_export')}
               >
                 <Download size={14} />
@@ -532,7 +541,7 @@ export default function App() {
               </button>
               <button
                 onClick={handleNewUpload}
-                className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-slate-200"
+                className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-800 border border-slate-200 hover:border-slate-300 rounded-xl text-xs font-bold transition shadow-sm"
                 title={t('button.new_upload')}
               >
                 <FileUp size={14} />
@@ -552,13 +561,13 @@ export default function App() {
               <img
                 src="/favicon.png"
                 alt=""
-                className="h-12 w-12 sm:h-20 sm:h-20 object-contain"
+                className="h-12 w-12 sm:h-20 sm:w-20 object-contain"
               />
               <h1 className="text-4xl sm:text-6xl font-black text-slate-900 tracking-tight">
                 {t('app.title')}
               </h1>
             </div>
-            <h2 className="text-3xl sm:text-5xl font-black text-slate-900 mb-6 tracking-tight leading-tight [text-wrap:balance]">
+            <h2 className="text-3xl sm:text-5xl font-black text-slate-900 mb-6 tracking-tight leading-tight [text-wrap:balance] [word-break:keep-all] [overflow-wrap:anywhere]">
               {t('app.tagline')}
             </h2>
             <p className="text-slate-500 mb-10 sm:mb-12 text-base sm:text-lg font-medium leading-relaxed max-w-2xl mx-auto [text-wrap:balance]">
@@ -579,7 +588,7 @@ export default function App() {
               <div className="mt-5">
                 <button
                   onClick={() => setMode('compare')}
-                  className="text-sm font-bold text-slate-400 hover:text-blue-600 transition-colors underline decoration-slate-200 hover:decoration-blue-300 underline-offset-4"
+                  className="text-sm font-bold text-slate-500 hover:text-blue-600 transition-colors underline decoration-slate-200 hover:decoration-blue-300 underline-offset-4"
                 >
                   {t('diff.entry_button')}
                 </button>
@@ -611,7 +620,7 @@ export default function App() {
                   <h4 className="font-bold text-slate-800 text-sm sm:text-base">
                     {item.title}
                   </h4>
-                  <p className="text-[10px] sm:text-xs text-slate-400 mt-1">
+                  <p className="text-[11px] sm:text-xs text-slate-500 mt-1">
                     {item.desc}
                   </p>
                 </div>
@@ -636,7 +645,7 @@ export default function App() {
             <div className="w-20 h-20 border-4 border-slate-100 rounded-full"></div>
             <div className="absolute top-0 w-20 h-20 border-4 border-blue-600 rounded-full border-t-transparent animate-spin"></div>
           </div>
-          <p className="mt-6 text-slate-400 font-bold tracking-widest uppercase text-xs animate-pulse">
+          <p className="mt-6 text-slate-500 font-bold tracking-widest uppercase text-xs animate-pulse">
             {t('status.processing')}
           </p>
         </main>
@@ -654,7 +663,7 @@ export default function App() {
             <p className="text-red-700 text-sm mb-6 leading-relaxed">{error}</p>
             <button
               onClick={() => setError(null)}
-              className="w-full py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition-all"
+              className="w-full py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition"
             >
               {t('button.retry')}
             </button>
@@ -676,7 +685,7 @@ export default function App() {
 
           {/* マスター: サイドバー */}
           <div
-            className={`absolute md:relative z-40 h-full transition-all duration-300 ease-in-out border-r border-slate-200 bg-white flex-shrink-0 overflow-hidden ${
+            className={`absolute md:relative z-40 h-full transition duration-300 ease-in-out border-r border-slate-200 bg-white flex-shrink-0 overflow-hidden ${
               isSidebarOpen
                 ? 'w-80 translate-x-0 opacity-100'
                 : 'w-0 -translate-x-full md:translate-x-0 opacity-0'
@@ -832,21 +841,21 @@ export default function App() {
             <div className="flex items-center justify-center gap-4 sm:gap-6">
               <button
                 onClick={() => setIsLegalOpen(true)}
-                className="text-[10px] font-bold text-slate-400 hover:text-slate-600 transition-colors uppercase tracking-[0.2em]"
+                className="text-[11px] font-bold text-slate-500 hover:text-slate-600 transition-colors uppercase tracking-[0.2em]"
               >
                 {t('legal.title')}
               </button>
               <div className="w-1 h-1 bg-slate-200 rounded-full" />
               <button
                 onClick={() => setIsPrivacyOpen(true)}
-                className="text-[10px] font-bold text-slate-400 hover:text-slate-600 transition-colors uppercase tracking-[0.2em]"
+                className="text-[11px] font-bold text-slate-500 hover:text-slate-600 transition-colors uppercase tracking-[0.2em]"
               >
                 {t('privacy.title')}
               </button>
             </div>
 
             {/* 下段: コピーライト */}
-            <p className="text-[9px] text-slate-300 font-bold uppercase tracking-[0.3em]">
+            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-[0.3em]">
               © {new Date().getFullYear()} VizVerso
             </p>
           </div>

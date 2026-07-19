@@ -13,15 +13,15 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/20 backdrop-blur-sm animate-in fade-in duration-300">
       <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl shadow-slate-200/50 overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300">
         <header className="px-8 pt-8 pb-4 flex justify-between items-start">
-          <div className="flex items-center gap-3 text-slate-400">
+          <div className="flex items-center gap-3 text-slate-500">
             <Info size={20} />
-            <span className="text-[10px] font-bold uppercase tracking-[0.2em]">
+            <span className="text-[11px] font-bold uppercase tracking-[0.2em]">
               Information
             </span>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-slate-50 rounded-full transition-colors text-slate-400 hover:text-slate-600"
+            className="p-2 hover:bg-slate-50 rounded-full transition-colors text-slate-500 hover:text-slate-600"
           >
             <X size={20} />
           </button>
@@ -40,14 +40,14 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
                 {t('app.title')}
               </h2>
             </div>
-            <p className="text-slate-400 text-sm leading-relaxed">
+            <p className="text-slate-500 text-sm leading-relaxed">
               {t('about.description')}
             </p>
           </section>
 
           {/* Disclaimer */}
           <section className="space-y-6">
-            <h3 className="text-[10px] font-bold text-slate-300 uppercase tracking-[0.3em] border-b border-slate-100 pb-2">
+            <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.3em] border-b border-slate-100 pb-2">
               {t('about.disclaimer')}
             </h3>
             <div className="grid gap-6 text-slate-500 text-xs leading-relaxed">
@@ -74,10 +74,10 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
 
           {/* Credits & Licenses */}
           <section className="space-y-6">
-            <h3 className="text-[10px] font-bold text-slate-300 uppercase tracking-[0.3em] border-b border-slate-100 pb-2">
+            <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.3em] border-b border-slate-100 pb-2">
               {t('about.credits_title')}
             </h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-6 text-[10px] text-slate-400">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-6 text-[11px] text-slate-500">
               <div className="space-y-1">
                 <p className="font-bold text-slate-600">React / React-DOM</p>
                 <p>MIT License</p>
@@ -122,16 +122,16 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
             href="https://x.com/hizukuri3"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-3 text-slate-400 hover:text-blue-600 transition-all group"
+            className="flex items-center gap-3 text-slate-500 hover:text-blue-600 transition group"
           >
-            <div className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center shadow-sm group-hover:shadow-md transition-all">
+            <div className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center shadow-sm group-hover:shadow-md transition">
               <ExternalLink size={14} />
             </div>
-            <span className="text-[10px] font-bold tracking-widest uppercase">
+            <span className="text-[11px] font-bold tracking-widest uppercase">
               {t('about.deployed_by')}
             </span>
           </a>
-          <p className="text-[10px] text-slate-300 font-medium">
+          <p className="text-[11px] text-slate-400 font-medium">
             {t('about.version', { version: import.meta.env.VITE_APP_VERSION })}
           </p>
         </footer>

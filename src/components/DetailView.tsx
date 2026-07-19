@@ -110,7 +110,7 @@ function CalcFieldRow({
   return (
     <div
       ref={activeRef}
-      className={`rounded-2xl border shadow-sm overflow-hidden transition-all ${
+      className={`rounded-2xl border shadow-sm overflow-hidden transition ${
         isActive
           ? 'border-yellow-400 ring-2 ring-yellow-300'
           : 'border-slate-200'
@@ -127,7 +127,7 @@ function CalcFieldRow({
           {displayName}
         </button>
         {dataType && (
-          <span className="shrink-0 text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-white border border-slate-100 px-1.5 py-0.5 rounded">
+          <span className="shrink-0 text-[11px] font-bold text-slate-500 uppercase tracking-widest bg-white border border-slate-100 px-1.5 py-0.5 rounded">
             {dataType}
           </span>
         )}
@@ -147,7 +147,7 @@ function CalcFieldRow({
               data-testid="calc-row-graph-button"
               onClick={() => onOpenGraph(name)}
               title={t('drawer.view_graph')}
-              className="p-1.5 rounded-lg border border-transparent text-slate-300 transition-all hover:bg-white hover:border-slate-200 hover:text-indigo-500 hover:shadow-sm active:scale-95"
+              className="p-1.5 rounded-lg border border-transparent text-slate-400 transition hover:bg-white hover:border-slate-200 hover:text-indigo-500 hover:shadow-sm active:scale-95"
             >
               <GitBranch size={13} />
             </button>
@@ -162,7 +162,7 @@ function CalcFieldRow({
                   .then(() => setCopied(true))
               }}
               title={t('drawer.copy_formula')}
-              className={`flex items-center gap-1 px-2 py-1 rounded-lg border text-[10px] font-bold transition-all active:scale-95 ${
+              className={`flex items-center gap-1 px-2 py-1 rounded-lg border text-[11px] font-bold transition active:scale-95 ${
                 copied
                   ? 'bg-emerald-50 text-emerald-600 border-emerald-200'
                   : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300 hover:text-slate-700'
@@ -201,7 +201,7 @@ function HeaderGraphButton({
       onClick={() => onOpenGraph(graphRef)}
       data-testid={`detail-graph-${graphRef.kind}`}
       title={t('drawer.view_graph')}
-      className="ml-auto shrink-0 flex items-center gap-2 px-3 sm:px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-bold shadow-sm transition-all hover:border-indigo-300 hover:text-indigo-600 hover:shadow-md active:scale-95"
+      className="ml-auto shrink-0 flex items-center gap-2 px-3 sm:px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-bold shadow-sm transition hover:border-indigo-300 hover:text-indigo-600 hover:shadow-md active:scale-95"
     >
       <GitBranch size={14} />
       <span className="hidden sm:inline">{t('drawer.view_graph')}</span>
@@ -272,7 +272,7 @@ export default function DetailView({
       <div
         key={`${info.name}-${keySuffix}`}
         ref={isActive ? activePillRef : null}
-        className="inline-block mr-2 mb-2"
+        className="inline-block mr-2 mb-2 max-w-full min-w-0"
       >
         <Pill
           {...info}
@@ -299,7 +299,7 @@ export default function DetailView({
 
   if (!selectedId || !selectedType) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center text-slate-400 bg-slate-50/30">
+      <div className="flex-1 flex flex-col items-center justify-center text-slate-500 bg-slate-50/30">
         <div className="p-6 bg-white rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center gap-4">
           <MousePointer2 size={48} className="text-slate-200 animate-bounce" />
           <p className="text-sm font-medium">{t('status.empty_state_hint')}</p>
@@ -314,14 +314,14 @@ export default function DetailView({
     if (!db) return null
 
     return (
-      <div className="flex-1 overflow-y-auto p-10 space-y-10 animate-in fade-in slide-in-from-right-4 duration-500">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-10 space-y-6 sm:space-y-10 animate-in fade-in slide-in-from-right-4 duration-300">
         <header className="flex items-center gap-6">
           <div className="p-4 bg-blue-100 text-blue-600 rounded-2xl">
             <Layout size={40} />
           </div>
           <div className="min-w-0">
             <h1
-              className="text-4xl font-black text-slate-800 tracking-tight truncate"
+              className="text-2xl sm:text-4xl font-black text-slate-800 tracking-tight break-words [text-wrap:balance]"
               title={db.name}
             >
               {db.name}
@@ -338,7 +338,7 @@ export default function DetailView({
 
         <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">
+            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">
               {t('nav.navigator')}
             </h3>
             <p className="text-5xl font-black text-slate-800">
@@ -352,7 +352,7 @@ export default function DetailView({
             <Layout size={20} className="text-blue-500" />{' '}
             {t('detail.layout_title')}
           </h3>
-          <p className="text-xs text-slate-400 mb-6">
+          <p className="text-xs text-slate-500 mb-6">
             {t('detail.layout_hint')}
           </p>
           <DashboardLayoutMap
@@ -376,7 +376,7 @@ export default function DetailView({
                   key={wsName}
                   type="button"
                   onClick={() => onNavigate?.('worksheet', wsName)}
-                  className="w-full text-left bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:border-blue-400 hover:shadow-md transition-all cursor-pointer group active:scale-[0.98]"
+                  className="w-full text-left bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:border-blue-400 hover:shadow-md transition cursor-pointer group active:scale-[0.98]"
                 >
                   <p
                     className="font-bold text-slate-700 group-hover:text-blue-600 transition-colors truncate"
@@ -384,7 +384,7 @@ export default function DetailView({
                   >
                     {displayName}
                   </p>
-                  <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-wider font-bold">
+                  <p className="text-[11px] text-slate-500 mt-1 uppercase tracking-wider font-bold">
                     {t('button.view_detail')}
                   </p>
                 </button>
@@ -482,7 +482,7 @@ export default function DetailView({
                 return renderPill(info, `shelf-${i}`)
               })
             ) : (
-              <span className="text-[11px] text-slate-300 italic py-1">
+              <span className="text-[11px] text-slate-400 italic py-1">
                 {t('detail.none')}
               </span>
             )}
@@ -571,7 +571,7 @@ export default function DetailView({
             </div>
             {/* マークタイプを日本語で常に表示 */}
             {pane.markType !== undefined && (
-              <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
+              <span className="text-[11px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
                 {tMark(pane.markType)}
               </span>
             )}
@@ -589,7 +589,7 @@ export default function DetailView({
               .filter((group) => group.fields && group.fields.length > 0)
               .map((group) => (
                 <div key={group.label} className="flex items-start gap-3">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest shrink-0 w-14 pt-1.5">
+                  <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest shrink-0 w-14 pt-1.5">
                     {group.label}
                   </p>
                   <div className="flex flex-wrap items-center gap-1 flex-1">
@@ -608,7 +608,7 @@ export default function DetailView({
     const markKind = getWorksheetMarkKind(ws)
 
     return (
-      <div className="flex-1 overflow-y-auto p-10 space-y-10 animate-in fade-in slide-in-from-right-4 duration-500">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-10 space-y-6 sm:space-y-10 animate-in fade-in slide-in-from-right-4 duration-300">
         <header className="flex items-center gap-6">
           {/* シートのマーク種別を大きく図示し、どんなチャートか一目で分かるようにする */}
           <div className="p-4 bg-emerald-100 text-emerald-600 rounded-2xl">
@@ -616,13 +616,13 @@ export default function DetailView({
           </div>
           <div className="min-w-0">
             <h1
-              className="text-4xl font-black text-slate-800 tracking-tight truncate"
+              className="text-2xl sm:text-4xl font-black text-slate-800 tracking-tight break-words [text-wrap:balance]"
               title={ws.caption || ws.name}
             >
               {ws.caption || ws.name}
             </h1>
             <div className="flex flex-wrap items-center gap-3 mt-2">
-              <span className="px-2 py-1 bg-slate-100 text-slate-500 text-[10px] font-bold rounded uppercase tracking-widest">
+              <span className="px-2 py-1 bg-slate-100 text-slate-500 text-[11px] font-bold rounded uppercase tracking-widest">
                 {t('nav.sheets')}
               </span>
               {/* チャート種別バッジ */}
@@ -631,7 +631,7 @@ export default function DetailView({
               </span>
               <span className="text-slate-200">/</span>
               <span className="text-slate-500 text-sm flex items-center gap-1.5 font-medium">
-                <Database size={14} className="text-slate-400" />{' '}
+                <Database size={14} className="text-slate-500" />{' '}
                 {ws.datasourceNames?.map(getDatasourceCaption).join(', ')}
               </span>
             </div>
@@ -684,13 +684,13 @@ export default function DetailView({
 
     if (isParameters) {
       return (
-        <div className="flex-1 overflow-y-auto p-10 space-y-10 animate-in fade-in slide-in-from-right-4 duration-500">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-10 space-y-6 sm:space-y-10 animate-in fade-in slide-in-from-right-4 duration-300">
           <header className="flex items-center gap-6">
             <div className="p-4 bg-purple-100 text-purple-600 rounded-2xl">
               <Hash size={40} />
             </div>
             <div>
-              <h1 className="text-4xl font-black text-slate-800 tracking-tight">
+              <h1 className="text-2xl sm:text-4xl font-black text-slate-800 tracking-tight break-words [text-wrap:balance]">
                 {t('detail.parameters')}
               </h1>
               <p className="text-slate-500 font-medium text-lg mt-1">
@@ -714,11 +714,11 @@ export default function DetailView({
                           { ...info, isUnused: isFieldUnused(f.column) },
                           'ds-param',
                         )}
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-50 px-2 py-0.5 rounded">
+                        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest bg-slate-50 px-2 py-0.5 rounded">
                           {f.dataType}
                         </span>
                       </div>
-                      <div className="text-[10px] font-bold text-slate-300 uppercase tracking-[0.2em]">
+                      <div className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.2em]">
                         {f.paramDomainType || 'any'}
                       </div>
                     </div>
@@ -726,7 +726,7 @@ export default function DetailView({
                     <div className="space-y-6">
                       {f.paramDomainType === 'list' && f.paramMembers && (
                         <div>
-                          <p className="text-[10px] font-bold text-slate-400 uppercase mb-3 tracking-widest">
+                          <p className="text-[11px] font-bold text-slate-500 uppercase mb-3 tracking-widest">
                             {t('detail.list')}
                           </p>
                           <div className="flex flex-wrap gap-2">
@@ -739,7 +739,7 @@ export default function DetailView({
                                   {m.alias || m.value}
                                 </span>
                                 {m.alias && (
-                                  <span className="text-[9px] text-slate-400 mt-0.5">
+                                  <span className="text-[9px] text-slate-500 mt-0.5">
                                     Value: {m.value}
                                   </span>
                                 )}
@@ -751,12 +751,12 @@ export default function DetailView({
 
                       {f.paramDomainType === 'range' && f.paramRange && (
                         <div>
-                          <p className="text-[10px] font-bold text-slate-400 uppercase mb-3 tracking-widest">
+                          <p className="text-[11px] font-bold text-slate-500 uppercase mb-3 tracking-widest">
                             {t('detail.range')}
                           </p>
                           <div className="flex items-center gap-8">
                             <div className="flex flex-col gap-1">
-                              <span className="text-[9px] text-slate-400 uppercase font-bold tracking-wider">
+                              <span className="text-[9px] text-slate-500 uppercase font-bold tracking-wider">
                                 {t('detail.min')}
                               </span>
                               <span className="text-base font-black text-slate-700">
@@ -764,7 +764,7 @@ export default function DetailView({
                               </span>
                             </div>
                             <div className="flex flex-col gap-1">
-                              <span className="text-[9px] text-slate-400 uppercase font-bold tracking-wider">
+                              <span className="text-[9px] text-slate-500 uppercase font-bold tracking-wider">
                                 {t('detail.max')}
                               </span>
                               <span className="text-base font-black text-slate-700">
@@ -773,7 +773,7 @@ export default function DetailView({
                             </div>
                             {f.paramRange.step && (
                               <div className="flex flex-col gap-1">
-                                <span className="text-[9px] text-slate-400 uppercase font-bold tracking-wider">
+                                <span className="text-[9px] text-slate-500 uppercase font-bold tracking-wider">
                                   {t('detail.step')}
                                 </span>
                                 <span className="text-base font-black text-slate-700">
@@ -787,7 +787,7 @@ export default function DetailView({
 
                       {(!f.paramDomainType || f.paramDomainType === 'any') && (
                         <div className="py-2 px-4 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                          <p className="text-xs text-slate-400 italic">
+                          <p className="text-xs text-slate-500 italic">
                             {t('detail.all_values')}
                           </p>
                         </div>
@@ -810,14 +810,14 @@ export default function DetailView({
     ).length
 
     return (
-      <div className="flex-1 overflow-y-auto p-10 space-y-10 animate-in fade-in slide-in-from-right-4 duration-500">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-10 space-y-6 sm:space-y-10 animate-in fade-in slide-in-from-right-4 duration-300">
         <header className="flex items-center gap-6">
           <div className="p-4 bg-amber-100 text-amber-600 rounded-2xl">
             <Database size={40} />
           </div>
           <div className="flex-1 min-w-0">
             <h1
-              className="text-4xl font-black text-slate-800 tracking-tight truncate"
+              className="text-2xl sm:text-4xl font-black text-slate-800 tracking-tight break-words [text-wrap:balance]"
               title={ds.caption || ds.name}
             >
               {ds.caption || ds.name}
@@ -832,10 +832,10 @@ export default function DetailView({
             <button
               type="button"
               onClick={() => setDsViewMode('list')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
                 dsViewMode === 'list'
                   ? 'bg-white text-slate-800 shadow-sm'
-                  : 'text-slate-400 hover:text-slate-600'
+                  : 'text-slate-500 hover:text-slate-600'
               }`}
             >
               <List size={14} /> {t('view.list')}
@@ -843,10 +843,10 @@ export default function DetailView({
             <button
               type="button"
               onClick={() => setDsViewMode('pills')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
                 dsViewMode === 'pills'
                   ? 'bg-white text-slate-800 shadow-sm'
-                  : 'text-slate-400 hover:text-slate-600'
+                  : 'text-slate-500 hover:text-slate-600'
               }`}
             >
               <LayoutGrid size={14} /> {t('view.pills')}
@@ -860,7 +860,7 @@ export default function DetailView({
               <Hash size={16} /> {t('detail.calculated_fields')} ({calcs.length}
               )
               {unusedCalcCount > 0 && (
-                <span className="ml-auto normal-case tracking-normal text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                <span className="ml-auto normal-case tracking-normal text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
                   {t('usage.unused_count', { count: unusedCalcCount })}
                 </span>
               )}
@@ -912,7 +912,7 @@ export default function DetailView({
               <Database size={16} /> {t('detail.standard_fields')} (
               {normal.length})
               {unusedNormalCount > 0 && (
-                <span className="ml-auto normal-case tracking-normal text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                <span className="ml-auto normal-case tracking-normal text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
                   {t('usage.unused_count', { count: unusedNormalCount })}
                 </span>
               )}
@@ -941,7 +941,7 @@ export default function DetailView({
                         {stripBrackets(info.caption)}
                       </button>
                       {info.dataType && (
-                        <span className="shrink-0 text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-50 border border-slate-100 px-1.5 py-0.5 rounded">
+                        <span className="shrink-0 text-[11px] font-bold text-slate-500 uppercase tracking-widest bg-slate-50 border border-slate-100 px-1.5 py-0.5 rounded">
                           {info.dataType}
                         </span>
                       )}

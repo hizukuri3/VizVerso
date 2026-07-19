@@ -43,7 +43,7 @@ function GraphIconButton({
       }}
       title={t('graph.title')}
       data-testid={`sidebar-graph-${graphRef.kind}-${graphRef.name}`}
-      className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1.5 rounded-lg border border-transparent text-slate-300 transition-all group-hover:bg-white group-hover:border-slate-200 group-hover:text-indigo-500 group-hover:shadow-sm hover:ring-2 hover:ring-indigo-200 hover:text-indigo-600 active:scale-95"
+      className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1.5 rounded-lg border border-transparent text-slate-400 transition group-hover:bg-white group-hover:border-slate-200 group-hover:text-indigo-500 group-hover:shadow-sm hover:ring-2 hover:ring-indigo-200 hover:text-indigo-600 active:scale-95"
     >
       <GitBranch size={13} />
     </button>
@@ -101,7 +101,7 @@ export default function Sidebar({
   return (
     <aside className="w-80 flex-shrink-0 bg-white border-r border-slate-200 overflow-y-auto flex flex-col h-full">
       <div className="p-4 border-b border-slate-200 bg-slate-50/50 space-y-3">
-        <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+        <h2 className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
           {t('nav.navigator')}
         </h2>
         {fileName && (
@@ -110,8 +110,8 @@ export default function Sidebar({
               <FileText size={14} />
             </div>
             <div className="overflow-hidden">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight leading-none mb-1">
-                Analyzing File
+              <p className="text-[11px] font-bold text-slate-500 uppercase tracking-tight leading-none mb-1">
+                {t('nav.analyzing_file')}
               </p>
               <p
                 className="text-xs font-black text-slate-700 truncate leading-tight"
@@ -130,7 +130,7 @@ export default function Sidebar({
           <button
             onClick={onOpenHealth}
             data-testid="sidebar-health-nav"
-            className={`w-full text-left px-3 py-2 rounded-xl text-sm transition-all duration-200 flex items-center gap-2 ${
+            className={`w-full text-left px-3 py-2 rounded-xl text-sm transition duration-200 flex items-center gap-2 ${
               isHealthActive
                 ? 'sidebar-item-active shadow-sm'
                 : 'hover:bg-slate-50 text-slate-600'
@@ -147,7 +147,7 @@ export default function Sidebar({
         {/* Dashboards Section */}
         {doc.dashboards.length > 0 && (
           <div>
-            <h3 className="px-3 mb-3 text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+            <h3 className="px-3 mb-3 text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
               <Layout size={14} className="text-blue-500 opacity-70" />{' '}
               {t('nav.dashboards')}
             </h3>
@@ -161,7 +161,8 @@ export default function Sidebar({
                     <div className="relative group">
                       <button
                         onClick={(e) => toggleDashboard(e, db.name)}
-                        className={`w-full text-left px-3 py-2 pr-9 rounded-xl text-sm transition-all duration-200 flex items-center gap-2 ${
+                        aria-expanded={isExpanded}
+                        className={`w-full text-left px-3 py-2 pr-9 rounded-xl text-sm transition duration-200 flex items-center gap-2 ${
                           isActive
                             ? 'sidebar-item-active shadow-sm'
                             : 'hover:bg-slate-50 text-slate-600'
@@ -169,7 +170,7 @@ export default function Sidebar({
                       >
                         <ChevronRight
                           size={14}
-                          className={`text-slate-300 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                          className={`text-slate-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
                         />
                         <span
                           className="truncate font-semibold"
@@ -209,7 +210,7 @@ export default function Sidebar({
                                   className={
                                     selectedId === wsName
                                       ? 'text-blue-500'
-                                      : 'text-slate-300'
+                                      : 'text-slate-400'
                                   }
                                 />
                                 <span className="truncate" title={displayName}>
@@ -235,7 +236,7 @@ export default function Sidebar({
         {/* Floating Sheets Section */}
         {floatingSheets.length > 0 && (
           <div>
-            <h3 className="px-3 mb-3 text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+            <h3 className="px-3 mb-3 text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
               <FileText size={14} className="text-emerald-500 opacity-70" />{' '}
               {t('nav.sheets')}
             </h3>
@@ -244,7 +245,7 @@ export default function Sidebar({
                 <div key={ws.name} className="relative group">
                   <button
                     onClick={(e) => handleItemClick(e, 'worksheet', ws.name)}
-                    className={`w-full text-left px-3 py-2 pr-9 rounded-xl text-sm transition-all duration-200 flex items-center gap-2 ${
+                    className={`w-full text-left px-3 py-2 pr-9 rounded-xl text-sm transition duration-200 flex items-center gap-2 ${
                       selectedId === ws.name
                         ? 'sidebar-item-active shadow-sm'
                         : 'hover:bg-slate-50 text-slate-600'
@@ -255,7 +256,7 @@ export default function Sidebar({
                       className={
                         selectedId === ws.name
                           ? 'text-blue-500'
-                          : 'text-slate-300'
+                          : 'text-slate-400'
                       }
                     />
                     <span
@@ -277,7 +278,7 @@ export default function Sidebar({
 
         {/* Datasources Section */}
         <div>
-          <h3 className="px-3 mb-3 text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+          <h3 className="px-3 mb-3 text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
             <Database size={14} className="text-amber-500 opacity-70" />{' '}
             {t('nav.datasources')}
           </h3>
@@ -286,7 +287,7 @@ export default function Sidebar({
               <button
                 key={ds.name}
                 onClick={(e) => handleItemClick(e, 'datasource', ds.name)}
-                className={`w-full text-left px-3 py-2 rounded-xl text-sm transition-all duration-200 flex items-center gap-2 group ${
+                className={`w-full text-left px-3 py-2 rounded-xl text-sm transition duration-200 flex items-center gap-2 group ${
                   selectedId === ds.name
                     ? 'sidebar-item-active shadow-sm'
                     : 'hover:bg-slate-50 text-slate-600'
@@ -295,7 +296,7 @@ export default function Sidebar({
                 <Database
                   size={14}
                   className={
-                    selectedId === ds.name ? 'text-blue-500' : 'text-slate-300'
+                    selectedId === ds.name ? 'text-blue-500' : 'text-slate-400'
                   }
                 />
                 <span
@@ -316,19 +317,19 @@ export default function Sidebar({
           <div className="flex items-center gap-3">
             <button
               onClick={onOpenLegal}
-              className="text-[10px] font-bold text-slate-400 hover:text-blue-600 transition-colors uppercase tracking-wider"
+              className="text-[11px] font-bold text-slate-500 hover:text-blue-600 transition-colors uppercase tracking-wider"
             >
               {t('legal.title')}
             </button>
             <div className="w-1 h-1 bg-slate-200 rounded-full" />
             <button
               onClick={onOpenPrivacy}
-              className="text-[10px] font-bold text-slate-400 hover:text-blue-600 transition-colors uppercase tracking-wider"
+              className="text-[11px] font-bold text-slate-500 hover:text-blue-600 transition-colors uppercase tracking-wider"
             >
               {t('privacy.title')}
             </button>
           </div>
-          <p className="text-[9px] text-slate-300 font-bold uppercase tracking-[0.2em]">
+          <p className="text-[9px] text-slate-400 font-bold uppercase tracking-[0.2em]">
             © {new Date().getFullYear()} VizVerso
           </p>
         </div>

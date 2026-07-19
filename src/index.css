@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import 'tw-animate-css';
 
 @theme {
   /* Tableau 10 Color Palette */
@@ -36,8 +37,23 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-.transition-all-200 {
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+/* キーボード操作時のフォーカスリング（マウス操作では表示しない） */
+:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* 動きの抑制設定に追従: スライド・スプリング系をカットし、瞬時に切り替える */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 .sidebar-item-active {
@@ -100,6 +116,15 @@ body {
 
 /* Buy Me a Coffee widget visibility control */
 /* 吹き出しなしのスクリプトを使用しているため、特別な非表示制御は不要になりました */
+/* 作業用モーダル・ドロワー（z-60〜80）より下に置き、狭い画面ではコンテンツと重なるため非表示にする */
+#bmc-wbtn {
+  z-index: 50 !important;
+}
+@media (max-width: 640px) {
+  #bmc-wbtn {
+    display: none !important;
+  }
+}
 
 /* 依存グラフ: 中心切り替え時にノードの移動をアニメーションさせる */
 .impact-modal .react-flow__node {
