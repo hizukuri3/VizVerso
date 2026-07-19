@@ -1,9 +1,16 @@
 import { useMemo, useState } from 'react'
-import { RefreshCw, AlertCircle, ArrowLeft, FileText } from 'lucide-react'
+import {
+  RefreshCw,
+  AlertCircle,
+  ArrowLeft,
+  FileText,
+  FileSpreadsheet,
+} from 'lucide-react'
 import DragDropZone from './DragDropZone'
 import { DiffView } from './DiffView'
 import { parseWorkbookAsync } from '../utils/workerManager'
 import { diffWorkbooks } from '../utils/workbookDiff'
+import { exportDiffToExcel } from '../utils/diffExcelExporter'
 import { t } from '../utils/i18n'
 import type { TableauDocument } from '../types/tableau'
 
@@ -124,7 +131,23 @@ export function CompareView({ onExit }: CompareViewProps) {
 
         {/* 結果 */}
         {diff && before.loaded && after.loaded && (
-          <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-4">
+            {/* Excel 差分レポート出力 */}
+            <div className="flex justify-end">
+              <button
+                onClick={() =>
+                  exportDiffToExcel(
+                    diff,
+                    before.loaded!.fileName,
+                    after.loaded!.fileName,
+                  )
+                }
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition-all"
+              >
+                <FileSpreadsheet size={14} />
+                {t('diff.export_button')}
+              </button>
+            </div>
             <DiffView
               diff={diff}
               beforeName={before.loaded.fileName}

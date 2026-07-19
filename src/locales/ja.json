@@ -422,7 +422,7 @@
     }
   },
   "diff": {
-    "entry_button": "2つのワークブックを比較（β）",
+    "entry_button": "2つのワークブックを比較",
     "title": "ワークブック比較",
     "subtitle": "変更前と変更後の2つのワークブックを読み込むと、追加・削除・変更された要素を一覧できます。",
     "before_label": "基準（変更前）",
@@ -460,7 +460,37 @@
       "cols": "列",
       "filters": "フィルター",
       "markType": "マークタイプ",
-      "worksheets": "シート構成"
+      "worksheets": "シート構成",
+      "fieldType": "連続/不連続",
+      "paramValue": "現在値",
+      "paramDomain": "許容値の種類",
+      "paramRange": "値の範囲",
+      "paramMembers": "値リスト",
+      "encodingColor": "色",
+      "encodingSize": "サイズ",
+      "encodingLabel": "ラベル",
+      "encodingDetail": "詳細",
+      "encodingTooltip": "ツールヒント",
+      "encodingShape": "形状",
+      "size": "サイズ (px)",
+      "usedFields": "参照フィールド",
+      "zones": "オブジェクト",
+      "zoneLayout": "オブジェクト配置"
+    },
+    "export_button": "差分レポートを Excel 出力",
+    "excel": {
+      "suffix": "_差分レポート",
+      "sheet_summary": "サマリー",
+      "col_category": "カテゴリ",
+      "col_state": "状態",
+      "col_name": "名前",
+      "col_property": "プロパティ",
+      "col_before": "変更前",
+      "col_after": "変更後",
+      "col_unchanged": "変更なし",
+      "meta_before_file": "変更前ファイル",
+      "meta_after_file": "変更後ファイル",
+      "meta_generated": "出力日時"
     }
   }
 }

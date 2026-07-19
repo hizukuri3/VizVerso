@@ -1,9 +1,11 @@
 import type {
+  DashboardZone,
   TableauDashboard,
   TableauDatasource,
   TableauDocument,
   TableauField,
   TableauWorksheet,
+  WorksheetPane,
   WorksheetShelf,
 } from '../types/tableau'
 
@@ -61,6 +63,13 @@ export interface WorkbookDiff {
 function normalizeFormula(formula?: string): string {
   // \s+ はリテラル正規表現のため security/detect-non-literal-regexp の対象外
   return (formula ?? '').replace(/\s+/g, ' ').trim()
+}
+
+/** 前後のブラケット（[ ]）を外した文字列にする。 */
+function stripBrackets(value?: string): string {
+  if (!value) return ''
+  // ^\[ / \]$ はリテラル正規表現のため security/detect-non-literal-regexp の対象外
+  return value.replace(/^\[/, '').replace(/\]$/, '')
 }
 
 /**
@@ -224,7 +233,30 @@ function dedupeByProperty(changes: PropertyChange[]): PropertyChange[] {
   return out
 }
 
-/** フィールドの変更点（formula/caption/dataType/role/isCalc）を列挙する。 */
+/** パラメータの現在値を文字列化する（undefined は ''）。 */
+function serializeParamValue(value?: string | number): string {
+  return value === undefined ? '' : String(value)
+}
+
+/** パラメータの許容範囲を `min..max` (+ ` step X`) に直列化する（全て undefined なら ''）。 */
+function serializeParamRange(range?: TableauField['paramRange']): string {
+  if (!range) return ''
+  const { min, max, step } = range
+  if (min === undefined && max === undefined && step === undefined) return ''
+  const base = `${min ?? ''}..${max ?? ''}`
+  return step !== undefined ? `${base} step ${step}` : base
+}
+
+/** パラメータの値リストをメンバー毎に `value` または `value (alias)` へ直列化する。 */
+function serializeParamMembers(
+  members?: TableauField['paramMembers'],
+): string[] {
+  return (members ?? []).map((m) =>
+    m.alias !== undefined ? `${m.value} (${m.alias})` : `${m.value}`,
+  )
+}
+
+/** フィールドの変更点（formula/caption/dataType/role/isCalc/型/パラメータ系）を列挙する。 */
 function detectFieldChanges(
   before: TableauField,
   after: TableauField,
@@ -247,6 +279,36 @@ function detectFieldChanges(
   if (beforeCalc !== afterCalc) {
     changes.push({ property: 'isCalc', before: beforeCalc, after: afterCalc })
   }
+  // 連続/不連続（type: quantitative/nominal/ordinal）の変化
+  pushIfChanged(changes, 'fieldType', before.type, after.type)
+  // パラメータの現在値
+  pushIfChanged(
+    changes,
+    'paramValue',
+    serializeParamValue(before.value),
+    serializeParamValue(after.value),
+  )
+  // パラメータの許容値の種類（list / range / any）
+  pushIfChanged(
+    changes,
+    'paramDomain',
+    before.paramDomainType,
+    after.paramDomainType,
+  )
+  // パラメータの許容範囲
+  pushIfChanged(
+    changes,
+    'paramRange',
+    serializeParamRange(before.paramRange),
+    serializeParamRange(after.paramRange),
+  )
+  // パラメータの値リスト（メンバー増減）
+  pushListChanges(
+    changes,
+    'paramMembers',
+    serializeParamMembers(before.paramMembers),
+    serializeParamMembers(after.paramMembers),
+  )
   return changes
 }
 
@@ -298,11 +360,33 @@ function shelfNames(
   return (shelf?.[key] ?? []).map((s) => s.name)
 }
 
+/** マークカードのエンコーディング棚（color/size/label/...）のフィールド名リストを取り出す。 */
+function encodingNames(
+  pane: WorksheetPane | undefined,
+  key: keyof WorksheetPane['encodings'],
+): string[] {
+  // key は encodings のキーのリテラル union のため安全
+  // eslint-disable-next-line security/detect-object-injection
+  return (pane?.encodings?.[key] ?? []).map((s) => s.name)
+}
+
+/** エンコーディング棚と対応する property 名の一覧。 */
+const ENCODING_PROPS: [keyof WorksheetPane['encodings'], string][] = [
+  ['color', 'encodingColor'],
+  ['size', 'encodingSize'],
+  ['label', 'encodingLabel'],
+  ['detail', 'encodingDetail'],
+  ['tooltip', 'encodingTooltip'],
+  ['shape', 'encodingShape'],
+]
+
 function detectWorksheetChanges(
   before: TableauWorksheet,
   after: TableauWorksheet,
 ): PropertyChange[] {
   const changes: PropertyChange[] = []
+  // キャプションの変化
+  pushIfChanged(changes, 'caption', before.caption, after.caption)
   // 依存フィールドの増減
   pushListChanges(
     changes,
@@ -326,6 +410,135 @@ function detectWorksheetChanges(
     before.shelf?.marks?.markType,
     after.shelf?.marks?.markType,
   )
+  // マークカードのエンコーディング（色/サイズ/ラベル/詳細/ツールヒント/形状）の増減
+  for (const [enc, prop] of ENCODING_PROPS) {
+    pushListChanges(
+      changes,
+      prop,
+      encodingNames(before.shelf?.marks, enc),
+      encodingNames(after.shelf?.marks, enc),
+    )
+  }
+  return changes
+}
+
+// ── ダッシュボードの変更検出 ──────────────────────────────────────
+
+/** ダッシュボードのサイズを `width×height` に直列化する（両方 undefined なら ''）。 */
+function serializeDashboardSize(width?: number, height?: number): string {
+  if (width === undefined && height === undefined) return ''
+  return `${width ?? ''}×${height ?? ''}`
+}
+
+/** ゾーンの表示ラベル（name > title > param、ブラケット除去。無ければ (unnamed)）。 */
+function zoneLabel(zone: DashboardZone): string {
+  const label = stripBrackets(zone.name ?? zone.title ?? zone.param)
+  return label || '(unnamed)'
+}
+
+/** ゾーンの説明文字列 `ラベル [kind]`。 */
+function zoneDesc(zone: DashboardZone): string {
+  return `${zoneLabel(zone)} [${zone.kind}]`
+}
+
+/** ゾーンのマッチングキー（kind + ラベル）。 */
+function zoneMatchKey(zone: DashboardZone): string {
+  return `${zone.kind}::${stripBrackets(zone.name ?? zone.title ?? zone.param ?? '')}`
+}
+
+/**
+ * ゾーン列を「出現順で一意化したキー → ゾーン」の Map にする。
+ * kind='other'（レイアウトコンテナ等）は対象外。
+ * 同一キーが複数ある場合は 2 件目以降に `#2` のような出現インデックスを付与する。
+ */
+function indexZones(zones: DashboardZone[]): Map<string, DashboardZone> {
+  const counts = new Map<string, number>()
+  const map = new Map<string, DashboardZone>()
+  for (const zone of zones) {
+    if (zone.kind === 'other') continue
+    const base = zoneMatchKey(zone)
+    const n = (counts.get(base) ?? 0) + 1
+    counts.set(base, n)
+    map.set(n === 1 ? base : `${base}#${n}`, zone)
+  }
+  return map
+}
+
+/**
+ * ゾーンのレイアウトを人間可読な文字列に直列化する。
+ * ダッシュボードの width/height（px）が両方ある版は正規化座標(100000基準)を px 換算し
+ * `x,y w×hpx`、無い版は % 換算（小数1桁）で `x%,y% w%×h%`。
+ */
+function zoneLayoutStr(
+  zone: DashboardZone,
+  dashWidth?: number,
+  dashHeight?: number,
+): string {
+  if (dashWidth !== undefined && dashHeight !== undefined) {
+    const px = (v: number, total: number): number =>
+      Math.round((v / 100000) * total)
+    return `${px(zone.x, dashWidth)},${px(zone.y, dashHeight)} ${px(zone.w, dashWidth)}×${px(zone.h, dashHeight)}px`
+  }
+  const pct = (v: number): string => ((v / 100000) * 100).toFixed(1)
+  return `${pct(zone.x)}%,${pct(zone.y)}% ${pct(zone.w)}%×${pct(zone.h)}%`
+}
+
+/** ゾーンの x/y/w/h が変わったか（floating / zOrder は無視）。 */
+function zoneLayoutChanged(a: DashboardZone, b: DashboardZone): boolean {
+  return a.x !== b.x || a.y !== b.y || a.w !== b.w || a.h !== b.h
+}
+
+/** ダッシュボードの変更点（caption/size/worksheets/usedFields/zones）を列挙する。 */
+function detectDashboardChanges(
+  before: TableauDashboard,
+  after: TableauDashboard,
+): PropertyChange[] {
+  const changes: PropertyChange[] = []
+  // キャプションの変化
+  pushIfChanged(changes, 'caption', before.caption, after.caption)
+  // サイズの変化
+  pushIfChanged(
+    changes,
+    'size',
+    serializeDashboardSize(before.width, before.height),
+    serializeDashboardSize(after.width, after.height),
+  )
+  // 配置シート構成の増減
+  pushListChanges(
+    changes,
+    'worksheets',
+    before.worksheets ?? [],
+    after.worksheets ?? [],
+  )
+  // 参照フィールド（パラメータコントロール / 動的ゾーン表示）の増減
+  pushListChanges(
+    changes,
+    'usedFields',
+    before.usedFields ?? [],
+    after.usedFields ?? [],
+  )
+  // ゾーン（オブジェクト）の追加/削除/移動
+  const beforeZones = indexZones(before.zones ?? [])
+  const afterZones = indexZones(after.zones ?? [])
+  for (const [key, afterZone] of afterZones) {
+    const beforeZone = beforeZones.get(key)
+    if (beforeZone === undefined) {
+      changes.push({ property: 'zones', after: zoneDesc(afterZone) })
+      continue
+    }
+    if (zoneLayoutChanged(beforeZone, afterZone)) {
+      changes.push({
+        property: 'zoneLayout',
+        before: `${zoneDesc(beforeZone)}: ${zoneLayoutStr(beforeZone, before.width, before.height)}`,
+        after: `${zoneDesc(afterZone)}: ${zoneLayoutStr(afterZone, after.width, after.height)}`,
+      })
+    }
+  }
+  for (const [key, beforeZone] of beforeZones) {
+    if (!afterZones.has(key)) {
+      changes.push({ property: 'zones', before: zoneDesc(beforeZone) })
+    }
+  }
   return changes
 }
 
@@ -363,16 +576,7 @@ export function diffWorkbooks(
       before.dashboards,
       after.dashboards,
       (db) => db.name,
-      (b, a) => {
-        const changes: PropertyChange[] = []
-        pushListChanges(
-          changes,
-          'worksheets',
-          b.worksheets ?? [],
-          a.worksheets ?? [],
-        )
-        return changes
-      },
+      detectDashboardChanges,
     ),
   }
 }
