@@ -113,14 +113,9 @@ export default function App() {
       setRestoreCandidate(null)
       // 解析成功したファイルを次回リロード用に保存（fire-and-forget）
       void saveLastWorkbook(file)
-      // 最初の一つをデフォルトで選択（もしあれば）
-      if (parsedDoc.dashboards.length > 0) {
-        setSelectedId(parsedDoc.dashboards[0].name)
-        setSelectedType('dashboard')
-      } else if (parsedDoc.worksheets.length > 0) {
-        setSelectedId(parsedDoc.worksheets[0].name)
-        setSelectedType('worksheet')
-      }
+      // 解析直後はまずヘルスチェックを表示する
+      // （URL パラメータで type/id が指定されている場合は後続の effect で上書きされる）
+      setShowHealth(true)
       // 匿名の利用計測（ファイル名・フィールド名等は送らず、粗いバケットのみ）
       const fieldTotal = parsedDoc.datasources.reduce(
         (sum, ds) => sum + ds.fields.length,
@@ -696,6 +691,9 @@ export default function App() {
                 onOpenGraph={openGraph}
                 onOpenHealth={() => {
                   setShowHealth(true)
+                  // 直前の選択ハイライトが残らないよう選択状態を解除する
+                  setSelectedId(null)
+                  setSelectedType(null)
                   // モバイルでは開いた後に自動で閉じる（選択時と同じパターン）
                   if (window.innerWidth < 768) {
                     setIsSidebarOpen(false)
@@ -760,6 +758,7 @@ export default function App() {
                     setTargetFieldName(fieldName)
                     openDrawer()
                   }}
+                  onOpenGraph={openGraph}
                 />
               </>
             )}

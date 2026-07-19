@@ -10,8 +10,10 @@ import {
   LayoutGrid,
   Copy,
   Check,
+  GitBranch,
 } from 'lucide-react'
 import type { TableauDocument, WorksheetPane } from '../types/tableau'
+import type { GraphRootRef } from '../utils/impactAnalyzer'
 import DashboardLayoutMap from './DashboardLayoutMap'
 import { Pill, SyntaxHighlightedFormula } from './ui/Pill'
 import { t, tMark } from '../utils/i18n'
@@ -82,6 +84,7 @@ interface CalcFieldRowProps {
   isActive: boolean
   activeRef?: React.Ref<HTMLDivElement>
   onOpenDrawer?: (fieldName: string) => void
+  onOpenGraph?: (fieldName: string) => void
 }
 
 function CalcFieldRow({
@@ -94,6 +97,7 @@ function CalcFieldRow({
   isActive,
   activeRef,
   onOpenDrawer,
+  onOpenGraph,
 }: CalcFieldRowProps) {
   // 行ごとにコピー状態を保持する
   const [copied, setCopied] = useState(false)
@@ -136,26 +140,39 @@ function CalcFieldRow({
             {t('usage.unused_badge')}
           </span>
         )}
-        {formattedFormula && (
-          <button
-            type="button"
-            data-testid="copy-formula-button"
-            onClick={() => {
-              void navigator.clipboard
-                .writeText(formattedFormula)
-                .then(() => setCopied(true))
-            }}
-            title={t('drawer.copy_formula')}
-            className={`ml-auto shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg border text-[10px] font-bold transition-all active:scale-95 ${
-              copied
-                ? 'bg-emerald-50 text-emerald-600 border-emerald-200'
-                : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300 hover:text-slate-700'
-            }`}
-          >
-            {copied ? <Check size={12} /> : <Copy size={12} />}
-            {copied ? t('drawer.copied') : t('drawer.copy_formula')}
-          </button>
-        )}
+        <div className="ml-auto shrink-0 flex items-center gap-1.5">
+          {onOpenGraph && (
+            <button
+              type="button"
+              data-testid="calc-row-graph-button"
+              onClick={() => onOpenGraph(name)}
+              title={t('drawer.view_graph')}
+              className="p-1.5 rounded-lg border border-transparent text-slate-300 transition-all hover:bg-white hover:border-slate-200 hover:text-indigo-500 hover:shadow-sm active:scale-95"
+            >
+              <GitBranch size={13} />
+            </button>
+          )}
+          {formattedFormula && (
+            <button
+              type="button"
+              data-testid="copy-formula-button"
+              onClick={() => {
+                void navigator.clipboard
+                  .writeText(formattedFormula)
+                  .then(() => setCopied(true))
+              }}
+              title={t('drawer.copy_formula')}
+              className={`flex items-center gap-1 px-2 py-1 rounded-lg border text-[10px] font-bold transition-all active:scale-95 ${
+                copied
+                  ? 'bg-emerald-50 text-emerald-600 border-emerald-200'
+                  : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300 hover:text-slate-700'
+              }`}
+            >
+              {copied ? <Check size={12} /> : <Copy size={12} />}
+              {copied ? t('drawer.copied') : t('drawer.copy_formula')}
+            </button>
+          )}
+        </div>
       </div>
       {formattedFormula && (
         <div className="p-3">
@@ -163,6 +180,32 @@ function CalcFieldRow({
         </div>
       )}
     </div>
+  )
+}
+
+// ────────────────────────────
+// 詳細画面ヘッダーの依存グラフ起動ボタン
+// ダッシュボード / シート詳細からワンクリックでグラフへ遷移できるようにする
+// ────────────────────────────
+function HeaderGraphButton({
+  graphRef,
+  onOpenGraph,
+}: {
+  graphRef: GraphRootRef
+  onOpenGraph?: (ref: GraphRootRef) => void
+}) {
+  if (!onOpenGraph) return null
+  return (
+    <button
+      type="button"
+      onClick={() => onOpenGraph(graphRef)}
+      data-testid={`detail-graph-${graphRef.kind}`}
+      title={t('drawer.view_graph')}
+      className="ml-auto shrink-0 flex items-center gap-2 px-3 sm:px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-bold shadow-sm transition-all hover:border-indigo-300 hover:text-indigo-600 hover:shadow-md active:scale-95"
+    >
+      <GitBranch size={14} />
+      <span className="hidden sm:inline">{t('drawer.view_graph')}</span>
+    </button>
   )
 }
 
@@ -176,6 +219,8 @@ interface DetailViewProps {
   ) => void
   activeFieldName?: string | null
   onOpenDrawer?: (fieldName: string) => void
+  /** 詳細画面のヘッダー等から依存グラフを開く */
+  onOpenGraph?: (ref: GraphRootRef) => void
 }
 
 export default function DetailView({
@@ -185,6 +230,7 @@ export default function DetailView({
   onNavigate,
   activeFieldName,
   onOpenDrawer,
+  onOpenGraph,
 }: DetailViewProps) {
   // データソース表示の表示モード（デフォルトはリスト表示）
   const [dsViewMode, setDsViewMode] = useState<'list' | 'pills'>('list')
@@ -284,6 +330,10 @@ export default function DetailView({
               {t('detail.dashboard_summary')}
             </p>
           </div>
+          <HeaderGraphButton
+            graphRef={{ kind: 'dashboard', name: db.name }}
+            onOpenGraph={onOpenGraph}
+          />
         </header>
 
         <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -586,6 +636,10 @@ export default function DetailView({
               </span>
             </div>
           </div>
+          <HeaderGraphButton
+            graphRef={{ kind: 'sheet', name: ws.name }}
+            onOpenGraph={onOpenGraph}
+          />
         </header>
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 items-stretch">
@@ -830,6 +884,12 @@ export default function DetailView({
                       isActive={isActive}
                       activeRef={isActive ? activePillRef : undefined}
                       onOpenDrawer={onOpenDrawer}
+                      onOpenGraph={
+                        onOpenGraph
+                          ? (fieldName) =>
+                              onOpenGraph({ kind: 'field', name: fieldName })
+                          : undefined
+                      }
                     />
                   )
                 })}

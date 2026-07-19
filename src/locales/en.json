@@ -417,7 +417,7 @@
     },
     "step_health": {
       "title": "Check workbook health",
-      "desc": "Open \"Health Check\" in the navigator to automatically detect nested LODs, duplicated formulas, unused fields, and more — with an overall health score."
+      "desc": "Right after analysis, the Health Check view opens first. It automatically detects nested LODs, duplicated formulas, unused fields, and more — with an overall health score."
     },
     "step_export": {
       "title": "Export to Excel",
