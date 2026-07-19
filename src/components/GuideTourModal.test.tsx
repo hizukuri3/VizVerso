@@ -51,11 +51,12 @@ describe('GuideTourModal - 使い方ガイドツアー', () => {
       screen.getByText('データはブラウザの外に出ません'),
     ).toBeInTheDocument()
 
-    fireEvent.click(screen.getByText('次へ'))
-    expect(screen.getByText('構造と計算式を探索')).toBeInTheDocument()
-
+    // 解析直後に最初に表示されるヘルスチェックを、探索より先に説明する順序
     fireEvent.click(screen.getByText('次へ'))
     expect(screen.getByText('ヘルスチェックで健全性を確認')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByText('次へ'))
+    expect(screen.getByText('構造と計算式を探索')).toBeInTheDocument()
 
     fireEvent.click(screen.getByText('次へ'))
     expect(screen.getByText('Excel にエクスポート')).toBeInTheDocument()
@@ -99,7 +100,7 @@ describe('GuideTourModal - 使い方ガイドツアー', () => {
   it('ドットインジケーターのクリックで任意のステップへ移動できること', () => {
     render(<GuideTourModal isOpen={true} onClose={() => {}} />)
     fireEvent.click(screen.getByLabelText('4 / 5'))
-    expect(screen.getByText('ヘルスチェックで健全性を確認')).toBeInTheDocument()
+    expect(screen.getByText('構造と計算式を探索')).toBeInTheDocument()
     fireEvent.click(screen.getByLabelText('5 / 5'))
     expect(screen.getByText('Excel にエクスポート')).toBeInTheDocument()
   })

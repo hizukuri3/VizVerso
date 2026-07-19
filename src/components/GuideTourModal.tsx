@@ -60,17 +60,18 @@ function TourDialog({ onClose }: { onClose: () => void }) {
       title: t('tour.step_privacy.title'),
       desc: t('tour.step_privacy.desc'),
     },
-    {
-      icon: <Network size={28} />,
-      iconClass: 'bg-violet-50 text-violet-600',
-      title: t('tour.step_explore.title'),
-      desc: t('tour.step_explore.desc'),
-    },
+    // 解析直後に最初に表示されるヘルスチェックを、実際の画面遷移と同じ順で先に説明する
     {
       icon: <HeartPulse size={28} />,
       iconClass: 'bg-rose-50 text-rose-600',
       title: t('tour.step_health.title'),
       desc: t('tour.step_health.desc'),
+    },
+    {
+      icon: <Network size={28} />,
+      iconClass: 'bg-violet-50 text-violet-600',
+      title: t('tour.step_explore.title'),
+      desc: t('tour.step_explore.desc'),
     },
     {
       icon: <Download size={28} />,
