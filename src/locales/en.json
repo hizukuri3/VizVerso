@@ -420,6 +420,65 @@
       "desc": "Export the analysis results to an Excel file in one click. You can reopen this guide anytime from the ? button in the header."
     }
   },
+  "health": {
+    "nav": "Health Check",
+    "title": "Workbook Health Check",
+    "subtitle": "Automatically checks calculated fields for performance, complexity, and cleanup opportunities.",
+    "score_label": "Health Score",
+    "calc_fields": "Calculated fields checked: {{count}}",
+    "findings_count": "{{count}} findings",
+    "no_findings": "No issues found",
+    "no_findings_desc": "All checked calculated fields passed the rules.",
+    "severity": {
+      "warning": "Warning",
+      "info": "Info"
+    },
+    "category": {
+      "performance": "Performance",
+      "complexity": "Complexity",
+      "cleanup": "Cleanup"
+    },
+    "rule": {
+      "nestedLod": {
+        "title": "Nested LOD expressions",
+        "desc": "An LOD expression contains another LOD expression. This complicates queries and can hurt performance.",
+        "detail": "Nesting depth: {{depth}}"
+      },
+      "countd": {
+        "title": "COUNTD usage",
+        "desc": "COUNTD is an expensive aggregation, especially on file-based data sources.",
+        "detail": "COUNTD used: {{count}} time(s)"
+      },
+      "heavyStringCalc": {
+        "title": "Row-level string processing",
+        "desc": "String functions like CONTAINS and REGEXP are evaluated per row and can be slow on large data.",
+        "detail": "Functions used: {{functions}}"
+      },
+      "deepIfChain": {
+        "title": "Long conditional chain",
+        "desc": "Too many IF/ELSEIF or CASE branches. Consider groups, sets, or a lookup table instead.",
+        "detail": "Branches: {{count}}"
+      },
+      "deepDependency": {
+        "title": "Deep dependency chain",
+        "desc": "Calculated field references are deeply chained, making logic hard to trace. Consider consolidating intermediate fields.",
+        "detail": "Dependency depth: {{depth}}"
+      },
+      "duplicateFormula": {
+        "title": "Duplicated formulas",
+        "desc": "Multiple fields share the same formula. Consolidating them improves maintainability.",
+        "detail": "Fields with the same formula: {{others}}"
+      },
+      "unusedCalc": {
+        "title": "Unused calculated fields",
+        "desc": "Calculated fields not referenced by any sheet, calculation, or dashboard. Removing them slims down the workbook."
+      },
+      "unusedParam": {
+        "title": "Unused parameters",
+        "desc": "Parameters that are not referenced anywhere."
+      }
+    }
+  },
   "diff": {
     "entry_button": "Compare two workbooks",
     "title": "Workbook Comparison",
