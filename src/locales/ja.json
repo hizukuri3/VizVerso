@@ -32,7 +32,7 @@
     }
   },
   "status": {
-    "processing": "ワークブックを解析中...",
+    "processing": "ワークブックを解析中…",
     "empty_state_hint": "ナビゲーターからアイテムを選択してください"
   },
   "error": {
@@ -88,8 +88,8 @@
     "calc_type": "計算種別",
     "continuous": "連続",
     "discrete": "不連続",
-    "parameters": "パラメータ",
-    "param_settings": "パラメータ設定",
+    "parameters": "パラメーター",
+    "param_settings": "パラメーター設定",
     "list": "リスト",
     "range": "範囲",
     "min": "最小値",
@@ -192,8 +192,8 @@
     "sheet_worksheet_shelf": "ワークシート・シェルフ",
     "sheet_calc_fields": "計算フィールド一覧",
     "sheet_fields": "フィールド一覧",
-    "sheet_parameters": "パラメータ一覧",
-    "sheet_dependencies": "使用フィールド (ワークシート)",
+    "sheet_parameters": "パラメーター一覧",
+    "sheet_dependencies": "使用フィールド（ワークシート）",
     "sheet_field_dependencies": "計算フィールド依存関係",
     "col_dashboard_name": "ダッシュボード名",
     "col_included_sheets": "含まれるシート",
@@ -216,7 +216,7 @@
     "col_layer_axis": "レイヤー / 軸",
     "col_agg": "集計",
     "col_fieldname": "フィールド名",
-    "col_param_name": "パラメータ名",
+    "col_param_name": "パラメーター名",
     "col_param_type": "データ型",
     "col_param_domain": "許容値",
     "col_param_config": "設定値",
@@ -277,14 +277,13 @@
     "discard": "破棄"
   },
   "search": {
-    "placeholder": "シート、データソース、計算フィールドを検索...",
+    "placeholder": "シート、データソース、計算フィールドを検索…",
     "open": "検索を開く",
     "close": "検索を閉じる",
     "no_results": "一致するアイテムが見つかりませんでした",
     "direct_match": "直接一致",
     "dependency_match": "依存関係",
     "hit_formula": "計算式内にヒット",
-    "hit_dependency": "参照元",
     "definition": "定義元を表示",
     "usage": "利用箇所を表示",
     "type_worksheet": "シート",
@@ -294,10 +293,10 @@
   "drawer": {
     "title": "フィールド詳細",
     "formula": "計算式",
-    "upstream": "参照元 (この項目が参照している)",
-    "downstream": "参照先 (この項目を参照している)",
-    "no_upstream": "参照元はありません",
-    "no_downstream": "参照先はありません",
+    "upstream": "依存先（この項目が参照している）",
+    "downstream": "影響先（この項目を参照している）",
+    "no_upstream": "依存先はありません",
+    "no_downstream": "影響先はありません",
     "no_sheets": "この項目を使用しているシートはありません",
     "drill_down": "詳細を表示",
     "view_in_main": "一覧で強調表示",
@@ -323,7 +322,7 @@
     "address": "所在地",
     "address_detail": "消費者庁の指針に基づき、個人販売者のプライバシー保護のため、住所の詳細については請求があれば遅滞なくメールにて提供いたします。",
     "contact": "連絡先",
-    "contact_email": "hizukur3@gmail.com",
+    "contact_email": "hizukuri3@gmail.com",
     "contact_phone": "電話番号",
     "contact_phone_detail": "請求があれば遅滞なく提供いたします（上記メールアドレスまでご請求ください）。",
     "price": "販売価格（支援額）",
@@ -378,7 +377,7 @@
   "graph": {
     "title": "依存グラフ",
     "fields": "フィールド",
-    "upstream": "参照元",
+    "upstream": "依存先",
     "root": "中心",
     "downstream": "影響先",
     "sheets": "シート",
@@ -387,7 +386,7 @@
     "recenter": "中心に表示",
     "open_detail": "詳細を開く",
     "truncated": "ノード数が多いため一部を省略しています",
-    "parameter": "パラメータ",
+    "parameter": "パラメーター",
     "group_label": "{{count}} 件のフィールド",
     "group_expand": "クリックで展開",
     "group_more": "他 {{count}} 件",
@@ -409,7 +408,7 @@
     "start": "はじめる",
     "step_upload": {
       "title": "ワークブックをドロップ",
-      "desc": ".twb / .twbx ファイルをドラッグ＆ドロップするだけで解析が始まります。手元にファイルがなければ「サンプルを試す」からデモを体験できます。"
+      "desc": ".twb / .twbx ファイルをドラッグ＆ドロップするだけで解析が始まります。手元にファイルがなければ「サンプルで試す」からデモを体験できます。"
     },
     "step_privacy": {
       "title": "データはブラウザの外に出ません",
@@ -482,8 +481,8 @@
         "desc": "どのシート・計算式・ダッシュボードからも参照されていない計算フィールドです。削除するとワークブックを軽くできます。"
       },
       "unusedParam": {
-        "title": "未使用のパラメータ",
-        "desc": "どこからも参照されていないパラメータです。"
+        "title": "未使用のパラメーター",
+        "desc": "どこからも参照されていないパラメーターです。"
       }
     }
   },
@@ -506,7 +505,7 @@
     "unchanged_count": "変更なし {{count}} 件",
     "before": "変更前",
     "after": "変更後",
-    "empty": "(なし)",
+    "empty": "（なし）",
     "renamed": "名称変更",
     "affected_sheets": "影響シート: {{count}}件",
     "category": {

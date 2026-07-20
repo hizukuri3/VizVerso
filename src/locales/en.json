@@ -3,7 +3,7 @@
     "title": "VizVerso",
     "doc_title": "VizVerso | Tableau Workbook Analyzer (.twbx / .twb)",
     "tagline": "Analyze Tableau workbooks and visualize dependencies.",
-    "description": "Drop a .twbx file to visualize dashboard structures and calculated field dependencies in detail.",
+    "description": "Drop a .twbx or .twb file to visualize dashboard structures and calculated field dependencies in detail.",
     "about_title": "About VizVerso"
   },
   "button": {
@@ -15,7 +15,7 @@
     "back": "Back"
   },
   "header": {
-    "sheet_count": "{{count}} Sheets"
+    "sheet_count": "{{count}} sheets"
   },
   "features": {
     "safe_analysis": {
@@ -32,7 +32,7 @@
     }
   },
   "status": {
-    "processing": "Analyzing workbook...",
+    "processing": "Analyzing workbook…",
     "empty_state_hint": "Please select an item from the navigator"
   },
   "error": {
@@ -51,7 +51,7 @@
   },
   "detail": {
     "dashboard_summary": "Dashboard Summary",
-    "worksheet_count": "{{count}} Sheets",
+    "worksheet_count": "{{count}} sheets",
     "inner_worksheets": "Worksheets in this dashboard",
     "layout_title": "Layout",
     "layout_hint": "Click a chart to open its detail",
@@ -108,6 +108,7 @@
     "count": "COUNT",
     "attr": "ATTR",
     "collect": "COLLECT",
+    "agg": "AGG",
     "none": "None"
   },
   "mark": {
@@ -134,7 +135,7 @@
     "as_is_title": "As Is",
     "as_is_desc": "This tool is provided 'as is'. The author takes no responsibility for any direct or indirect damages (data corruption, impact on business, etc.) caused by using this tool.",
     "relationship_title": "Relationship",
-    "relationship_desc": "This project is a personal development and is not affiliated with Salesforce.com, Inc. or Tableau Software, LLC.",
+    "relationship_desc": "This is a personal project and is not affiliated with Salesforce.com, Inc. or Tableau Software, LLC.",
     "credits_title": "Credits & Licenses",
     "special_thanks": "To the Tableau DataFam community",
     "deployed_by": "DEPLOYED BY @hizukuri3",
@@ -227,7 +228,7 @@
     "sheet_dashboard_objects": "Dashboard Objects",
     "col_object_type": "Object Type",
     "col_object_name": "Object",
-    "col_object_content": "Content / Value",
+    "col_object_content": "Content / Current Value",
     "col_x": "X",
     "col_y": "Y",
     "col_width": "Width",
@@ -252,7 +253,7 @@
       "desc_fields": "All fields: data type, role, calc type, usage, and formula.",
       "desc_dependencies": "Fields used by each worksheet.",
       "desc_field_dependencies": "Other fields referenced by calculated fields (dependencies).",
-      "desc_worksheet": "(Sheets named after each worksheet) Mark type and encoding (color/size/label...) details.",
+      "desc_worksheet": "(Sheets named after each worksheet) Mark type and encoding (color/size/label, etc.) details.",
       "tip_id": "The \"ID\" column is shared across all sheets. Match the same ID across sheets to trace how a field is used.",
       "tip_coords": "Coordinates X / Y / Width / Height are pixel values scaled to the dashboard's actual size (origin at top-left). e.g. a 1300×800 dashboard spans Width=1300, Height=800. If the dashboard has no fixed size, values fall back to Tableau normalized units (whole dashboard = 100000 × 100000).",
       "tip_filter": "The header row is frozen and filterable. Use the ▼ on each header to sort and filter.",
@@ -276,25 +277,24 @@
     "discard": "Discard"
   },
   "search": {
-    "placeholder": "Search sheets, datasources, fields...",
+    "placeholder": "Search sheets, data sources, fields…",
     "open": "Open search",
     "close": "Close search",
     "no_results": "No matching items found",
     "direct_match": "Direct Match",
     "dependency_match": "Dependency",
     "hit_formula": "Hit in formula",
-    "hit_dependency": "Referenced by",
     "definition": "Show Definition",
     "usage": "Show Usage",
     "type_worksheet": "Sheet",
-    "type_datasource": "Datasource",
+    "type_datasource": "Data Source",
     "type_field": "Field"
   },
   "drawer": {
     "title": "Field Details",
     "formula": "Calculation Formula",
-    "upstream": "Sources (References)",
-    "downstream": "Consumers (Referenced by)",
+    "upstream": "Depends on (fields this item references)",
+    "downstream": "Referenced by (fields using this item)",
     "no_upstream": "No upstream dependencies",
     "no_downstream": "No downstream dependencies",
     "no_sheets": "Not used in any sheets",
@@ -314,19 +314,19 @@
     "view_graph": "View Dependency Graph"
   },
   "legal": {
-    "title": "Specified Commercial Transactions Act",
+    "title": "Disclosures under the Specified Commercial Transactions Act",
     "seller": "Vendor",
     "seller_name": "Takeshi Hizukuri",
     "representative": "Representative",
     "representative_name": "Takeshi Hizukuri",
     "address": "Address",
-    "address_detail": "In accordance with the guidelines of the Consumer Affairs Agency, for the privacy protection of individual sellers, details of the address will be provided via email without delay upon request.",
+    "address_detail": "In accordance with Consumer Affairs Agency guidelines, and to protect the privacy of individual sellers, the address will be provided by email without delay upon request.",
     "contact": "Contact",
-    "contact_email": "hizukur3@gmail.com",
+    "contact_email": "hizukuri3@gmail.com",
     "contact_phone": "Phone Number",
     "contact_phone_detail": "Will be provided without delay upon request (please request via the email address above).",
     "price": "Price (Donation Amount)",
-    "price_detail": "Amount voluntarily determined by the customer (Donation/Chip). Please refer to each checkout screen for details.",
+    "price_detail": "Amount voluntarily determined by the customer (donation/tip). Please refer to each checkout screen for details.",
     "additional_charges": "Additional Charges",
     "additional_charges_detail": "None (Internet connection fees and other communication costs are the responsibility of the customer).",
     "payment_method": "Payment Method",
@@ -345,7 +345,7 @@
     "sections": {
       "data_security": {
         "title": "Data Security",
-        "content": "VizVerso does not send any content of the Tableau workbooks (.twbx, .twb) uploaded for analysis to any server. All analysis processes are performed within your browser, ensuring that your data is never leaked externally."
+        "content": "VizVerso never sends the contents of uploaded Tableau workbooks (.twbx, .twb) to any server. All analysis runs inside your browser, and your data never leaves it."
       },
       "information_collect": {
         "title": "Information Collection",
@@ -379,7 +379,7 @@
     "fields": "Fields",
     "upstream": "Upstream",
     "root": "Center",
-    "downstream": "Impacted",
+    "downstream": "Downstream",
     "sheets": "Sheets",
     "dashboards": "Dashboards",
     "hint": "Click to expand/collapse; use the ◎ button to center",
@@ -408,7 +408,7 @@
     "start": "Get started",
     "step_upload": {
       "title": "Drop your workbook",
-      "desc": "Just drag & drop a .twb / .twbx file to start the analysis. No file at hand? Use \"Try a sample\" to explore a demo."
+      "desc": "Just drag & drop a .twb / .twbx file to start the analysis. No file at hand? Use \"Try with a sample\" to explore a demo."
     },
     "step_privacy": {
       "title": "Your data never leaves the browser",
@@ -420,7 +420,7 @@
     },
     "step_health": {
       "title": "Check workbook health",
-      "desc": "Right after analysis, the Health Check view opens first. It automatically detects nested LODs, duplicated formulas, unused fields, and more — with an overall health score."
+      "desc": "Right after analysis, the Health Check view opens first. It automatically detects nested LODs, duplicated formulas, unused fields, and more, then sums everything up in an overall health score."
     },
     "step_export": {
       "title": "Export to Excel",
