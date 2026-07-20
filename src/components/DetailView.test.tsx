@@ -435,7 +435,7 @@ describe('DetailView - パラメータデータソースビュー', () => {
       />,
     )
     // パラメータ見出し
-    expect(screen.getByText('パラメータ')).toBeInTheDocument()
+    expect(screen.getByText('パラメーター')).toBeInTheDocument()
     // list: alias 表示（One）と、alias 無しメンバーの value（2）
     expect(screen.getByText('One')).toBeInTheDocument()
     expect(screen.getByText('2')).toBeInTheDocument()

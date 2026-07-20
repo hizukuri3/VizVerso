@@ -160,7 +160,7 @@ describe('SideDrawer - パラメータ設定の表示', () => {
       />,
     )
     // セクション見出しと現在の値
-    expect(screen.getByText('パラメータ設定')).toBeInTheDocument()
+    expect(screen.getByText('パラメーター設定')).toBeInTheDocument()
     expect(screen.getByText('現在の値')).toBeInTheDocument()
     // エイリアス付きメンバーはエイリアスと Value 表記の両方を表示
     expect(screen.getByText('エー')).toBeInTheDocument()
@@ -181,7 +181,7 @@ describe('SideDrawer - パラメータ設定の表示', () => {
     )
     // 影響分析タイルの件数（0 等）と衝突しないよう、パラメータ設定セクション内に限定して検証
     const paramSection = screen
-      .getByText('パラメータ設定')
+      .getByText('パラメーター設定')
       .closest('section') as HTMLElement
     expect(paramSection).toBeInTheDocument()
     expect(within(paramSection).getByText('最小値')).toBeInTheDocument()
@@ -282,7 +282,7 @@ describe('SideDrawer - 依存関係リストと使用シート', () => {
       screen.getByText('この項目を使用しているシートはありません'),
     ).toBeInTheDocument()
     // downstream もない
-    expect(screen.getByText('参照先はありません')).toBeInTheDocument()
+    expect(screen.getByText('影響先はありません')).toBeInTheDocument()
   })
 })
 
